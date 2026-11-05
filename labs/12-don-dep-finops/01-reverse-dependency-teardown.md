@@ -111,3 +111,4 @@
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Tất cả tài nguyên thuộc 6 tầng được xóa sạch theo đúng thứ tự phụ thuộc ngược.
 - [ ] Không có lệnh xóa nào bị treo hoặc báo lỗi phụ thuộc ENI.
+

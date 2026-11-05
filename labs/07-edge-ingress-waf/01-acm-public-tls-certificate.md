@@ -54,3 +54,4 @@ aws acm list-certificates \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Chứng chỉ ACM chuyển sang trạng thái `ISSUED` tại Region `ap-southeast-1`.
 - [ ] Ghi lại ARN của chứng chỉ để cấu hình cho Ingress ALB ở bài sau.
+

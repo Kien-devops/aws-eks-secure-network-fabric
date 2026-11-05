@@ -71,3 +71,4 @@ Ghi lại chuỗi **ARN** của Web ACL để liên kết với ALB ở bài sau
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Web ACL `fabric-edge-web-acl` được tạo thành công với 4 quy tắc an ninh.
 - [ ] Toàn bộ các rule đang ở chế độ `Count` an toàn, sẵn sàng liên kết với Ingress.
+

@@ -111,3 +111,4 @@ Chạy thử Pod kiểm tra: Pod lạ trong cụm không thể ping hoặc curl 
 - [ ] Tính năng NetworkPolicy được kích hoạt trên AWS VPC CNI.
 - [ ] Chính sách Default Deny có hiệu lực: Các Pod chưa cấp phép không thể kết nối qua lại.
 - [ ] CoreDNS phân giải tên miền bình thường nhờ chính sách allow-dns.
+

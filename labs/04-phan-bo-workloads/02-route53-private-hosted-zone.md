@@ -71,3 +71,4 @@ aws route53 list-hosted-zones-by-name \
 - [ ] Hosted Zone `internal.fabric` được tạo thành công với loại Private.
 - [ ] Cả 2 VPCs (`fabric-edge-vpc` và `fabric-core-vpc`) đều được liên kết thành công.
 - [ ] Bản ghi `order.internal.fabric` được tạo sẵn sàng phân giải sang Core Internal NLB.
+

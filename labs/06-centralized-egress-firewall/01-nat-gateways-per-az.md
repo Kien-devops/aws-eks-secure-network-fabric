@@ -69,3 +69,4 @@ aws ec2 describe-nat-gateways \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Internet Gateway được gắn kết thành công vào `fabric-egress-vpc`.
 - [ ] 2 NAT Gateways ở trạng thái `available` tại đúng 2 Public Subnets của AZ-a và AZ-b.
+

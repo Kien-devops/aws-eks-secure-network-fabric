@@ -56,3 +56,4 @@ aws logs describe-log-groups \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Toàn bộ 8 Log Groups được tạo thành công với đúng tên định danh.
 - [ ] Thời gian lưu trữ (Retention) đều được cấu hình là 7 ngày.
+

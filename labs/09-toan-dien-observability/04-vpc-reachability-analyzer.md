@@ -67,3 +67,4 @@ aws ec2 get-reachability-analyzer-path-analysis \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] AWS VPC Reachability Analyzer hoàn tất phân tích thành công với `Path reachable`.
 - [ ] Mọi chặng trung gian (SG, Route Table, TGW, GWLBe) đều hợp lệ, không có lỗi chặn ngoài ý muốn.
+

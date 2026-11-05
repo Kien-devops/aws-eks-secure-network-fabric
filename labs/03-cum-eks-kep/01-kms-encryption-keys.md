@@ -56,3 +56,4 @@ aws kms list-aliases \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] 2 Khóa KMS CMK được tạo thành công và ở trạng thái `Enabled`.
 - [ ] Key Policy có cấu hình quyền hạn rõ ràng, tuân thủ nguyên tắc Least Privilege.
+

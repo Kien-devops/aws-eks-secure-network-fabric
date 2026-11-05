@@ -63,3 +63,4 @@ Status: PASSED
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] `terraform validate` trả về `Success! The configuration is valid.`
 - [ ] Báo cáo Checkov không còn lỗi vi phạm an ninh nghiêm trọng nào tồn tại.
+

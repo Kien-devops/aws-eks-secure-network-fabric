@@ -81,3 +81,4 @@ aws budgets describe-budgets \
 ## 5. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Ngân sách `fabric-project6-monthly-budget` ở trạng thái hoạt động với hạn mức đúng $50.00.
 - [ ] Cả 2 ngưỡng cảnh báo (80% actual và 100% forecasted) được kích hoạt gửi email.
+

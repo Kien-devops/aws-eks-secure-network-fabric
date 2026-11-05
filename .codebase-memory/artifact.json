@@ -1,11 +1,11 @@
 {
     "schema_version": 2,
-    "commit": "e4174d36f581c616baa57c80a926ee670e04ebc8",
-    "indexed_at": "2026-11-05T08:06:56Z",
+    "commit": "c205fbe808ecac7e3a6f4fd374871e765c119520",
+    "indexed_at": "2026-11-05T08:51:30Z",
     "project": "E-repo-project6-aws-eks-secure-network-fabric",
-    "nodes": 30,
-    "edges": 29,
-    "original_size": 1572864,
-    "compressed_size": 7405,
+    "nodes": 706,
+    "edges": 708,
+    "original_size": 2228224,
+    "compressed_size": 91622,
     "compression_level": 9
 }

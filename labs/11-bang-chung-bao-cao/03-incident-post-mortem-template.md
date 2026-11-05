@@ -44,3 +44,4 @@ Trong quá trình diễn tập GameDay, tính năng Appliance Mode trên Inspect
 |---|---|---|---|
 | Khóa cứng cờ `appliance_mode_support = "enable"` trong mã nguồn Terraform | Platform Team | Ngay lập tức | DONE |
 | Viết Checkov custom rule kiểm tra cờ Appliance Mode trên TGW Attachment | SecOps Team | 24h | DONE |
+

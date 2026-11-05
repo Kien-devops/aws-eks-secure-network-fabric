@@ -50,3 +50,4 @@
 ## 3. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Ghi lại bằng chứng log chứng minh hành vi chặn của tầng bảo vệ thứ hai khi tuyến đường bị rò rỉ.
 - [ ] Thời gian phát hiện và khôi phục (MTTR) được ghi nhận đầy đủ với timestamp.
+

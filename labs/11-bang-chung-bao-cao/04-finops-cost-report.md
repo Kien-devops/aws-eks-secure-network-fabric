@@ -36,3 +36,4 @@
 ## 3. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Tổng chi phí phát sinh thực tế được đối soát trực tiếp với hóa đơn AWS Billing.
 - [ ] Báo cáo FinOps được phê duyệt và lưu trữ cùng bộ bằng chứng kỹ thuật.
+

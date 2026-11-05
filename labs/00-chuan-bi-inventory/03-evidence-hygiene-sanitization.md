@@ -43,3 +43,4 @@
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Không có chuỗi khóa bí mật, mật khẩu cơ sở dữ liệu hay token nào tồn tại trong git commits.
 - [ ] Mọi log output đều có timestamp thực tế từ Region Singapore `ap-southeast-1`.
+

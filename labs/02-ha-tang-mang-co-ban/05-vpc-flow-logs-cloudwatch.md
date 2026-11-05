@@ -86,3 +86,4 @@ aws ec2 describe-flow-logs \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] 4 VPC Flow Logs được kích hoạt thành công trên 4 VPCs.
 - [ ] Dữ liệu log stream xuất hiện trong CloudWatch Log Groups sau vài phút.
+

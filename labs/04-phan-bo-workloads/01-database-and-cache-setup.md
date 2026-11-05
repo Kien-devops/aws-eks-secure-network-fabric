@@ -90,3 +90,4 @@ aws rds describe-db-clusters \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Aurora PostgreSQL Serverless v2 ở trạng thái `available` với endpoint nằm trong dải `10.50.20.0/24`.
 - [ ] ElastiCache Redis và SQS FIFO Queue sẵn sàng nhận kết nối từ Core EKS Pods.
+

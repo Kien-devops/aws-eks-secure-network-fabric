@@ -45,3 +45,4 @@ echo "[+] KIỂM TOÁN THÀNH CÔNG: Toàn bộ bằng chứng đã được kh�
 ## 3. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Không có chuỗi thông tin nhạy cảm nào lọt qua bài kiểm toán.
 - [ ] Account ID được thay thế đồng nhất bằng `123456789012` hoặc `***`.
+

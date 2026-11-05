@@ -77,3 +77,4 @@ aws eks describe-nodegroup \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Cả 2 Node Groups đều chuyển sang trạng thái `ACTIVE`.
 - [ ] Worker Nodes chỉ được cấp IP riêng tư thuộc dải Private Subnet (`10.40.10.0/22` và `10.50.10.0/22`), không có Public IP.
+

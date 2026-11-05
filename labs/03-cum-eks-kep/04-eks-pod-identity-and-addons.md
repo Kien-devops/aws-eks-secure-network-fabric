@@ -83,3 +83,4 @@ aws eks list-addons \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Cả 4 Add-ons ở trạng thái `ACTIVE` trên cả 2 cụm EKS.
 - [ ] Pod Identity association được tạo thành công, gắn đúng ServiceAccount và IAM Role.
+

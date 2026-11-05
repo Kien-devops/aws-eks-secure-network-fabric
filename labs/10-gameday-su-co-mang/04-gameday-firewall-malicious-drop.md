@@ -60,3 +60,4 @@ fields @timestamp, src_ip, dest_ip, alert.signature, alert.category
 ## 3. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Gói tin mang mã độc bị chặn đứng 100%, không tới được Pod `order-service`.
 - [ ] Sự kiện alert xuất hiện trong `eve.json` và CloudWatch Logs với đầy đủ timestamp.
+

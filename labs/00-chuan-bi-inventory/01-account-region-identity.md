@@ -53,3 +53,4 @@ aws configure get region
 - [ ] AWS Console hiển thị đúng vùng `ap-southeast-1` (Singapore).
 - [ ] Lệnh `sts get-caller-identity` trả về ARN hợp lệ với `UserId` rõ ràng.
 - [ ] MFA đang hoạt động trên danh tính đăng nhập.
+

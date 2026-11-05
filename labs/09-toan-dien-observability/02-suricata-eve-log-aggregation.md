@@ -78,3 +78,4 @@ Kiểm tra luồng log trên AWS Console: Mở Log Group `/aws/suricata/fabric-i
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] CloudWatch Agent chạy liên tục trên cả 2 máy chủ Suricata.
 - [ ] Sự kiện trong `eve.json` được stream lên CloudWatch Logs với độ trễ dưới 5 giây.
+

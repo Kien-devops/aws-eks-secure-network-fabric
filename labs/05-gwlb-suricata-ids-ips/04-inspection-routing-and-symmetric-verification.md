@@ -69,3 +69,4 @@ done
 - [ ] Giao tiếp giữa Edge Pod và Core Backend thành công 100% (HTTP 200).
 - [ ] Bằng chứng log `tcpdump` chứng minh đường truyền đối xứng tuyệt đối (Symmetric Flow PASS).
 - [ ] Không có gói tin TCP Out-of-Order hoặc TCP Reset phát sinh do lệch AZ.
+

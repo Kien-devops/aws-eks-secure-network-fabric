@@ -55,3 +55,4 @@ Transit Gateway đóng vai trò làm Router trung tâm ảo kết nối 4 VPCs, 
 ## 3. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Mọi bước nhảy (Hops) đều có thiết bị tiếp nhận rõ ràng và cấu hình định tuyến tương ứng.
 - [ ] Không có hiện tượng gói tin bị quay vòng (Loop) giữa Inspection và TGW.
+

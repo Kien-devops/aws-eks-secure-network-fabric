@@ -66,3 +66,4 @@
 - [ ] Tổng thể 4 VPCs không có bất kỳ dải IP nào chồng chéo.
 - [ ] Subnet TGW có kích thước `/28` (chuẩn AWS cho giao diện TGW).
 - [ ] Subnet Node có kích thước `/22` đáp ứng hơn 1000 IPs cho Pod scale.
+

@@ -95,3 +95,4 @@ aws ec2 describe-vpcs \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Cả 4 VPCs đều ở trạng thái `available` với DNS Hostnames = `true`.
 - [ ] 24 subnets được tạo đầy đủ trên cả 2 AZs `ap-southeast-1a` và `ap-southeast-1b`.
+

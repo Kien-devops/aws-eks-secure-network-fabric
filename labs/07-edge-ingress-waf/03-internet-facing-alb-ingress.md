@@ -91,3 +91,4 @@ aws elbv2 describe-load-balancers \
 - [ ] ALB công khai được tạo thành công trên 2 Public Subnets của Edge VPC.
 - [ ] Listener HTTPS 443 tiếp nhận traffic và chuyển tiếp vào Frontend Pods.
 - [ ] Web ACL `fabric-edge-web-acl` hiển thị trong tab Integrations của ALB trên Console.
+

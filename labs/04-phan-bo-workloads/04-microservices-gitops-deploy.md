@@ -123,3 +123,4 @@ kubectl get pods -l app=payment-worker
 - [ ] Argo CD đồng bộ thành công cả 2 ứng dụng Edge và Core (`Status: Synced`, `Health: Healthy`).
 - [ ] 100% hình ảnh container được ghim bằng SHA digest `@sha256:...`.
 - [ ] Microservice `frontend` kết nối được tới `order.internal.fabric` qua cổng 443.
+

@@ -95,3 +95,4 @@ aws ec2 describe-instances \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] 2 máy chủ Suricata EC2 ở trạng thái `running` tại 2 AZs độc lập (`1a` và `1b`).
 - [ ] `SourceDestCheck` của cả 2 máy chủ đều được tắt thành công (`False`).
+

@@ -68,3 +68,4 @@ fields @timestamp, httpRequest.clientIp, httpRequest.country, terminatingRuleId,
 ## 3. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Cả 4 mẫu truy vấn được lưu lại vào mục **Saved queries** trong CloudWatch Logs Insights.
 - [ ] Thời gian trả lời truy vấn dưới 3 giây đối với tập dữ liệu thực nghiệm.
+

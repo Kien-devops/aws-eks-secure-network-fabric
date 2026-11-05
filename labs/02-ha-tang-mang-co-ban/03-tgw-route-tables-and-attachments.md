@@ -103,3 +103,4 @@ aws ec2 describe-transit-gateway-vpc-attachments \
 - [ ] 5 TGW Route Tables và 4 Attachments được cấu hình chính xác.
 - [ ] `ApplianceModeSupport` của Inspection Attachment là `enable`.
 - [ ] Các static routes được tạo đầy đủ theo đúng thiết kế Hop-by-Hop.
+

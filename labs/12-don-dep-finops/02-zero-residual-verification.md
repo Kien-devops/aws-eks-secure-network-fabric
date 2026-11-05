@@ -82,3 +82,4 @@ echo "=== KIỂM KÊ HOÀN TẤT: TOÀN BỘ DANH SÁCH RỖNG - ĐẠT CHUẨN 
 ## 3. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Không còn bất kỳ tài nguyên nào mang tag `fabric-*` hoặc thuộc Project 6 tồn tại trên AWS.
 - [ ] Hóa đơn chi phí tồn dư xác nhận đạt mức tuyệt đối **$0.00 USD**.
+

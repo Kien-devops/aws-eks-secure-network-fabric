@@ -74,3 +74,4 @@ kubectl get pod -l app=order-service -o jsonpath='{.items[0].status.containerSta
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Tuyệt đối không còn tag `:latest` nào tồn tại trong manifests triển khai.
 - [ ] Quy trình triển khai ứng dụng đi qua Pull Request minh bạch và có truy vết lịch sử git.
+

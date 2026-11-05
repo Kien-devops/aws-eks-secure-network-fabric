@@ -78,3 +78,4 @@ aws eks describe-cluster \
 - [ ] Cả 2 cụm EKS chuyển sang trạng thái `ACTIVE`.
 - [ ] Truy cập công khai API server bị khóa (`PublicAccess = False`).
 - [ ] Cấu hình KMS encryption gắn đúng Key ARN cho từng cluster.
+

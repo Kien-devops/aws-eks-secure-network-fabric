@@ -64,3 +64,4 @@ aws ec2 describe-vpc-endpoints \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Endpoint Service được liên kết chính xác với `fabric-gwlb`.
 - [ ] 2 điểm cuối GWLBe chuyển sang trạng thái `available` tại đúng 2 Subnet GWLBe của AZ-a và AZ-b.
+

@@ -79,3 +79,4 @@ aws elbv2 describe-load-balancers \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] NLB ở trạng thái `active` với cấu hình Scheme là `internal`.
 - [ ] Listener cổng 443 sẵn sàng chuyển tiếp tới Target Group của order-service.
+

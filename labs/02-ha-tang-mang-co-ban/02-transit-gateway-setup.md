@@ -62,3 +62,4 @@ aws ec2 describe-transit-gateways \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Transit Gateway `fabric-tgw` chuyển sang trạng thái `available`.
 - [ ] Tính năng Default Route Table Association và Propagation đều ở trạng thái `disable`.
+

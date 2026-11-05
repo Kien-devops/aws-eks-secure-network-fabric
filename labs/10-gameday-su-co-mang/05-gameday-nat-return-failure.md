@@ -50,3 +50,4 @@
 ## 3. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Xác định chính xác nguyên nhân mất tuyến đường về qua phân tích VPC Flow Logs.
 - [ ] Thời gian phát hiện và khôi phục sự cố được đo lường cụ thể với timestamp.
+

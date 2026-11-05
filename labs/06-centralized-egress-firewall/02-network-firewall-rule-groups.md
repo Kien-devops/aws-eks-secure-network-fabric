@@ -80,3 +80,4 @@ aws network-firewall describe-rule-group \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Stateful Rule Group `fabric-egress-domain-allowlist-rg` ở trạng thái `ACTIVE`.
 - [ ] Danh sách domain allowlist bao gồm đầy đủ các registry container và dịch vụ AWS thiết yếu.
+

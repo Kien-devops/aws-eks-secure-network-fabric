@@ -61,3 +61,4 @@ Quan sát target tự động chuyển lại trạng thái `healthy` trên GWLB.
 - [ ] GWLB tự động chuyển tải sang máy chủ AZ-b khi AZ-a bị tắt.
 - [ ] Bảng đo lường k6 ghi nhận rõ ràng số lượng failed requests và tỷ lệ phục hồi.
 - [ ] Thời gian phục hồi MTTR đạt chuẩn dưới 30 giây.
+

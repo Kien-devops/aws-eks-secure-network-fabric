@@ -64,3 +64,4 @@ cosign verify --key awskms:///arn:aws:kms:ap-southeast-1:123456789012:key/fabric
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] File SBOM chuẩn CycloneDX được sinh ra thành công.
 - [ ] Chữ ký số Cosign được lưu trữ hợp lệ trên AWS ECR và xác thực thành công.
+

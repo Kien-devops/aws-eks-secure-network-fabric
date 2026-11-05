@@ -74,3 +74,4 @@ Ghi lại 2 giá trị `Attachment.EndpointId` tương ứng với Subnet `1a` v
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] AWS Network Firewall ở trạng thái `READY` với 2 Endpoints tại 2 AZs.
 - [ ] Tính năng ghi log Alert và Flow về CloudWatch Logs được kích hoạt thành công.
+

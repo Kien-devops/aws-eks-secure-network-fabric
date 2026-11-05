@@ -60,3 +60,4 @@ Gửi lại 30 requests: Tỷ lệ thành công trở lại **100% (HTTP 200)**.
 ## 3. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Bằng chứng bắt gói tin `tcpdump` chứng minh rõ ràng hiện tượng lệch AZ khi tắt Appliance Mode.
 - [ ] Bằng chứng khôi phục thành công 100% khi bật lại Appliance Mode.
+

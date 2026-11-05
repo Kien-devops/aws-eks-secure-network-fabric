@@ -79,3 +79,4 @@ fields @timestamp, httpRequest.clientIp, action, terminatingRuleId, httpRequest.
 - [ ] Chuyển đổi thành công sang chế độ Block mà không làm gián đoạn người dùng thông thường.
 - [ ] Mọi payload tấn công mô phỏng đều bị chặn đứng với mã lỗi HTTP 403.
 - [ ] Nhật ký WAF có đầy đủ bằng chứng sự kiện BLOCK kèm timestamp.
+

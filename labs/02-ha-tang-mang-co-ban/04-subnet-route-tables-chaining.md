@@ -65,3 +65,4 @@ Tách riêng 2 bảng định tuyến cho Subnet TGW và Subnet GWLBe:
 ## 3. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Bảng định tuyến của các Subnet Private trong Edge và Core đều trỏ đúng đích sang TGW.
 - [ ] Bảng định tuyến Public trong Egress VPC có đủ đường về cho dải IP của Edge và Core.
+

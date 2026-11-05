@@ -33,3 +33,4 @@ Mô hình **STRIDE** do Microsoft phát triển được áp dụng để rà so
 ## 3. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Mọi rủi ro trong 6 hạng mục STRIDE đều có biện pháp kiểm soát kỹ thuật tương ứng trên hạ tầng mạng.
 - [ ] Không có kịch bản nào cho phép traffic đi tắt (bypass) qua cụm kiểm soát an ninh (GWLB hoặc Network Firewall).
+

@@ -75,3 +75,4 @@ aws elbv2 describe-target-health \
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
 - [ ] Gateway Load Balancer `fabric-gwlb` ở trạng thái `active`.
 - [ ] Cả 2 máy chủ Suricata EC2 đều vượt qua kiểm tra sức khỏe (`healthy`) trên Target Group GENEVE.
+

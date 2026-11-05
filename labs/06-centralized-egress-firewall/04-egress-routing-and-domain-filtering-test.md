@@ -80,3 +80,4 @@ fields @timestamp, event.src_ip, event.dest_ip, event.dest_port, event.http.host
 - [ ] Kiến trúc định tuyến 3 chặng Egress hoạt động hoàn hảo mà không bị vòng lặp.
 - [ ] Tên miền cho phép truy cập thành công 100%.
 - [ ] Tên miền và địa chỉ IP bị cấm bị chặn đứng và có log `DROP` trong CloudWatch Logs.
+
