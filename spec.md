@@ -3,10 +3,13 @@
 ## 1. Thông Tin Chung & Bối Cảnh Portfolio
 
 - **Tên dự án:** `aws-eks-secure-network-fabric`
-- **Mục tiêu:** Chứng minh năng lực Chuyên gia Mạng Nâng cao & Bảo mật Đám mây (AWS Advanced Networking & Cloud-Native Security) ở cấp độ Production. Trọng tâm là phân đoạn mạng đa VPC (multi-VPC segmentation), định tuyến đối xứng (symmetric routing qua TGW Appliance Mode), kiểm soát lưu lượng chuyên sâu (GWLB + Suricata qua GENEVE tunnel) và kiểm soát lưu lượng ra ngoài tập trung (Centralized Egress qua AWS Network Firewall). Dự án tập trung thuần túy vào giải pháp mạng hạ tầng, không làm thêm dự án DR hoặc CRUD ứng dụng mới.
-- **Vùng triển khai (Target Region):** **Singapore (`ap-southeast-1`)** - Trải rộng trên 2 Vùng sẵn sàng (AZs: `ap-southeast-1a`, `ap-southeast-1b`).
-- **Phân chia 2 Repository trên GitHub:**
-  1. **Hạ tầng mạng & Nền tảng (Platform & Infrastructure):** [`aws-eks-secure-network-fabric`](https://github.com/Kien-devops/aws-eks-secure-network-fabric)
+- **Mục tiêu cốt lõi:** Chứng minh năng lực Chuyên gia Mạng Nâng cao & An ninh Đám mây (AWS Advanced Networking & Cloud-Native Security Architect) ở cấp độ Production. Tập trung giải quyết bài toán: **Phân đoạn mạng đa VPC (Multi-VPC Segmentation)**, **Định tuyến đối xứng qua TGW Appliance Mode**, **Kiểm tra sâu gói tin nội bộ qua GWLB/GENEVE + Suricata IDS/IPS (East-West)**, và **Tường lửa tập trung kiểm soát lưu lượng đi ra ngoài (Centralized Egress qua AWS Network Firewall)** trên 2 cụm Kubernetes EKS độc lập. Dự án tập trung thuần túy vào giải pháp hạ tầng mạng, không làm thêm dự án DR hoặc CRUD ứng dụng mới.
+- **Ranh giới Vùng Địa Lý (Strictly Single-Region Scope):**
+  - **DUY NHẤT 1 VÙNG:** **Singapore (`ap-southeast-1`)**.
+  - **Phạm vi khả dụng:** Triển khai chịu lỗi cao đa Availability Zones (Multi-AZ) trên đúng 2 AZs: **`ap-southeast-1a`** và **`ap-southeast-1b`**.
+  - **Khẳng định nguyên tắc:** Tuyệt đối **KHÔNG** triển khai liên vùng (Multi-Region), không peering cross-region, không dùng Global Accelerator liên vùng. Toàn bộ 4 VPCs và 2 cụm EKS đều nằm trọn vẹn trong `ap-southeast-1`.
+- **Cấu trúc 2 Repository trên GitHub:**
+  1. **Hạ tầng & Nền tảng (Platform & Infrastructure):** [`aws-eks-secure-network-fabric`](https://github.com/Kien-devops/aws-eks-secure-network-fabric)
   2. **Ứng dụng & GitOps (Workloads & Delivery):** [`aws-eks-secure-network-fabric-app`](https://github.com/Kien-devops/aws-eks-secure-network-fabric-app)
 
 ### Đánh giá khoảng trống năng lực từ 5 dự án trước đó
@@ -16,16 +19,16 @@
 | **NT533** | ECS Fargate DR, khôi phục RDS, AWS Backup, Step Functions, CloudFormation | Một lần diễn tập DR trong lịch sử; ALB hoạt động tốt, chưa hoàn thiện chuyển hướng DNS & đối soát dữ liệu | Thiếu mô hình multi-VPC phức tạp, chưa có EKS và hệ thống kiểm soát an ninh tập trung |
 | **k3s-onprem** | K3s, Ansible, HAProxy, Cloudflare Tunnel, self-hosted CD | Chủ yếu cấu hình và tài liệu; thiếu bằng chứng chạy thực tế (raw runtime evidence) | Thiếu định tuyến đám mây nâng cao và các giải pháp mạng chuẩn doanh nghiệp trên AWS |
 | **NT548** | Microservices trên ECS, Terraform, CodePipeline, RDS, ADOT/X-Ray | Bằng chứng chạy local; CI/CD còn vướng quyền IAM và quyền sở hữu | Chưa có phân đoạn mạng chuyên sâu, chưa có hệ thống IDS/IPS kiểm soát luồng gói tin |
-| **Multi-Region DR** | EKS trên 2 Region, Aurora Global, FSx ONTAP, Global Accelerator, Argo CD | Kịch bản Planned DR đo được `47.429 giây`; toàn bộ hạ tầng đã được dọn dẹp sạch theo tài liệu | Trọng tâm nghiêng về chiến lược DR/RTO/RPO thay vì kiến trúc kiểm tra sâu gói tin mạng |
+| **Multi-Region DR** | EKS trên 2 Region, Aurora Global, FSx ONTAP, Global Accelerator, Argo CD | Kịch bản Planned DR đo được `47.429 giây`; toàn bộ hạ tầng đã được dọn dẹp sạch theo tài liệu | Đã chứng minh năng lực Multi-Region DR; còn thiếu chiều sâu về bảo mật mạng nội bộ & kiểm tra gói tin |
 | **SRE Platform** | EKS Multi-AZ, GitOps, giám sát vận hành, Karpenter, KEDA, canary, chaos | Có hình ảnh và bằng chứng; cấu hình IaC và manifest còn tình trạng lệch pha (drift) | Chưa có phân đoạn TGW (segmentation), GWLB/GENEVE và cụm tường lửa tập trung |
 
-> **Khoảng trống portfolio giải quyết trong Dự án 6:** Cần một dự án kết hợp đầy đủ: **Phân đoạn mạng với Transit Gateway (TGW segmentation)**, **Gateway Load Balancer (GWLB) giải mã gói tin GENEVE**, **Cụm Suricata IDS/IPS kiểm soát luồng nội bộ Đông - Tây (East-West)**, **AWS Network Firewall kiểm soát tập trung luồng đi ra Internet (Centralized Egress)**, **Định tuyến đối xứng (Symmetric Routing với Appliance Mode)**, và **bằng chứng xử lý sự cố mạng thực tế (GameDay)** trên nền tảng 2 cụm Kubernetes EKS riêng biệt.
+> **Khoảng trống portfolio giải quyết trong Dự án 6:** Cần một dự án tập trung chuyên sâu vào **AWS Advanced Networking trên DUY NHẤT 1 VÙNG Singapore (`ap-southeast-1`)**, kết hợp: **TGW Route Segmentation**, **Gateway Load Balancer (GWLB) giải mã GENEVE**, **Cụm Suricata EC2 IDS/IPS kiểm soát luồng Đông - Tây (East-West)**, **AWS Network Firewall kiểm soát tập trung luồng ra Internet (Centralized Egress)**, **Định tuyến đối xứng (Symmetric Routing với Appliance Mode)**, và **bằng chứng xử lý sự cố mạng thực tế (GameDay)** trên 2 cụm Kubernetes EKS riêng biệt.
 
 ---
 
-## 2. Kiến Trúc Mạng Mục Tiêu (Khu Vực Singapore `ap-southeast-1`)
+## 2. Kiến Trúc Mạng Single-Region (Singapore `ap-southeast-1` Multi-AZ)
 
-Hạ tầng triển khai cân bằng tải và chịu lỗi cao trên 2 Vùng sẵn sàng: `ap-southeast-1a` và `ap-southeast-1b`.
+Toàn bộ 4 VPCs và 2 cụm Kubernetes EKS đều được triển khai tập trung trong **Region Singapore (`ap-southeast-1`)**, trải đều trên 2 Vùng sẵn sàng: `ap-southeast-1a` và `ap-southeast-1b`.
 
 ```text
                                   Internet
@@ -35,27 +38,27 @@ Hạ tầng triển khai cân bằng tải và chịu lỗi cao trên 2 Vùng s�
                               ALB + AWS WAF
                                      |
     +-----------------------------------------------------------------+
-    | VPC Edge EKS — 10.40.0.0/16 (ap-southeast-1a/b)                 |
-    | - Subnet Công khai (Public): Cụm Ingress ALB                    |
-    | - Subnet Riêng tư (Private): Các Node Edge EKS (frontend, auth) |
+    | VPC Edge EKS — 10.40.0.0/16 [ap-southeast-1a/b]                 |
+    | - Subnet Public: Cụm Ingress ALB (10.40.0.0/24, 10.40.1.0/24)   |
+    | - Subnet Private: Các Node Edge EKS (frontend, auth-service)    |
     | - Subnet TGW: Giao diện mạng kết nối TGW (Attachment ENIs)      |
     +-----------------------------------------------------------------+
                                      |
-                          [ Transit Gateway (TGW) ]
+                    [ Transit Gateway (fabric-tgw) ]
                                      |
     +-----------------------------------------------------------------+
-    | VPC Kiểm Tra (Inspection) — 10.70.0.0/16 (ap-southeast-1a/b)    |
+    | VPC Inspection — 10.70.0.0/16 [ap-southeast-1a/b]               |
     | - Subnet TGW: ENI TGW (Đã BẬT Appliance Mode = ENABLED)         |
     | - Subnet GWLBe: Điểm cuối VPC kết nối tới GWLB (Endpoint A & B) |
     | - Subnet Tường lửa: Cụm máy chủ ảo Suricata EC2 (GENEVE 6081)  |
     |   <---> Gateway Load Balancer (GWLB)                            |
     +-----------------------------------------------------------------+
                                      |
-                          [ Transit Gateway (TGW) ]
+                    [ Transit Gateway (fabric-tgw) ]
                                      |
     +-----------------------------------------------------------------+
-    | VPC Lõi Core EKS — 10.50.0.0/16 (ap-southeast-1a/b)             |
-    | - Subnet Riêng tư: Node Core EKS (order, inventory, payment)    |
+    | VPC Core EKS — 10.50.0.0/16 [ap-southeast-1a/b]                 |
+    | - Subnet Private: Node Core EKS (order, inventory, payment)     |
     | - Subnet Dữ liệu: Aurora PostgreSQL, ElastiCache Redis, SQS VPCE|
     | - Subnet TGW: Giao diện mạng kết nối TGW (Attachment ENIs)      |
     +-----------------------------------------------------------------+
@@ -63,10 +66,10 @@ Hạ tầng triển khai cân bằng tải và chịu lỗi cao trên 2 Vùng s�
                                0.0.0.0/0 qua TGW
                                      |
     +-----------------------------------------------------------------+
-    | VPC Cổng Ra Tập Trung (Egress) — 10.80.0.0/16 (ap-southeast-1a/b)|
+    | VPC Centralized Egress — 10.80.0.0/16 [ap-southeast-1a/b]       |
     | - Subnet TGW: Giao diện mạng kết nối TGW (Attachment ENIs)      |
     | - Subnet Tường lửa: Điểm cuối AWS Network Firewall (AZ-A, AZ-B) |
-    | - Subnet Công khai: Cổng NAT (NAT GW A & B) và Cổng Internet IGW|
+    | - Subnet Public: Cổng NAT (NAT GW A & B) và Cổng Internet IGW   |
     +-----------------------------------------------------------------+
                                      |
                                   Internet
@@ -107,7 +110,7 @@ Hệ thống tắt hoàn toàn tính năng tự động liên kết (`Default As
 
 ### 3.3 Đảm Bảo Định Tuyến Đối Xứng (Symmetric Routing) Với TGW Appliance Mode
 
-- Khi lưu lượng mạng đi qua cụm tường lửa kiểm tra trạng thái trên nhiều Availability Zones, tất cả các gói tin thuộc cùng một phiên kết nối (cả chiều đi và chiều về) **bắt buộc phải đi qua cùng một máy chủ tường lửa/điểm cuối trong cùng một AZ**. Nếu bị lệch AZ, phiên kết nối TCP sẽ bị đứt do không đồng bộ trạng thái (asymmetric routing drop).
+- Khi lưu lượng mạng đi qua cụm tường lửa kiểm tra trạng thái trên nhiều Availability Zones trong Region Singapore, tất cả các gói tin thuộc cùng một phiên kết nối (cả chiều đi và chiều về) **bắt buộc phải đi qua cùng một máy chủ tường lửa/điểm cuối trong cùng một AZ** (`ap-southeast-1a` hoặc `ap-southeast-1b`). Nếu bị lệch AZ, phiên kết nối TCP sẽ bị đứt do không đồng bộ trạng thái (asymmetric routing drop).
 - **Yêu cầu kỹ thuật bắt buộc:**
   - Bật cấu hình **`ApplianceModeSupport = enable`** trên TGW VPC Attachment gắn vào **Inspection VPC**.
   - Tách biệt độc lập 3 lớp subnet trong từng AZ tại Inspection VPC:
@@ -117,11 +120,11 @@ Hệ thống tắt hoàn toàn tính năng tự động liên kết (`Default As
 
 ---
 
-## 4. Kế Hoạch Phân Bổ Dải Mạng CIDR (Khu Vực Singapore `ap-southeast-1`)
+## 4. Kế Hoạch Phân Bổ Dải Mạng CIDR (Singapore `ap-southeast-1`)
 
-Dự án thiết kế dải IP riêng tư không chồng lấn, đáp ứng tiêu chuẩn mở rộng doanh nghiệp:
+Dự án thiết kế dải IP riêng tư không chồng lấn trong Region Singapore:
 
-| Tên VPC | Dải Mạng Chính (CIDR) | Phân Bổ Subnet Chi Tiết (Trên Cả 2 AZ: a và b) |
+| Tên VPC | Dải Mạng Chính (CIDR) | Phân Bổ Subnet Chi Tiết (Tại `ap-southeast-1a` & `ap-southeast-1b`) |
 |---|---|---|
 | **VPC Edge EKS** | `10.40.0.0/16` | - Subnet Public (ALB Ingress): `10.40.0.0/24`, `10.40.1.0/24`<br>- Subnet Private Node: `10.40.10.0/22`, `10.40.14.0/22`<br>- Subnet Private Pod (Secondary CIDR): `10.40.64.0/18`<br>- Subnet TGW Attachment: `10.40.250.0/28`, `10.40.250.16/28` |
 | **VPC Core EKS** | `10.50.0.0/16` | - Subnet Private Node: `10.50.10.0/22`, `10.50.14.0/22`<br>- Subnet Private Pod (Secondary CIDR): `10.50.64.0/18`<br>- Subnet Dữ liệu (Aurora/Redis): `10.50.20.0/24`, `10.50.21.0/24`<br>- Subnet TGW Attachment: `10.50.250.0/28`, `10.50.250.16/28` |
@@ -132,14 +135,14 @@ Dự án thiết kế dải IP riêng tư không chồng lấn, đáp ứng tiê
 
 ## 5. Bố Trí Dịch Vụ Ứng Dụng (Workload Topology - Sử Dụng Bộ Mã Nguồn `app3`)
 
-Tận dụng toàn bộ các dịch vụ microservices từ `app3`, phân bổ khoa học giữa 2 cụm Kubernetes EKS hoàn toàn riêng tư (Private Clusters):
+Tận dụng toàn bộ các dịch vụ microservices từ `app3`, phân bổ khoa học giữa 2 cụm Kubernetes EKS hoàn toàn riêng tư trong Region Singapore:
 
 ### Cụm Edge EKS (Biên tiếp nhận kết nối công khai)
 - **`frontend`**: Nhận yêu cầu từ người dùng Internet thông qua ALB Ingress và AWS WAF. Gọi xác thực nội bộ tới `auth-service` hoặc gọi backend Core qua tên miền nội bộ bảo mật `https://core.internal.fabric`.
 - **`auth-service`**: Quản lý phiên đăng nhập, tạo và xác thực tính hợp lệ của JWT token.
 
 ### Cụm Core EKS (Khu vực xử lý dữ liệu nghiệp vụ quan trọng)
-- **`order-service`**: Xử lý logic đặt hàng, lưu trữ giao dịch an toàn vào cơ sở dữ liệu Aurora PostgreSQL.
+- **`order-service`**: Xử lý logic đặt hàng, lưu trữ giao dịch an toàn vào cơ sở dữ liệu Aurora PostgreSQL Serverless v2.
 - **`inventory-service`**: Quản lý số lượng tồn kho, bộ đệm dữ liệu tốc độ cao qua ElastiCache Redis.
 - **`payment-worker`**: Lắng nghe hàng đợi bất đồng bộ qua AWS SQS (truy cập qua VPC Endpoint nội bộ) để thực hiện thanh toán.
 
@@ -149,12 +152,12 @@ Tận dụng toàn bộ các dịch vụ microservices từ `app3`, phân bổ k
 
 | Giai Đoạn | Tên Giai Đoạn | Mục Tiêu & Kết Quả Bàn Giao Cụ Thể (Deliverables) |
 |---|---|---|
-| **Giai đoạn 0** | **Kiểm Kê Tài Nguyên (Inventory)** | Sử dụng lệnh chỉ đọc (read-only) qua AWS MCP/CLI để kiểm kê tài nguyên đang chạy trên tài khoản; xác nhận tài nguyên sạch nhằm tránh trùng lặp dải mạng và phát sinh chi phí ngoài ý muốn. |
-| **Giai đoạn 1** | **Thiết Kế & Mô Hình Đe Dọa (Design & Threat Model)** | Hoàn thiện tài liệu phân tích rủi ro theo khung STRIDE, lập ma trận định tuyến chi tiết, xây dựng bảng đường đi từng chặng của gói tin (hop-by-hop packet table) và ranh giới kiểm soát chi phí (cost boundary). |
-| **Giai đoạn 2** | **Thiết Lập Hạ Tầng Mạng Cơ Bản (Foundation)** | Triển khai mã Terraform cho 4 VPCs, chia subnets theo AZ tại Singapore, khởi tạo Transit Gateway, tắt default propagation, cấu hình các bảng định tuyến và kích hoạt VPC Flow Logs. |
-| **Giai đoạn 3** | **Cụm Kubernetes EKS Kép (Dual EKS)** | Triển khai 2 cụm EKS hoàn toàn riêng tư (`edge-eks` và `core-eks`), cấu hình EKS Pod Identity, mã hóa Secrets bằng khóa KMS chuyên biệt, cài đặt Argo CD và NetworkPolicy cơ bản. |
-| **Giai đoạn 4** | **Triển Khai Ứng Dụng (Workloads)** | Đưa các container microservices từ repo ứng dụng lên 2 cụm; thiết lập Route 53 Private Hosted Zone (`internal.fabric`), chứng chỉ số TLS nội bộ và Internal NLB cho Core Ingress. |
-| **Giai đoạn 5** | **Cụm Kiểm Tra GWLB & Suricata IDS/IPS** | Triển khai Gateway Load Balancer, các điểm cuối GWLBe tại VPC Inspection, dựng 2 máy chủ ảo Suricata trên EC2 hỗ trợ giao thức GENEVE; kiểm tra luồng định tuyến đối xứng. |
+| **Giai đoạn 0** | **Kiểm Kê Tài Nguyên (Inventory)** | Sử dụng lệnh chỉ đọc (read-only) qua AWS MCP (`aws-api-mcp/call_aws`) kiểm kê tài nguyên trên Region Singapore (`ap-southeast-1`); xác nhận môi trường sạch không trùng lặp dải mạng. |
+| **Giai đoạn 1** | **Thiết Kế & Mô Hình Đe Dọa (Design & Threat Model)** | Hoàn thiện tài liệu phân tích rủi ro STRIDE, lập ma trận định tuyến TGW, xây dựng bảng hop-by-hop packet flow và ranh giới kiểm soát chi phí (Cost Boundary $50). |
+| **Giai đoạn 2** | **Thiết Lập Hạ Tầng Mạng Cơ Bản (Foundation)** | Triển khai mã Terraform cho 4 VPCs, chia subnets theo 2 AZs tại Singapore, khởi tạo Transit Gateway, tắt default propagation, cấu hình route tables và kích hoạt VPC Flow Logs. |
+| **Giai đoạn 3** | **Cụm Kubernetes EKS Kép (Dual EKS)** | Triển khai 2 cụm EKS hoàn toàn riêng tư (`edge-eks` và `core-eks`) tại `ap-southeast-1`, cấu hình EKS Pod Identity, mã hóa Secrets bằng khóa KMS chuyên biệt, cài đặt Argo CD và NetworkPolicy. |
+| **Giai đoạn 4** | **Triển Khai Ứng Dụng (Workloads)** | Đưa các container microservices từ repo app lên 2 cụm; thiết lập Route 53 Private Hosted Zone (`internal.fabric`), chứng chỉ số TLS nội bộ và Internal NLB cho Core Ingress. |
+| **Giai đoạn 5** | **Cụm Kiểm Tra GWLB & Suricata IDS/IPS** | Triển khai Gateway Load Balancer, các điểm cuối GWLBe tại VPC Inspection, dựng 2 máy chủ ảo Suricata EC2 hỗ trợ giao thức GENEVE; kiểm tra luồng định tuyến đối xứng. |
 | **Giai đoạn 6** | **Tường Lửa Ra Ngoài Tập Trung (Centralized Egress)** | Khởi tạo AWS Network Firewall tại VPC Egress, cấu hình bộ quy tắc Suricata stateful rules, triển khai cụm NAT Gateway riêng theo từng AZ; thiết lập danh sách tên miền cho phép đi ra Internet. |
 | **Giai đoạn 7** | **Cổng Vào Biên & Tường Lửa Ứng Dụng (Ingress & WAF)** | Cấu hình Route 53 công khai, cấp phát chứng chỉ ACM, tạo Application Load Balancer công khai và gắn AWS WAF v2 (chế độ Count sau đó chuyển sang Block), thu thập log truy cập WAF. |
 | **Giai đoạn 8** | **Tự Động Hóa CI/CD & DevSecOps** | Xây dựng pipeline kiểm thử tự động Terraform (kiểm tra cú pháp, quét bảo mật bằng `checkov`), quét lỗ hổng ảnh container (`trivy`), xuất hóa đơn phần mềm (SBOM), ký số ảnh container bằng `cosign`, sử dụng mã băm bất biến (immutable digest). |
@@ -167,7 +170,7 @@ Tận dụng toàn bộ các dịch vụ microservices từ `app3`, phân bổ k
 
 ## 7. Tiêu Chí Đánh Giá Hoàn Thành (PASS Criteria)
 
-Tất cả tiêu chí đánh giá bắt buộc phải có **bằng chứng chạy thực tế kèm dấu thời gian (raw runtime evidence with timestamp)**, không chấp nhận việc dẫn chứng lý thuyết từ tài liệu:
+Tất cả tiêu chí đánh giá bắt buộc phải có **bằng chứng chạy thực tế kèm dấu thời gian (raw runtime evidence with timestamp)** trong Region Singapore:
 
 1. **Kiểm tra luồng Đông - Tây:** Ứng dụng `frontend` (tại Edge) gọi thành công tới `order-service` (tại Core) qua cổng `443` thông qua điểm cuối GWLBe và máy chủ Suricata.
 2. **Khả năng ngăn chặn của Suricata:** Gói tin thử nghiệm gửi tới cổng trái phép hoặc mang chữ ký tấn công giả lập bị Suricata drop ngay lập tức và xuất hiện cảnh báo trong `eve.json`.
@@ -193,7 +196,11 @@ Tất cả tiêu chí đánh giá bắt buộc phải có **bằng chứng chạ
 
 ---
 
-## 9. Phạm Vi Giới Hạn & Các Thành Phần Không Triển Khai (Out of Scope)
+## 9. Phạm Vi Giới Hạn & Ranh Giới Nghiêm Ngặt (Strictly Single-Region Scope)
 
-- **Không triển khai:** Đường truyền vật lý AWS Direct Connect, mạng điều khiển đám mây AWS Cloud WAN, định tuyến liên vùng Multi-Region, hoặc dịch vụ AWS Firewall Manager (do yêu cầu phải có quyền quản trị tổ chức AWS Organizations).
-- **Ranh giới trọng tâm:** Tập trung tối đa vào kiến trúc Single-Region Singapore (`ap-southeast-1`) với đầy đủ các thành phần bảo vệ chuyên sâu và kiểm chứng thực nghiệm.
+- **TUYỆT ĐỐI KHÔNG TRIỂN KHAI:** 
+  - Không triển khai định tuyến xuyên Vùng (Multi-Region Routing) hay Cross-Region Peering.
+  - Không triển khai AWS Global Accelerator liên vùng.
+  - Không triển khai kết nối đường truyền vật lý AWS Direct Connect hoặc mạng diện rộng ảo AWS Cloud WAN.
+  - Không triển khai AWS Firewall Manager (liên quan đến AWS Organizations).
+- **RANH GIỚI BẮT BUỘC:** Tập trung 100% vào **Single-Region Advanced Networking (`ap-southeast-1` Singapore)** với mô hình phân chia nhiều VPCs trên cùng một Region và định tuyến an toàn qua Transit Gateway, GWLB và Network Firewall.
