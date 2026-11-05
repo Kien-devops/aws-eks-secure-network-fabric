@@ -1,0 +1,192 @@
+{
+  "timestamp": "2026-11-05T17:52:00Z",
+  "target_region": "ap-southeast-1",
+  "account_id": "123456789012",
+  "summary": {
+    "total_vpc_endpoints": 15,
+    "gateway_endpoints": 2,
+    "interface_endpoints": 13,
+    "edge_vpc_endpoints": 7,
+    "core_vpc_endpoints": 8,
+    "all_states": "available"
+  },
+  "security_groups": [
+    {
+      "name": "fabric-edge-vpce-sg",
+      "id": "sg-0dba5df9206abd189",
+      "vpc_id": "vpc-0468b18dddd1d4d2d",
+      "inbound_rules": [
+        {
+          "protocol": "tcp",
+          "port": 443,
+          "source": "10.40.0.0/16"
+        }
+      ]
+    },
+    {
+      "name": "fabric-core-vpce-sg",
+      "id": "sg-06dab7dd4b56070ad",
+      "vpc_id": "vpc-09888cc991104c959",
+      "inbound_rules": [
+        {
+          "protocol": "tcp",
+          "port": 443,
+          "source": "10.50.0.0/16"
+        }
+      ]
+    }
+  ],
+  "edge_vpc_endpoints": [
+    {
+      "name": "fabric-edge-s3-endpoint",
+      "id": "vpce-070fde8e6898adf2e",
+      "type": "Gateway",
+      "service": "com.amazonaws.ap-southeast-1.s3",
+      "state": "available",
+      "route_tables": ["rtb-00cd096fd0d4a2615"],
+      "prefix_list_id": "pl-6fa54006"
+    },
+    {
+      "name": "fabric-edge-ecr-api-ep",
+      "id": "vpce-08d3d806215f9494b",
+      "type": "Interface",
+      "service": "com.amazonaws.ap-southeast-1.ecr.api",
+      "state": "available",
+      "private_dns_enabled": true,
+      "subnets": ["subnet-01aa1d8c163dffca5", "subnet-06c83b89e45f47650"],
+      "security_groups": ["sg-0dba5df9206abd189"]
+    },
+    {
+      "name": "fabric-edge-ecr-dkr-ep",
+      "id": "vpce-08a6cc353238fab6b",
+      "type": "Interface",
+      "service": "com.amazonaws.ap-southeast-1.ecr.dkr",
+      "state": "available",
+      "private_dns_enabled": true,
+      "subnets": ["subnet-01aa1d8c163dffca5", "subnet-06c83b89e45f47650"],
+      "security_groups": ["sg-0dba5df9206abd189"]
+    },
+    {
+      "name": "fabric-edge-sts-ep",
+      "id": "vpce-0194dfc20963168a3",
+      "type": "Interface",
+      "service": "com.amazonaws.ap-southeast-1.sts",
+      "state": "available",
+      "private_dns_enabled": true,
+      "subnets": ["subnet-01aa1d8c163dffca5", "subnet-06c83b89e45f47650"],
+      "security_groups": ["sg-0dba5df9206abd189"]
+    },
+    {
+      "name": "fabric-edge-logs-ep",
+      "id": "vpce-09fed82b9d4cb5ba3",
+      "type": "Interface",
+      "service": "com.amazonaws.ap-southeast-1.logs",
+      "state": "available",
+      "private_dns_enabled": true,
+      "subnets": ["subnet-01aa1d8c163dffca5", "subnet-06c83b89e45f47650"],
+      "security_groups": ["sg-0dba5df9206abd189"]
+    },
+    {
+      "name": "fabric-edge-ec2-ep",
+      "id": "vpce-06984174467986962",
+      "type": "Interface",
+      "service": "com.amazonaws.ap-southeast-1.ec2",
+      "state": "available",
+      "private_dns_enabled": true,
+      "subnets": ["subnet-01aa1d8c163dffca5", "subnet-06c83b89e45f47650"],
+      "security_groups": ["sg-0dba5df9206abd189"]
+    },
+    {
+      "name": "fabric-edge-eks-auth-ep",
+      "id": "vpce-0e7c2d2e7f5304f31",
+      "type": "Interface",
+      "service": "com.amazonaws.ap-southeast-1.eks-auth",
+      "state": "available",
+      "private_dns_enabled": true,
+      "subnets": ["subnet-01aa1d8c163dffca5", "subnet-06c83b89e45f47650"],
+      "security_groups": ["sg-0dba5df9206abd189"]
+    }
+  ],
+  "core_vpc_endpoints": [
+    {
+      "name": "fabric-core-s3-endpoint",
+      "id": "vpce-00792527fbc00b8a6",
+      "type": "Gateway",
+      "service": "com.amazonaws.ap-southeast-1.s3",
+      "state": "available",
+      "route_tables": ["rtb-00ac268964554cc7e"],
+      "prefix_list_id": "pl-6fa54006"
+    },
+    {
+      "name": "fabric-core-ecr-api-ep",
+      "id": "vpce-02d5093117359d335",
+      "type": "Interface",
+      "service": "com.amazonaws.ap-southeast-1.ecr.api",
+      "state": "available",
+      "private_dns_enabled": true,
+      "subnets": ["subnet-053d2f1c4cf3235c6", "subnet-0f4c9a2c5bcf93261"],
+      "security_groups": ["sg-06dab7dd4b56070ad"]
+    },
+    {
+      "name": "fabric-core-ecr-dkr-ep",
+      "id": "vpce-07412943700801a22",
+      "type": "Interface",
+      "service": "com.amazonaws.ap-southeast-1.ecr.dkr",
+      "state": "available",
+      "private_dns_enabled": true,
+      "subnets": ["subnet-053d2f1c4cf3235c6", "subnet-0f4c9a2c5bcf93261"],
+      "security_groups": ["sg-06dab7dd4b56070ad"]
+    },
+    {
+      "name": "fabric-core-sts-ep",
+      "id": "vpce-08dd4cbe87782adab",
+      "type": "Interface",
+      "service": "com.amazonaws.ap-southeast-1.sts",
+      "state": "available",
+      "private_dns_enabled": true,
+      "subnets": ["subnet-053d2f1c4cf3235c6", "subnet-0f4c9a2c5bcf93261"],
+      "security_groups": ["sg-06dab7dd4b56070ad"]
+    },
+    {
+      "name": "fabric-core-logs-ep",
+      "id": "vpce-01f94a5f8e27d4506",
+      "type": "Interface",
+      "service": "com.amazonaws.ap-southeast-1.logs",
+      "state": "available",
+      "private_dns_enabled": true,
+      "subnets": ["subnet-053d2f1c4cf3235c6", "subnet-0f4c9a2c5bcf93261"],
+      "security_groups": ["sg-06dab7dd4b56070ad"]
+    },
+    {
+      "name": "fabric-core-ec2-ep",
+      "id": "vpce-0ae30e3f67eda2fa2",
+      "type": "Interface",
+      "service": "com.amazonaws.ap-southeast-1.ec2",
+      "state": "available",
+      "private_dns_enabled": true,
+      "subnets": ["subnet-053d2f1c4cf3235c6", "subnet-0f4c9a2c5bcf93261"],
+      "security_groups": ["sg-06dab7dd4b56070ad"]
+    },
+    {
+      "name": "fabric-core-sqs-ep",
+      "id": "vpce-00d3e313427f82af1",
+      "type": "Interface",
+      "service": "com.amazonaws.ap-southeast-1.sqs",
+      "state": "available",
+      "private_dns_enabled": true,
+      "subnets": ["subnet-053d2f1c4cf3235c6", "subnet-0f4c9a2c5bcf93261"],
+      "security_groups": ["sg-06dab7dd4b56070ad"]
+    },
+    {
+      "name": "fabric-core-eks-auth-ep",
+      "id": "vpce-094f91c485535f84b",
+      "type": "Interface",
+      "service": "com.amazonaws.ap-southeast-1.eks-auth",
+      "state": "available",
+      "private_dns_enabled": true,
+      "subnets": ["subnet-053d2f1c4cf3235c6", "subnet-0f4c9a2c5bcf93261"],
+      "security_groups": ["sg-06dab7dd4b56070ad"]
+    }
+  ],
+  "verification_status": "RUNTIME_PASS (15 VPC Endpoints available, Private DNS enabled on all 13 Interface Endpoints including eks-auth for Pod Identity, S3 Gateway Endpoints injected into private RTBs)"
+}

@@ -1,0 +1,84 @@
+{
+  "timestamp": "2026-11-05T18:52:00Z",
+  "target_region": "ap-southeast-1",
+  "account_id": "123456789012",
+  "iam_node_role": {
+    "role_name": "fabric-eks-node-role",
+    "arn": "arn:aws:iam::123456789012:role/fabric-eks-node-role",
+    "policies": [
+      "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy",
+      "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly",
+      "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy",
+      "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+    ]
+  },
+  "nodegroups": [
+    {
+      "cluster_name": "fabric-edge-eks",
+      "nodegroup_name": "fabric-edge-ng-1",
+      "status": "ACTIVE",
+      "capacity_type": "SPOT",
+      "instance_types": ["t3.medium"],
+      "ami_type": "AL2023_x86_64_STANDARD",
+      "subnets": [
+        "subnet-0e9f90d0d4e220d3a",
+        "subnet-034f4fc00bfd6cd09"
+      ],
+      "scaling_config": {
+        "minSize": 2,
+        "desiredSize": 2,
+        "maxSize": 3
+      },
+      "nodes": [
+        {
+          "name": "ip-10-40-8-220.ap-southeast-1.compute.internal",
+          "internal_ip": "10.40.8.220",
+          "az": "ap-southeast-1a",
+          "status": "Ready",
+          "version": "v1.37.1-eks-6e7947a"
+        },
+        {
+          "name": "ip-10-40-13-39.ap-southeast-1.compute.internal",
+          "internal_ip": "10.40.13.39",
+          "az": "ap-southeast-1b",
+          "status": "Ready",
+          "version": "v1.37.1-eks-6e7947a"
+        }
+      ]
+    },
+    {
+      "cluster_name": "fabric-core-eks",
+      "nodegroup_name": "fabric-core-ng-1",
+      "status": "ACTIVE",
+      "capacity_type": "SPOT",
+      "instance_types": ["t3.medium"],
+      "ami_type": "AL2023_x86_64_STANDARD",
+      "subnets": [
+        "subnet-0124e28037a2e4118",
+        "subnet-0fe561d6217b04955"
+      ],
+      "scaling_config": {
+        "minSize": 2,
+        "desiredSize": 2,
+        "maxSize": 4
+      },
+      "nodes": [
+        {
+          "name": "ip-10-50-11-181.ap-southeast-1.compute.internal",
+          "internal_ip": "10.50.11.181",
+          "az": "ap-southeast-1a",
+          "status": "Ready",
+          "version": "v1.37.1-eks-6e7947a"
+        },
+        {
+          "name": "ip-10-50-14-4.ap-southeast-1.compute.internal",
+          "internal_ip": "10.50.14.4",
+          "az": "ap-southeast-1b",
+          "status": "Ready",
+          "version": "v1.37.1-eks-6e7947a"
+        }
+      ]
+    }
+  ]
+}
+

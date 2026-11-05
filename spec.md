@@ -126,8 +126,8 @@ Dự án thiết kế dải IP riêng tư không chồng lấn trong Region Sing
 
 | Tên VPC | Dải Mạng Chính (CIDR) | Phân Bổ Subnet Chi Tiết (Tại `ap-southeast-1a` & `ap-southeast-1b`) |
 |---|---|---|
-| **VPC Edge EKS** | `10.40.0.0/16` | - Subnet Public (ALB Ingress): `10.40.0.0/24`, `10.40.1.0/24`<br>- Subnet Private Node: `10.40.10.0/22`, `10.40.14.0/22`<br>- Subnet Private Pod (Secondary CIDR): `10.40.64.0/18`<br>- Subnet TGW Attachment: `10.40.250.0/28`, `10.40.250.16/28` |
-| **VPC Core EKS** | `10.50.0.0/16` | - Subnet Private Node: `10.50.10.0/22`, `10.50.14.0/22`<br>- Subnet Private Pod (Secondary CIDR): `10.50.64.0/18`<br>- Subnet Dữ liệu (Aurora/Redis): `10.50.20.0/24`, `10.50.21.0/24`<br>- Subnet TGW Attachment: `10.50.250.0/28`, `10.50.250.16/28` |
+| **VPC Edge EKS** | `10.40.0.0/16` | - Subnet Public (ALB Ingress): `10.40.0.0/24`, `10.40.1.0/24`<br>- Subnet Private Node: `10.40.8.0/22`, `10.40.12.0/22`<br>- Subnet Private Pod (Secondary CIDR): `10.40.64.0/18`<br>- Subnet VPC Endpoints: `10.40.20.0/24`, `10.40.21.0/24`<br>- Subnet TGW Attachment: `10.40.250.0/28`, `10.40.250.16/28` |
+| **VPC Core EKS** | `10.50.0.0/16` | - Subnet Private Node: `10.50.8.0/22`, `10.50.12.0/22`<br>- Subnet Private Pod (Secondary CIDR): `10.50.64.0/18`<br>- Subnet Dữ liệu (Aurora/Redis): `10.50.20.0/24`, `10.50.21.0/24`<br>- Subnet VPC Endpoints: `10.50.30.0/24`, `10.50.31.0/24`<br>- Subnet TGW Attachment: `10.50.250.0/28`, `10.50.250.16/28` |
 | **VPC Kiểm Tra (Inspection)** | `10.70.0.0/16` | - Subnet TGW Attachment: `10.70.0.0/28`, `10.70.0.16/28`<br>- Subnet GWLB Endpoint (GWLBe): `10.70.1.0/28`, `10.70.1.16/28`<br>- Subnet Máy chủ Tường lửa Suricata: `10.70.10.0/24`, `10.70.11.0/24` |
 | **VPC Cổng Ra (Egress)** | `10.80.0.0/16` | - Subnet TGW Attachment: `10.80.0.0/28`, `10.80.0.16/28`<br>- Subnet Điểm cuối Network Firewall: `10.80.1.0/28`, `10.80.1.16/28`<br>- Subnet Public (NAT Gateway & IGW): `10.80.10.0/24`, `10.80.11.0/24` |
 

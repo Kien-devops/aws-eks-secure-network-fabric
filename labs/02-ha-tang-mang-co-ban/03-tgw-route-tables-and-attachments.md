@@ -1,7 +1,7 @@
 # 02.03 — Khởi Tạo TGW VPC Attachments (Appliance Mode) & 4 Route Tables
 
 > **Mã bài lab:** `02.03`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `RUNTIME_PASS`  
 > **Thời gian dự kiến:** 40 phút  
 > **Chi phí ước tính:** ~$0.28 USD/giờ (4 attachments x $0.07 USD/giờ)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore) — AZs: `ap-southeast-1a`, `ap-southeast-1b`  
@@ -12,7 +12,7 @@
 
 - Đã hoàn thành bài lab [02.01](01-four-vpcs-and-subnets.md) và [02.02](02-transit-gateway-setup.md).
 - Transit Gateway `fabric-tgw` đang ở trạng thái `available`.
-- 4 VPCs và 26 subnets đã sẵn sàng, đặc biệt là các Subnet TGW chuyên dụng (`/28`).
+- 4 VPCs và 28 subnets đã sẵn sàng, đặc biệt là các Subnet TGW chuyên dụng (`/28`).
 
 ---
 
@@ -63,7 +63,7 @@ Truy cập **VPC Console** tại Singapore `ap-southeast-1`:
 3. **Tạo Attachment 1 — Edge VPC Attachment:**
    - **Transit gateway ID:** Chọn `fabric-tgw`.
    - **Attachment type:** Chọn **VPC**.
-   - **Attachment name tag:** Nhập `fabric-edge-tgw-attachment`.
+   - **Attachment name tag:** Nhập `fabric-edge-tgw-attachment` (`tgw-attach-06219b0f6f3082f3e`).
    - **DNS support:** Chọn **Enable**.
    - **IPv6 support:** Để mặc định **Disable**.
    - **Appliance mode support:** Chọn **Disable** (Edge EKS không chứa thiết bị kiểm tra trạng thái tập trung).
@@ -78,7 +78,7 @@ Truy cập **VPC Console** tại Singapore `ap-southeast-1`:
    - Nhấp **Create transit gateway attachment**.
    - **Transit gateway ID:** Chọn `fabric-tgw`.
    - **Attachment type:** Chọn **VPC**.
-   - **Attachment name tag:** Nhập `fabric-core-tgw-attachment`.
+   - **Attachment name tag:** Nhập `fabric-core-tgw-attachment` (`tgw-attach-0d9cc79cb91dafeb2`).
    - **DNS support:** Chọn **Enable**.
    - **Appliance mode support:** Chọn **Disable**.
    - **VPC ID:** Chọn `fabric-core-vpc`.
@@ -91,7 +91,7 @@ Truy cập **VPC Console** tại Singapore `ap-southeast-1`:
    - Nhấp **Create transit gateway attachment**.
    - **Transit gateway ID:** Chọn `fabric-tgw`.
    - **Attachment type:** Chọn **VPC**.
-   - **Attachment name tag:** Nhập `fabric-insp-tgw-attachment`.
+   - **Attachment name tag:** Nhập `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`).
    - **DNS support:** Chọn **Enable**.
    - **Appliance mode support:** Chọn **Enable** *(BẮT BUỘC: Giúp duy trì AZ affinity cho luồng kiểm tra GWLB/Suricata)*.
    - **VPC ID:** Chọn `fabric-inspection-vpc`.
@@ -104,7 +104,7 @@ Truy cập **VPC Console** tại Singapore `ap-southeast-1`:
    - Nhấp **Create transit gateway attachment**.
    - **Transit gateway ID:** Chọn `fabric-tgw`.
    - **Attachment type:** Chọn **VPC**.
-   - **Attachment name tag:** Nhập `fabric-egress-tgw-attachment`.
+   - **Attachment name tag:** Nhập `fabric-egress-tgw-attachment` (`tgw-attach-0646bdfa31c6c8e66`).
    - **DNS support:** Chọn **Enable**.
    - **Appliance mode support:** Chọn **Enable** *(BẮT BUỘC: Đảm bảo luồng ra và luồng về của NAT/Firewall cùng một AZ)*.
    - **VPC ID:** Chọn `fabric-egress-vpc`.
@@ -117,57 +117,59 @@ Truy cập **VPC Console** tại Singapore `ap-southeast-1`:
 ### Bước 2: Khởi Tạo 4 Bảng Định Tuyến TGW (Route Tables)
 Tại menu bên trái VPC Console -> Nhóm **Transit Gateways** -> Chọn **Transit Gateway Route Tables**:
 1. Nhấp nút cam **Create transit gateway route table**.
-   - **Name tag:** Nhập `fabric-tgw-edge-rt`.
-   - **Transit gateway ID:** Chọn `fabric-tgw`.
+   - **Name tag:** Nhập `fabric-tgw-edge-rt` (`tgw-rtb-004772ba5b83f2b17`).
+   - **Transit gateway ID:** Chọn `fabric-tgw` (`tgw-0fca495dfa8cfee17`).
    - Nhấp **Create transit gateway route table**.
 2. Lặp lại tạo tiếp 3 bảng:
-   - Name tag: `fabric-tgw-core-rt` | Transit gateway ID: `fabric-tgw`.
-   - Name tag: `fabric-tgw-inspection-rt` | Transit gateway ID: `fabric-tgw`.
-   - Name tag: `fabric-tgw-egress-rt` | Transit gateway ID: `fabric-tgw`.
+   - Name tag: `fabric-tgw-core-rt` (`tgw-rtb-03c493c67bc6dc820`) | Transit gateway ID: `fabric-tgw`.
+   - Name tag: `fabric-tgw-inspection-rt` (`tgw-rtb-01abf43ebf7f1b21f`) | Transit gateway ID: `fabric-tgw`.
+   - Name tag: `fabric-tgw-egress-rt` (`tgw-rtb-066c8310ab347bf30`) | Transit gateway ID: `fabric-tgw`.
 
 ### Bước 3: Cấu Hình Association (Liên Kết Attachment Vào Route Table)
 Tại danh sách **Transit Gateway Route Tables**:
 1. **Liên kết Edge:**
-   - Chọn checkbox trước `fabric-tgw-edge-rt` -> Chọn tab **Associations** ở nửa dưới màn hình.
+   - Chọn checkbox trước `fabric-tgw-edge-rt` (`tgw-rtb-004772ba5b83f2b17`) -> Chọn tab **Associations** ở nửa dưới màn hình.
    - Nhấp nút **Create association**.
-   - Tại mục **Choose attachment to associate**, chọn `fabric-edge-tgw-attachment`.
+   - Tại mục **Choose attachment to associate**, chọn `fabric-edge-tgw-attachment` (`tgw-attach-06219b0f6f3082f3e`).
    - Nhấp **Create association**.
 2. **Liên kết Core:**
-   - Chọn `fabric-tgw-core-rt` -> Tab **Associations** -> Nhấp **Create association**.
-   - Chọn attachment `fabric-core-tgw-attachment` -> Nhấp **Create association**.
+   - Chọn `fabric-tgw-core-rt` (`tgw-rtb-03c493c67bc6dc820`) -> Tab **Associations** -> Nhấp **Create association**.
+   - Chọn attachment `fabric-core-tgw-attachment` (`tgw-attach-0d9cc79cb91dafeb2`) -> Nhấp **Create association**.
 3. **Liên kết Inspection:**
-   - Chọn `fabric-tgw-inspection-rt` -> Tab **Associations** -> Nhấp **Create association**.
-   - Chọn attachment `fabric-insp-tgw-attachment` -> Nhấp **Create association**.
+   - Chọn `fabric-tgw-inspection-rt` (`tgw-rtb-01abf43ebf7f1b21f`) -> Tab **Associations** -> Nhấp **Create association**.
+   - Chọn attachment `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`) -> Nhấp **Create association**.
 4. **Liên kết Egress:**
-   - Chọn `fabric-tgw-egress-rt` -> Tab **Associations** -> Nhấp **Create association**.
-   - Chọn attachment `fabric-egress-tgw-attachment` -> Nhấp **Create association**.
+   - Chọn `fabric-tgw-egress-rt` (`tgw-rtb-066c8310ab347bf30`) -> Tab **Associations** -> Nhấp **Create association**.
+   - Chọn attachment `fabric-egress-tgw-attachment` (`tgw-attach-0646bdfa31c6c8e66`) -> Nhấp **Create association**.
 
-### Bước 4: Cấu Hình Các Tuyến Định Tuyến Tĩnh (Static Routes)
+### Bước 4: Cấu Hình Các Tuyến Định Tuyến Tĩnh (Static Routes - Bản Chuẩn Kiểm Tra Hai Chiều)
 Tại danh sách **Transit Gateway Route Tables**:
 
 1. **Cấu hình trên `fabric-tgw-edge-rt`:**
-   - Chọn `fabric-tgw-edge-rt` -> Chọn tab **Routes** -> Nhấp nút **Create static route**.
-     - CIDR: Nhập `0.0.0.0/0` -> Choose attachment: Chọn `fabric-egress-tgw-attachment` -> Nhấp **Create static route**.
+   - Chọn `fabric-tgw-edge-rt` -> Chọn tab **Routes** -> Nhấp nút **Create static route**:
+     - CIDR: Nhập `0.0.0.0/0` -> Choose attachment: Chọn `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`) -> Nhấp **Create static route**.
    - Tiếp tục nhấp **Create static route**:
-     - CIDR: Nhập `10.50.0.0/16` -> Choose attachment: Chọn `fabric-core-tgw-attachment` (tuyến tạm thời, sẽ cutover sang Inspection tại Module 05) -> Nhấp **Create static route**.
+     - CIDR: Nhập `10.50.0.0/16` -> Choose attachment: Chọn `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`) -> Nhấp **Create static route**.
 
 2. **Cấu hình trên `fabric-tgw-core-rt`:**
    - Chọn `fabric-tgw-core-rt` -> Tab **Routes** -> Nhấp **Create static route**:
-     - CIDR: Nhập `0.0.0.0/0` -> Choose attachment: Chọn `fabric-egress-tgw-attachment` -> Nhấp **Create static route**.
+     - CIDR: Nhập `0.0.0.0/0` -> Choose attachment: Chọn `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`) -> Nhấp **Create static route**.
    - Tiếp tục nhấp **Create static route**:
-     - CIDR: Nhập `10.40.0.0/16` -> Choose attachment: Chọn `fabric-edge-tgw-attachment` (tuyến tạm thời, sẽ cutover sang Inspection tại Module 05) -> Nhấp **Create static route**.
+     - CIDR: Nhập `10.40.0.0/16` -> Choose attachment: Chọn `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`) -> Nhấp **Create static route**.
 
 3. **Cấu hình trên `fabric-tgw-inspection-rt`:**
    - Chọn `fabric-tgw-inspection-rt` -> Tab **Routes** -> Nhấp **Create static route**:
-     - CIDR: Nhập `10.40.0.0/16` -> Choose attachment: Chọn `fabric-edge-tgw-attachment` -> Nhấp **Create static route**.
+     - CIDR: Nhập `10.40.0.0/16` -> Choose attachment: Chọn `fabric-edge-tgw-attachment` (`tgw-attach-06219b0f6f3082f3e`) -> Nhấp **Create static route**.
    - Tiếp tục nhấp **Create static route**:
-     - CIDR: Nhập `10.50.0.0/16` -> Choose attachment: Chọn `fabric-core-tgw-attachment` -> Nhấp **Create static route**.
+     - CIDR: Nhập `10.50.0.0/16` -> Choose attachment: Chọn `fabric-core-tgw-attachment` (`tgw-attach-0d9cc79cb91dafeb2`) -> Nhấp **Create static route**.
+   - Tiếp tục nhấp **Create static route**:
+     - CIDR: Nhập `0.0.0.0/0` -> Choose attachment: Chọn `fabric-egress-tgw-attachment` (`tgw-attach-0646bdfa31c6c8e66`) -> Nhấp **Create static route**.
 
 4. **Cấu hình trên `fabric-tgw-egress-rt`:**
    - Chọn `fabric-tgw-egress-rt` -> Tab **Routes** -> Nhấp **Create static route**:
-     - CIDR: Nhập `10.40.0.0/16` -> Choose attachment: Chọn `fabric-edge-tgw-attachment` -> Nhấp **Create static route**.
+     - CIDR: Nhập `10.40.0.0/16` -> Choose attachment: Chọn `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`) -> Nhấp **Create static route**.
    - Tiếp tục nhấp **Create static route**:
-     - CIDR: Nhập `10.50.0.0/16` -> Choose attachment: Chọn `fabric-core-tgw-attachment` -> Nhấp **Create static route**.
+     - CIDR: Nhập `10.50.0.0/16` -> Choose attachment: Chọn `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`) -> Nhấp **Create static route**.
 
 ---
 
@@ -222,8 +224,24 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Cả 4 VPC Attachments đều ở trạng thái `available`.
-- [ ] Cờ `ApplianceModeSupport` của `fabric-insp-tgw-attachment` hiển thị chính xác `enable`.
-- [ ] Cờ `ApplianceModeSupport` của `fabric-egress-tgw-attachment` hiển thị chính xác `enable`.
-- [ ] 4 bảng định tuyến TGW Route Tables được phân tách và liên kết chính xác với từng attachment.
-- [ ] Tắt hoàn toàn default propagation và default association.
+- [x] Cả 4 VPC Attachments đều ở trạng thái `available` (`tgw-attach-06219b0f6f3082f3e`, `tgw-attach-0d9cc79cb91dafeb2`, `tgw-attach-0fb21514974415f35`, `tgw-attach-0646bdfa31c6c8e66`).
+- [x] Cờ `ApplianceModeSupport` của `fabric-insp-tgw-attachment` hiển thị chính xác `enable`.
+- [x] Cờ `ApplianceModeSupport` của `fabric-egress-tgw-attachment` hiển thị chính xác `enable`.
+- [x] 4 bảng định tuyến TGW Route Tables được phân tách và liên kết chính xác 1-1 với từng attachment.
+- [x] Tắt hoàn toàn default propagation và default association (0 dynamic routes, 9 static active routes).
+
+### Trạng Thái Thực Thi Runtime (All 4 Attachments, 4 Route Tables, Associations & Routes Verified)
+- **Thời gian hoàn thành:** `2026-11-05T17:05:00Z`
+- **Công cụ thực thi:** MCP `aws-api-mcp/call_aws`
+- **4 TGW VPC Attachments (100% Available):**
+  1. `fabric-edge-tgw-attachment` (`tgw-attach-06219b0f6f3082f3e`): VPC `fabric-edge-vpc`, ApplianceMode: `disable`, DnsSupport: `enable`.
+  2. `fabric-core-tgw-attachment` (`tgw-attach-0d9cc79cb91dafeb2`): VPC `fabric-core-vpc`, ApplianceMode: `disable`, DnsSupport: `enable`.
+  3. `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`): VPC `fabric-inspection-vpc`, ApplianceMode: `enable`, DnsSupport: `enable`.
+  4. `fabric-egress-tgw-attachment` (`tgw-attach-0646bdfa31c6c8e66`): VPC `fabric-egress-vpc`, ApplianceMode: `enable`, DnsSupport: `enable`.
+- **4 TGW Route Tables & Associations (100% Phân Tách):**
+  1. `fabric-tgw-edge-rt` (`tgw-rtb-004772ba5b83f2b17`): Gắn `fabric-edge-tgw-attachment`
+  2. `fabric-tgw-core-rt` (`tgw-rtb-03c493c67bc6dc820`): Gắn `fabric-core-tgw-attachment`
+  3. `fabric-tgw-inspection-rt` (`tgw-rtb-01abf43ebf7f1b21f`): Gắn `fabric-insp-tgw-attachment`
+  4. `fabric-tgw-egress-rt` (`tgw-rtb-066c8310ab347bf30`): Gắn `fabric-egress-tgw-attachment`
+- **9 Active Static Routes:** Cấu hình đúng chuẩn theo ma trận hop tables và kiểm tra thông mạng toàn diện (Edge: 2, Core: 2, Inspection: 3, Egress: 2).
+- **File bằng chứng:** `evidence/02-network/03-tgw-attachments-and-routes.json`

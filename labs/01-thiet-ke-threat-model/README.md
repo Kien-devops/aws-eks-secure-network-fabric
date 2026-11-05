@@ -56,7 +56,7 @@
 ---
 
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
-- [ ] Bảng định tuyến chi tiết không có vòng lặp (No routing loop).
-- [ ] Ma trận phân tách rõ ràng, không có kết nối trực tiếp (no direct peering) giữa Edge và Core.
-- [ ] Ranh giới chi phí dự kiến duy trì dưới $50.00 cho phiên chạy GameDay.
+- [x] Bảng định tuyến chi tiết không có vòng lặp (No routing loop).
+- [x] Ma trận phân tách rõ ràng, không có kết nối trực tiếp (no direct peering) giữa Edge và Core.
+- [x] Ranh giới chi phí dự kiến duy trì dưới $50.00 cho phiên chạy GameDay (`fabric-project6-monthly-budget` đã kích hoạt).
 

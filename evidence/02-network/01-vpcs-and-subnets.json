@@ -1,0 +1,263 @@
+{
+  "timestamp": "2026-11-05T16:34:00Z",
+  "target_region": "ap-southeast-1",
+  "account_id": "123456789012",
+  "vpcs": [
+    {
+      "name": "fabric-edge-vpc",
+      "vpc_id": "vpc-0468b18dddd1d4d2d",
+      "cidr_block": "10.40.0.0/16",
+      "state": "available",
+      "dns_support": true,
+      "dns_hostnames": true
+    },
+    {
+      "name": "fabric-core-vpc",
+      "vpc_id": "vpc-09888cc991104c959",
+      "cidr_block": "10.50.0.0/16",
+      "state": "available",
+      "dns_support": true,
+      "dns_hostnames": true
+    },
+    {
+      "name": "fabric-inspection-vpc",
+      "vpc_id": "vpc-0c94a30a1a915fc0f",
+      "cidr_block": "10.70.0.0/16",
+      "state": "available",
+      "dns_support": true,
+      "dns_hostnames": true
+    },
+    {
+      "name": "fabric-egress-vpc",
+      "vpc_id": "vpc-0c1479727a5e38b4c",
+      "cidr_block": "10.80.0.0/16",
+      "state": "available",
+      "dns_support": true,
+      "dns_hostnames": true
+    }
+  ],
+  "internet_gateways": [
+    {
+      "name": "fabric-edge-igw",
+      "igw_id": "igw-0849ffbd341601849",
+      "attached_vpc_id": "vpc-0468b18dddd1d4d2d",
+      "state": "available"
+    },
+    {
+      "name": "fabric-egress-igw",
+      "igw_id": "igw-0742fe0915c3feadc",
+      "attached_vpc_id": "vpc-0c1479727a5e38b4c",
+      "state": "available"
+    }
+  ],
+  "edge_vpc_subnets": [
+    {
+      "name": "fabric-edge-public-1a",
+      "subnet_id": "subnet-04dfffbdc3e5e0c93",
+      "cidr": "10.40.0.0/24",
+      "az": "ap-southeast-1a",
+      "map_public_ip_on_launch": true,
+      "state": "available"
+    },
+    {
+      "name": "fabric-edge-public-1b",
+      "subnet_id": "subnet-0a9017b8109df0c48",
+      "cidr": "10.40.1.0/24",
+      "az": "ap-southeast-1b",
+      "map_public_ip_on_launch": true,
+      "state": "available"
+    },
+    {
+      "name": "fabric-edge-nodes-1a",
+      "subnet_id": "subnet-0e9f90d0d4e220d3a",
+      "cidr": "10.40.8.0/22",
+      "az": "ap-southeast-1a",
+      "state": "available"
+    },
+    {
+      "name": "fabric-edge-nodes-1b",
+      "subnet_id": "subnet-034f4fc00bfd6cd09",
+      "cidr": "10.40.12.0/22",
+      "az": "ap-southeast-1b",
+      "state": "available"
+    },
+    {
+      "name": "fabric-edge-vpce-1a",
+      "subnet_id": "subnet-01aa1d8c163dffca5",
+      "cidr": "10.40.20.0/24",
+      "az": "ap-southeast-1a",
+      "state": "available"
+    },
+    {
+      "name": "fabric-edge-vpce-1b",
+      "subnet_id": "subnet-06c83b89e45f47650",
+      "cidr": "10.40.21.0/24",
+      "az": "ap-southeast-1b",
+      "state": "available"
+    },
+    {
+      "name": "fabric-edge-tgw-1a",
+      "subnet_id": "subnet-0ee88bbf364687ec6",
+      "cidr": "10.40.250.0/28",
+      "az": "ap-southeast-1a",
+      "state": "available"
+    },
+    {
+      "name": "fabric-edge-tgw-1b",
+      "subnet_id": "subnet-027f9fd24d6ff94ca",
+      "cidr": "10.40.250.16/28",
+      "az": "ap-southeast-1b",
+      "state": "available"
+    }
+  ],
+  "core_vpc_subnets": [
+    {
+      "name": "fabric-core-nodes-1a",
+      "subnet_id": "subnet-0124e28037a2e4118",
+      "cidr": "10.50.8.0/22",
+      "az": "ap-southeast-1a",
+      "state": "available"
+    },
+    {
+      "name": "fabric-core-nodes-1b",
+      "subnet_id": "subnet-0fe561d6217b04955",
+      "cidr": "10.50.12.0/22",
+      "az": "ap-southeast-1b",
+      "state": "available"
+    },
+    {
+      "name": "fabric-core-data-1a",
+      "subnet_id": "subnet-060f6827edc15bf70",
+      "cidr": "10.50.20.0/24",
+      "az": "ap-southeast-1a",
+      "state": "available"
+    },
+    {
+      "name": "fabric-core-data-1b",
+      "subnet_id": "subnet-0d738daa01c9369d3",
+      "cidr": "10.50.21.0/24",
+      "az": "ap-southeast-1b",
+      "state": "available"
+    },
+    {
+      "name": "fabric-core-vpce-1a",
+      "subnet_id": "subnet-053d2f1c4cf3235c6",
+      "cidr": "10.50.30.0/24",
+      "az": "ap-southeast-1a",
+      "state": "available"
+    },
+    {
+      "name": "fabric-core-vpce-1b",
+      "subnet_id": "subnet-0f4c9a2c5bcf93261",
+      "cidr": "10.50.31.0/24",
+      "az": "ap-southeast-1b",
+      "state": "available"
+    },
+    {
+      "name": "fabric-core-tgw-1a",
+      "subnet_id": "subnet-0b8fbf236704cd49f",
+      "cidr": "10.50.250.0/28",
+      "az": "ap-southeast-1a",
+      "state": "available"
+    },
+    {
+      "name": "fabric-core-tgw-1b",
+      "subnet_id": "subnet-067ef27abb3c9fc27",
+      "cidr": "10.50.250.16/28",
+      "az": "ap-southeast-1b",
+      "state": "available"
+    }
+  ],
+  "inspection_vpc_subnets": [
+    {
+      "name": "fabric-insp-tgw-1a",
+      "subnet_id": "subnet-0e260eae20eea3ccb",
+      "cidr": "10.70.0.0/28",
+      "az": "ap-southeast-1a",
+      "state": "available"
+    },
+    {
+      "name": "fabric-insp-tgw-1b",
+      "subnet_id": "subnet-0a1481ce7d8302538",
+      "cidr": "10.70.0.16/28",
+      "az": "ap-southeast-1b",
+      "state": "available"
+    },
+    {
+      "name": "fabric-insp-gwlbe-1a",
+      "subnet_id": "subnet-0aebf9d83c8118058",
+      "cidr": "10.70.1.0/28",
+      "az": "ap-southeast-1a",
+      "state": "available"
+    },
+    {
+      "name": "fabric-insp-gwlbe-1b",
+      "subnet_id": "subnet-0a1a561fe99bcc9fd",
+      "cidr": "10.70.1.16/28",
+      "az": "ap-southeast-1b",
+      "state": "available"
+    },
+    {
+      "name": "fabric-insp-fw-1a",
+      "subnet_id": "subnet-0b743a1b6492b62ce",
+      "cidr": "10.70.10.0/24",
+      "az": "ap-southeast-1a",
+      "state": "available"
+    },
+    {
+      "name": "fabric-insp-fw-1b",
+      "subnet_id": "subnet-00621165b37f9a04e",
+      "cidr": "10.70.11.0/24",
+      "az": "ap-southeast-1b",
+      "state": "available"
+    }
+  ],
+  "egress_vpc_subnets": [
+    {
+      "name": "fabric-egress-tgw-1a",
+      "subnet_id": "subnet-0a9b70d43770f1e86",
+      "cidr": "10.80.0.0/28",
+      "az": "ap-southeast-1a",
+      "state": "available"
+    },
+    {
+      "name": "fabric-egress-tgw-1b",
+      "subnet_id": "subnet-0b0653845a52c4f75",
+      "cidr": "10.80.0.16/28",
+      "az": "ap-southeast-1b",
+      "state": "available"
+    },
+    {
+      "name": "fabric-egress-fw-1a",
+      "subnet_id": "subnet-0c7142131794aa34c",
+      "cidr": "10.80.1.0/28",
+      "az": "ap-southeast-1a",
+      "state": "available"
+    },
+    {
+      "name": "fabric-egress-fw-1b",
+      "subnet_id": "subnet-05ce922d28724c2f9",
+      "cidr": "10.80.1.16/28",
+      "az": "ap-southeast-1b",
+      "state": "available"
+    },
+    {
+      "name": "fabric-egress-public-1a",
+      "subnet_id": "subnet-0262d7eefa20689ed",
+      "cidr": "10.80.10.0/24",
+      "az": "ap-southeast-1a",
+      "map_public_ip_on_launch": true,
+      "state": "available"
+    },
+    {
+      "name": "fabric-egress-public-1b",
+      "subnet_id": "subnet-0ad99949d3dcf5d10",
+      "cidr": "10.80.11.0/24",
+      "az": "ap-southeast-1b",
+      "map_public_ip_on_launch": true,
+      "state": "available"
+    }
+  ],
+  "total_subnets_count": 28,
+  "verification_status": "RUNTIME_PASS (All 4 VPCs, 2 IGWs, 28 Subnets successfully provisioned)"
+}

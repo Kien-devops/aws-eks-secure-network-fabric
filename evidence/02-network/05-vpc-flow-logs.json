@@ -1,0 +1,64 @@
+{
+  "timestamp": "2026-11-05T17:29:00Z",
+  "target_region": "ap-southeast-1",
+  "account_id": "123456789012",
+  "summary": {
+    "iam_role": "fabric-vpc-flow-logs-role",
+    "cloudwatch_log_group": "/aws/vpc/fabric-centralized-flow-logs",
+    "retention_days": 7,
+    "aggregation_interval_seconds": 60,
+    "traffic_type": "ALL",
+    "total_flow_logs": 4,
+    "active_flow_logs": 4
+  },
+  "iam_role": {
+    "role_name": "fabric-vpc-flow-logs-role",
+    "arn": "arn:aws:iam::123456789012:role/fabric-vpc-flow-logs-role",
+    "trust_service": "vpc-flow-logs.amazonaws.com",
+    "policy_name": "fabric-vpc-flow-logs-policy"
+  },
+  "cloudwatch_log_group": {
+    "name": "/aws/vpc/fabric-centralized-flow-logs",
+    "retention_in_days": 7,
+    "region": "ap-southeast-1"
+  },
+  "flow_logs": [
+    {
+      "name": "fabric-edge-flow-log",
+      "flow_log_id": "fl-0efbee56492922d03",
+      "resource_id": "vpc-0468b18dddd1d4d2d",
+      "traffic_type": "ALL",
+      "aggregation_interval": 60,
+      "flow_log_status": "ACTIVE",
+      "deliver_logs_status": "SUCCESS"
+    },
+    {
+      "name": "fabric-core-flow-log",
+      "flow_log_id": "fl-0cbb7f9eb6e05f24e",
+      "resource_id": "vpc-09888cc991104c959",
+      "traffic_type": "ALL",
+      "aggregation_interval": 60,
+      "flow_log_status": "ACTIVE",
+      "deliver_logs_status": "SUCCESS"
+    },
+    {
+      "name": "fabric-inspection-flow-log",
+      "flow_log_id": "fl-007c6cbfe07183b8b",
+      "resource_id": "vpc-0c94a30a1a915fc0f",
+      "traffic_type": "ALL",
+      "aggregation_interval": 60,
+      "flow_log_status": "ACTIVE",
+      "deliver_logs_status": "SUCCESS"
+    },
+    {
+      "name": "fabric-egress-flow-log",
+      "flow_log_id": "fl-04b9c24c290bd8008",
+      "resource_id": "vpc-0c1479727a5e38b4c",
+      "traffic_type": "ALL",
+      "aggregation_interval": 60,
+      "flow_log_status": "ACTIVE",
+      "deliver_logs_status": "SUCCESS"
+    }
+  ]
+}
+

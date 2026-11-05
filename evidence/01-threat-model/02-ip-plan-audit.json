@@ -1,0 +1,65 @@
+{
+  "timestamp": "2026-11-05T15:46:30Z",
+  "target_region": "ap-southeast-1",
+  "account_id": "123456789012",
+  "vpcs_plan": [
+    {
+      "vpc_name": "fabric-edge-vpc",
+      "cidr_block": "10.40.0.0/16",
+      "purpose": "Edge Public Ingress ALB, Frontend Microservices & Auth Service",
+      "subnets": [
+        {"name": "fabric-edge-public-1a", "cidr": "10.40.0.0/24", "az": "ap-southeast-1a", "type": "public"},
+        {"name": "fabric-edge-public-1b", "cidr": "10.40.1.0/24", "az": "ap-southeast-1b", "type": "public"},
+        {"name": "fabric-edge-nodes-1a", "cidr": "10.40.8.0/22", "az": "ap-southeast-1a", "type": "private"},
+        {"name": "fabric-edge-nodes-1b", "cidr": "10.40.12.0/22", "az": "ap-southeast-1b", "type": "private"},
+        {"name": "fabric-edge-vpce-1a", "cidr": "10.40.20.0/24", "az": "ap-southeast-1a", "type": "vpce"},
+        {"name": "fabric-edge-vpce-1b", "cidr": "10.40.21.0/24", "az": "ap-southeast-1b", "type": "vpce"},
+        {"name": "fabric-edge-tgw-1a", "cidr": "10.40.250.0/28", "az": "ap-southeast-1a", "type": "tgw"},
+        {"name": "fabric-edge-tgw-1b", "cidr": "10.40.250.16/28", "az": "ap-southeast-1b", "type": "tgw"}
+      ]
+    },
+    {
+      "vpc_name": "fabric-core-vpc",
+      "cidr_block": "10.50.0.0/16",
+      "purpose": "Core Workloads (Order, Inventory, Payment) and Aurora Serverless DB / ElastiCache",
+      "subnets": [
+        {"name": "fabric-core-nodes-1a", "cidr": "10.50.8.0/22", "az": "ap-southeast-1a", "type": "private"},
+        {"name": "fabric-core-nodes-1b", "cidr": "10.50.12.0/22", "az": "ap-southeast-1b", "type": "private"},
+        {"name": "fabric-core-data-1a", "cidr": "10.50.20.0/24", "az": "ap-southeast-1a", "type": "data"},
+        {"name": "fabric-core-data-1b", "cidr": "10.50.21.0/24", "az": "ap-southeast-1b", "type": "data"},
+        {"name": "fabric-core-vpce-1a", "cidr": "10.50.30.0/24", "az": "ap-southeast-1a", "type": "vpce"},
+        {"name": "fabric-core-vpce-1b", "cidr": "10.50.31.0/24", "az": "ap-southeast-1b", "type": "vpce"},
+        {"name": "fabric-core-tgw-1a", "cidr": "10.50.250.0/28", "az": "ap-southeast-1a", "type": "tgw"},
+        {"name": "fabric-core-tgw-1b", "cidr": "10.50.250.16/28", "az": "ap-southeast-1b", "type": "tgw"}
+      ]
+    },
+    {
+      "vpc_name": "fabric-insp-vpc",
+      "cidr_block": "10.70.0.0/16",
+      "purpose": "East-West Inspection VPC with GWLB + Suricata EC2 IDS/IPS (GENEVE 6081)",
+      "subnets": [
+        {"name": "fabric-insp-tgw-1a", "cidr": "10.70.0.0/28", "az": "ap-southeast-1a", "type": "tgw"},
+        {"name": "fabric-insp-tgw-1b", "cidr": "10.70.0.16/28", "az": "ap-southeast-1b", "type": "tgw"},
+        {"name": "fabric-insp-gwlbe-1a", "cidr": "10.70.1.0/28", "az": "ap-southeast-1a", "type": "gwlbe"},
+        {"name": "fabric-insp-gwlbe-1b", "cidr": "10.70.1.16/28", "az": "ap-southeast-1b", "type": "gwlbe"},
+        {"name": "fabric-insp-fw-1a", "cidr": "10.70.10.0/24", "az": "ap-southeast-1a", "type": "firewall"},
+        {"name": "fabric-insp-fw-1b", "cidr": "10.70.11.0/24", "az": "ap-southeast-1b", "type": "firewall"}
+      ]
+    },
+    {
+      "vpc_name": "fabric-egress-vpc",
+      "cidr_block": "10.80.0.0/16",
+      "purpose": "Centralized Outbound Egress with AWS Network Firewall, NAT GWs, IGW",
+      "subnets": [
+        {"name": "fabric-egress-tgw-1a", "cidr": "10.80.0.0/28", "az": "ap-southeast-1a", "type": "tgw"},
+        {"name": "fabric-egress-tgw-1b", "cidr": "10.80.0.16/28", "az": "ap-southeast-1b", "type": "tgw"},
+        {"name": "fabric-egress-fw-1a", "cidr": "10.80.1.0/28", "az": "ap-southeast-1a", "type": "nfw"},
+        {"name": "fabric-egress-fw-1b", "cidr": "10.80.1.16/28", "az": "ap-southeast-1b", "type": "nfw"},
+        {"name": "fabric-egress-public-1a", "cidr": "10.80.10.0/24", "az": "ap-southeast-1a", "type": "public_nat"},
+        {"name": "fabric-egress-public-1b", "cidr": "10.80.11.0/24", "az": "ap-southeast-1b", "type": "public_nat"}
+      ]
+    }
+  ],
+  "cidr_overlap_verification": "NO_OVERLAPPING_CIDRS_DETECTED",
+  "verification_status": "RUNTIME_PASS"
+}

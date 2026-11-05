@@ -1,0 +1,108 @@
+{
+  "timestamp": "2026-11-05T18:58:30Z",
+  "target_region": "ap-southeast-1",
+  "account_id": "123456789012",
+  "iam_roles": {
+    "load_balancer_controller": {
+      "role_name": "fabric-aws-lb-controller-role",
+      "arn": "arn:aws:iam::123456789012:role/fabric-aws-lb-controller-role",
+      "policy": "AWSLoadBalancerControllerIAMPolicy"
+    },
+    "ebs_csi_driver": {
+      "role_name": "fabric-ebs-csi-driver-role",
+      "arn": "arn:aws:iam::123456789012:role/fabric-ebs-csi-driver-role",
+      "policy": "arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy"
+    }
+  },
+  "clusters": [
+    {
+      "cluster_name": "fabric-edge-eks",
+      "pod_identity_associations": [
+        {
+          "association_id": "a-pzqcm9dikmbnkjczp",
+          "namespace": "kube-system",
+          "service_account": "aws-load-balancer-controller",
+          "role_arn": "arn:aws:iam::123456789012:role/fabric-aws-lb-controller-role"
+        },
+        {
+          "association_id": "a-jemn2vtszgyyw9nlc",
+          "namespace": "kube-system",
+          "service_account": "ebs-csi-controller-sa",
+          "role_arn": "arn:aws:iam::123456789012:role/fabric-ebs-csi-driver-role"
+        }
+      ],
+      "addons": [
+        {
+          "name": "vpc-cni",
+          "status": "ACTIVE",
+          "version": "v1.22.4-eksbuild.10",
+          "configuration": {
+            "enableNetworkPolicy": "true"
+          }
+        },
+        {
+          "name": "eks-pod-identity-agent",
+          "status": "ACTIVE",
+          "version": "v1.4.1-eksbuild.3"
+        },
+        {
+          "name": "coredns",
+          "status": "ACTIVE",
+          "version": "v1.14.7-eksbuild.22"
+        },
+        {
+          "name": "kube-proxy",
+          "status": "ACTIVE",
+          "version": "v1.37.0-eksbuild.32"
+        },
+        {
+          "name": "aws-ebs-csi-driver",
+          "status": "ACTIVE",
+          "version": "v1.67.2-eksbuild.1"
+        }
+      ]
+    },
+    {
+      "cluster_name": "fabric-core-eks",
+      "pod_identity_associations": [
+        {
+          "association_id": "a-rqgv9gfbniu2xc4td",
+          "namespace": "kube-system",
+          "service_account": "ebs-csi-controller-sa",
+          "role_arn": "arn:aws:iam::123456789012:role/fabric-ebs-csi-driver-role"
+        }
+      ],
+      "addons": [
+        {
+          "name": "vpc-cni",
+          "status": "ACTIVE",
+          "version": "v1.22.4-eksbuild.10",
+          "configuration": {
+            "enableNetworkPolicy": "true"
+          }
+        },
+        {
+          "name": "eks-pod-identity-agent",
+          "status": "ACTIVE",
+          "version": "v1.4.1-eksbuild.3"
+        },
+        {
+          "name": "coredns",
+          "status": "ACTIVE",
+          "version": "v1.14.7-eksbuild.22"
+        },
+        {
+          "name": "kube-proxy",
+          "status": "ACTIVE",
+          "version": "v1.37.0-eksbuild.32"
+        },
+        {
+          "name": "aws-ebs-csi-driver",
+          "status": "ACTIVE",
+          "version": "v1.67.2-eksbuild.1"
+        }
+      ]
+    }
+  ]
+}
+

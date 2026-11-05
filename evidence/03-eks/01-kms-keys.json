@@ -1,0 +1,61 @@
+{
+  "timestamp": "2026-11-05T18:14:00Z",
+  "target_region": "ap-southeast-1",
+  "account_id": "123456789012",
+  "summary": {
+    "total_keys": 2,
+    "key_spec": "SYMMETRIC_DEFAULT",
+    "key_usage": "ENCRYPT_DECRYPT",
+    "multi_region": false,
+    "key_rotation_enabled": true,
+    "all_states": "Enabled"
+  },
+  "kms_keys": [
+    {
+      "alias": "alias/fabric-edge-eks-secrets",
+      "key_id": "042b4054-bf6d-4741-8eb8-c28d745a05b8",
+      "arn": "arn:aws:kms:ap-southeast-1:123456789012:key/042b4054-bf6d-4741-8eb8-c28d745a05b8",
+      "description": "KMS CMK ma hoa Kubernetes Secrets cho cum fabric-edge-eks tai Singapore",
+      "enabled": true,
+      "key_state": "Enabled",
+      "key_usage": "ENCRYPT_DECRYPT",
+      "key_spec": "SYMMETRIC_DEFAULT",
+      "origin": "AWS_KMS",
+      "key_manager": "CUSTOMER",
+      "multi_region": false,
+      "key_rotation": {
+        "enabled": true,
+        "period_in_days": 365
+      },
+      "tags": {
+        "Project": "aws-eks-secure-network-fabric",
+        "Environment": "prod",
+        "Cluster": "fabric-edge-eks"
+      }
+    },
+    {
+      "alias": "alias/fabric-core-eks-secrets",
+      "key_id": "e5634732-898f-4b32-b81a-5dc578596ebb",
+      "arn": "arn:aws:kms:ap-southeast-1:123456789012:key/e5634732-898f-4b32-b81a-5dc578596ebb",
+      "description": "KMS CMK ma hoa Kubernetes Secrets cho cum fabric-core-eks tai Singapore",
+      "enabled": true,
+      "key_state": "Enabled",
+      "key_usage": "ENCRYPT_DECRYPT",
+      "key_spec": "SYMMETRIC_DEFAULT",
+      "origin": "AWS_KMS",
+      "key_manager": "CUSTOMER",
+      "multi_region": false,
+      "key_rotation": {
+        "enabled": true,
+        "period_in_days": 365
+      },
+      "tags": {
+        "Project": "aws-eks-secure-network-fabric",
+        "Environment": "prod",
+        "Cluster": "fabric-core-eks"
+      }
+    }
+  ],
+  "verification_status": "RUNTIME_PASS (2 Customer Managed Keys created, Multi-AZ Single-Region, Automatic Key Rotation enabled, tagged with Project=aws-eks-secure-network-fabric)"
+}
+

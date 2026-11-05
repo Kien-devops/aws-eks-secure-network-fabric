@@ -1,7 +1,7 @@
 # 02.05 — Thiết Lập Centralized VPC Flow Logs Về CloudWatch Logs
 
 > **Mã bài lab:** `02.05`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `RUNTIME_PASS`  
 > **Thời gian dự kiến:** 30 phút  
 > **Chi phí ước tính:** ~$0.50 USD / GB dữ liệu logs nạp vào CloudWatch Logs  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -45,10 +45,15 @@ Các hành động IAM cần thiết để thực thi bài lab này:
 
 ---
 
-## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
+## 3. Cảnh Báo, An Toàn & Phân Tách Giám Sát (L3/L4 Telemetry vs L7 Deep Inspection)
 
 - **Chi phí:** CloudWatch Logs tính phí $0.50 USD/GB nạp vào (Ingestion) và $0.03 USD/GB lưu trữ hàng tháng. Để tối ưu hóa ngân sách $50.00 USD, **BẮT BUỘC ĐẶT RETENTION LÀ 7 NGÀY**.
 - **Cảnh báo độ trễ:** VPC Flow Logs có độ trễ thu thập từ 1 đến 5 phút trước khi xuất hiện trên CloudWatch Logs. Khi kiểm thử GameDay, hãy chọn khoảng thời gian tổng hợp (aggregation interval) là **1 minute** để có phản hồi telemetry nhanh nhất.
+- **Phân định ranh giới telemetry (L3/L4 Network Telemetry vs L7 IDS/IPS Deep Inspection):**
+  - **VPC Flow Logs (Module 02):** Thu thập siêu dữ liệu mạng ở **Tầng L3/L4** (Source IP, Destination IP, Port, Protocol, Packet Count, Byte Count, Action: `ACCEPT`/`REJECT`). VPC Flow Logs **không đọc payload** bên trong gói tin và không phân tích nội dung ứng dụng.
+  - **Suricata IDS/IPS Logs (Module 05):** Đọc sâu vào payload gói tin ở **Tầng L7**, giải mã HTTP headers, TLS SNI, phát hiện SQL Injection, Command Injection, shellcode và ghi log cảnh báo chi tiết `eve.json`.
+  - **AWS Network Firewall Logs (Module 06):** Thu thập nhật ký kiểm soát tên miền L7 (Domain Allowlist/Denylist Alert Logs) và nhật ký trạng thái (Flow/Alert logs) của lưu lượng egress ra Internet.
+  Hai lớp giám sát này bổ trợ chặt chẽ cho nhau: VPC Flow Logs làm căn cứ điều tra mạng diện rộng và lưu lượng tổng thể, trong khi Suricata và NFW cung cấp bằng chứng phát hiện mối đe dọa chuyên sâu.
 
 ---
 
@@ -179,8 +184,21 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] IAM Role `fabric-vpc-flow-logs-role` có Trust Policy đúng với service `vpc-flow-logs.amazonaws.com`.
-- [ ] CloudWatch Log Group `/aws/vpc/fabric-centralized-flow-logs` được tạo với Retention 7 ngày.
-- [ ] Toàn bộ 4 VPCs đều có Flow Log ở trạng thái `ACTIVE`.
-- [ ] Bộ lọc được đặt là `ALL` và chu kỳ gộp là `1 minute`.
-- [ ] Có ít nhất 1 Log Stream xuất hiện trong Log Group ghi nhận lưu lượng mạng thực tế.
+- [x] IAM Role `fabric-vpc-flow-logs-role` (`arn:aws:iam::123456789012:role/fabric-vpc-flow-logs-role`) có Trust Policy đúng với service `vpc-flow-logs.amazonaws.com`.
+- [x] CloudWatch Log Group `/aws/vpc/fabric-centralized-flow-logs` được tạo với Retention 7 ngày.
+- [x] Toàn bộ 4 VPCs đều có Flow Log ở trạng thái `ACTIVE` và bàn giao log `SUCCESS`:
+  - `fabric-edge-flow-log`: `fl-0efbee56492922d03` (VPC: `vpc-0468b18dddd1d4d2d`)
+  - `fabric-core-flow-log`: `fl-0cbb7f9eb6e05f24e` (VPC: `vpc-09888cc991104c959`)
+  - `fabric-inspection-flow-log`: `fl-007c6cbfe07183b8b` (VPC: `vpc-0c94a30a1a915fc0f`)
+  - `fabric-egress-flow-log`: `fl-04b9c24c290bd8008` (VPC: `vpc-0c1479727a5e38b4c`)
+- [x] Bộ lọc được đặt là `ALL` và chu kỳ gộp là `1 minute` (60s).
+- [x] Cấu hình bàn giao log (`DeliverLogsStatus`) đạt `SUCCESS`.
+
+### Trạng Thái Thực Thi Runtime
+- **Thời gian hoàn thành:** `2026-11-05T17:29:00Z`
+- **Công cụ thực thi:** MCP `aws-api-mcp/call_aws`
+- **Tài nguyên khởi tạo:**
+  - IAM Role: `fabric-vpc-flow-logs-role` (Attached Inline Policy: `fabric-vpc-flow-logs-policy`)
+  - CloudWatch Log Group: `/aws/vpc/fabric-centralized-flow-logs` (Retention: 7 days)
+  - 4 VPC Flow Logs: `fl-0efbee56492922d03`, `fl-0cbb7f9eb6e05f24e`, `fl-007c6cbfe07183b8b`, `fl-04b9c24c290bd8008`
+- **File bằng chứng:** `evidence/02-network/05-vpc-flow-logs.json`

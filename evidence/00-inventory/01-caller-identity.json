@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-11-05T15:40:51Z",
+  "environment": "fabric-prod",
+  "target_region": "ap-southeast-1",
+  "sts_caller_identity": {
+    "UserId": "AIDAZA3JEKBM53A4JCGEO",
+    "Account": "123456789012",
+    "Arn": "arn:aws:iam::123456789012:user/kien-lvn"
+  },
+  "aws_cli_region": "ap-southeast-1",
+  "iam_user_permissions": {
+    "userName": "kien-lvn",
+    "attachedPolicies": [
+      {
+        "PolicyName": "AdministratorAccess",
+        "PolicyArn": "arn:aws:iam::aws:policy/AdministratorAccess"
+      },
+      {
+        "PolicyName": "Billing",
+        "PolicyArn": "arn:aws:iam::aws:policy/job-function/Billing"
+      },
+      {
+        "PolicyName": "AWSBillingReadOnlyAccess",
+        "PolicyArn": "arn:aws:iam::aws:policy/AWSBillingReadOnlyAccess"
+      },
+      {
+        "PolicyName": "kien-deny",
+        "PolicyArn": "arn:aws:iam::123456789012:policy/kien-deny"
+      }
+    ],
+    "inlinePolicies": [
+      "bill"
+    ]
+  },
+  "mfa_status": {
+    "userMfaDevices": [],
+    "note": "Root access keys are not present (AccountAccessKeysPresent: 0). Recommended to attach virtual MFA device to IAM user for heightened security."
+  },
+  "verification_status": "RUNTIME_PASS"
+}
+

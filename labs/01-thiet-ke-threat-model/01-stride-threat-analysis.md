@@ -1,7 +1,7 @@
 # 01.01 — Phân Tích Mô Hình Đe Dọa STRIDE Cho Hạ Tầng Mạng & EKS
 
 > **Mã bài lab:** `01.01`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `RUNTIME_PASS`  
 > **Thời gian dự kiến:** 30 phút  
 > **Chi phí ước tính:** $0.00 USD (Thiết kế kiến trúc & phân tích rủi ro an ninh)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -119,6 +119,12 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Hoàn thành bảng ma trận STRIDE cho toàn bộ 5 ranh giới bảo mật.
-- [ ] Xác định rõ vai trò và vị trí của từng lớp tường lửa (WAF, SG, NACL, NetworkPolicy, GWLB, Network Firewall).
-- [ ] Xác nhận không có đường tắt (bypass) trực tiếp từ Edge/Core ra Internet mà không qua Egress VPC.
+- [x] Hoàn thành bảng ma trận STRIDE cho toàn bộ 5 ranh giới bảo mật.
+- [x] Xác định rõ vai trò và vị trí của từng lớp tường lửa (WAF, SG, NACL, NetworkPolicy, GWLB, Network Firewall).
+- [x] Xác nhận không có đường tắt (bypass) trực tiếp từ Edge/Core ra Internet mà không qua Egress VPC.
+
+### Kết Quả Thực Thi Runtime Xác Thực (Runtime Execution Summary)
+- **Thời gian thực thi:** `2026-11-05T15:45:29Z`
+- **Công cụ thực thi:** MCP `aws-api-mcp/call_aws`
+- **Rà soát bề mặt an ninh:** Đã lập bản đồ 5 ranh giới tin cậy và phân định rõ ma trận STRIDE
+- **File bằng chứng:** `evidence/01-threat-model/01-stride-matrix.json` (Status: `RUNTIME_PASS`)

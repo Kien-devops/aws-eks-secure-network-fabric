@@ -1,7 +1,7 @@
 # 03.01 — Tạo Khóa Mã Hóa AWS KMS Customer Managed Key Cho EKS Secrets
 
 > **Mã bài lab:** `03.01`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `RUNTIME_PASS`  
 > **Thời gian dự kiến:** 20 phút  
 > **Chi phí ước tính:** ~$1.00 USD / key / tháng ($2.00 USD cho 2 keys Edge & Core)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -150,7 +150,25 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Cả 2 khóa KMS CMK `alias/fabric-edge-eks-secrets` và `alias/fabric-core-eks-secrets` ở trạng thái `Enabled`.
-- [ ] Tính năng Automatic Key Rotation được bật (`KeyRotationEnabled: true`) trên cả 2 khóa.
-- [ ] Khóa thuộc loại Single-Region nằm tại vùng `ap-southeast-1` (Singapore).
-- [ ] Tags gán đúng định danh `Project=aws-eks-secure-network-fabric`.
+- [x] Cả 2 khóa KMS CMK `alias/fabric-edge-eks-secrets` và `alias/fabric-core-eks-secrets` ở trạng thái `Enabled`.
+- [x] Tính năng Automatic Key Rotation được bật (`KeyRotationEnabled: true`) trên cả 2 khóa.
+- [x] Khóa thuộc loại Single-Region nằm tại vùng `ap-southeast-1` (Singapore).
+- [x] Tags gán đúng định danh `Project=aws-eks-secure-network-fabric`.
+
+---
+
+### Báo Cáo Thực Thi Runtime (Execution Summary)
+
+- **Thời gian thực thi:** `2026-11-05T18:14:00Z`
+- **Công cụ thực thi:** MCP `aws-api-mcp/call_aws`
+- **Edge KMS Key:**
+  - Key ID: `042b4054-bf6d-4741-8eb8-c28d745a05b8`
+  - Alias: `alias/fabric-edge-eks-secrets`
+  - Key Rotation: `true` (Chu kỳ: 365 ngày)
+  - Key State: `Enabled`
+- **Core KMS Key:**
+  - Key ID: `e5634732-898f-4b32-b81a-5dc578596ebb`
+  - Alias: `alias/fabric-core-eks-secrets`
+  - Key Rotation: `true` (Chu kỳ: 365 ngày)
+  - Key State: `Enabled`
+- **Tập tin bằng chứng:** [`evidence/03-eks/01-kms-keys.json`](../../evidence/03-eks/01-kms-keys.json)

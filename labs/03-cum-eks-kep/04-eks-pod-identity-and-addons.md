@@ -1,7 +1,7 @@
 # 03.04 — Cấu Hình EKS Pod Identity & Cài Đặt Managed Add-ons
 
 > **Mã bài lab:** `03.04`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `RUNTIME_PASS`  
 > **Thời gian dự kiến:** 30 phút  
 > **Chi phí ước tính:** $0.00 USD (EKS Pod Identity agent và các Core Managed Add-ons hoàn toàn miễn phí)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -203,7 +203,31 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Add-on `eks-pod-identity-agent` đạt trạng thái `ACTIVE` trên cả 2 cụm.
-- [ ] Add-on `vpc-cni` được cấu hình thành công cờ `ENABLE_NETWORK_POLICY: "true"`.
-- [ ] Các Core Add-ons (`coredns`, `kube-proxy`, `aws-ebs-csi-driver`) đều ở trạng thái `ACTIVE`.
-- [ ] Pod Identity Associations hiển thị chính xác ServiceAccount và IAM Role tương ứng.
+- [x] Add-on `eks-pod-identity-agent` đạt trạng thái `ACTIVE` trên cả 2 cụm (`fabric-edge-eks` và `fabric-core-eks`).
+- [x] Add-on `vpc-cni` được cấu hình thành công cờ `enableNetworkPolicy: "true"`.
+- [x] Các Core Add-ons (`coredns`, `kube-proxy`, `aws-ebs-csi-driver`) đều ở trạng thái `ACTIVE`.
+- [x] Pod Identity Associations hiển thị chính xác ServiceAccount và IAM Role tương ứng.
+
+---
+
+### Báo Cáo Thực Thi Runtime (Execution Summary)
+
+- **Thời gian thực thi:** `2026-11-05T18:58:30Z`
+- **Công cụ thực thi:** MCP `aws-api-mcp/call_aws`
+- **IAM Roles:**
+  - `fabric-aws-lb-controller-role`: `arn:aws:iam::123456789012:role/fabric-aws-lb-controller-role`
+  - `fabric-ebs-csi-driver-role`: `arn:aws:iam::123456789012:role/fabric-ebs-csi-driver-role`
+- **Pod Identity Associations:**
+  - Edge Cluster:
+    - SA: `aws-load-balancer-controller` -> Role: `fabric-aws-lb-controller-role` (`a-pzqcm9dikmbnkjczp`)
+    - SA: `ebs-csi-controller-sa` -> Role: `fabric-ebs-csi-driver-role` (`a-jemn2vtszgyyw9nlc`)
+  - Core Cluster:
+    - SA: `ebs-csi-controller-sa` -> Role: `fabric-ebs-csi-driver-role` (`a-rqgv9gfbniu2xc4td`)
+- **Addons Trạng Thái `ACTIVE` (Cả 2 cụm):**
+  - `vpc-cni`: `v1.22.4-eksbuild.10` (NetworkPolicy Enabled: `true`)
+  - `eks-pod-identity-agent`: `v1.4.1-eksbuild.3`
+  - `coredns`: `v1.14.7-eksbuild.22`
+  - `kube-proxy`: `v1.37.0-eksbuild.32`
+  - `aws-ebs-csi-driver`: `v1.67.2-eksbuild.1`
+- **Kubernetes Pods:** 100% Core add-ons pods (`aws-node`, `coredns`, `kube-proxy`, `eks-pod-identity-agent`, `ebs-csi-controller`) đạt trạng thái `Running` (6/6 containers).
+- **Tập tin bằng chứng:** [`evidence/03-eks/04-addons-status.json`](../../evidence/03-eks/04-addons-status.json)

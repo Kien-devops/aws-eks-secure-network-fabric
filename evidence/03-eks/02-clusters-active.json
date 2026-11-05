@@ -1,0 +1,91 @@
+{
+  "timestamp": "2026-11-05T18:45:30Z",
+  "target_region": "ap-southeast-1",
+  "account_id": "123456789012",
+  "iam_role": {
+    "role_name": "fabric-eks-cluster-role",
+    "arn": "arn:aws:iam::123456789012:role/fabric-eks-cluster-role",
+    "policy_arn": "arn:aws:iam::aws:policy/AmazonEKSClusterPolicy"
+  },
+  "clusters": [
+    {
+      "name": "fabric-edge-eks",
+      "status": "ACTIVE",
+      "version": "1.37",
+      "arn": "arn:aws:eks:ap-southeast-1:123456789012:cluster/fabric-edge-eks",
+      "endpoint": "https://C1659A4972ED6E8E4868A43BB740689A.gr7.ap-southeast-1.eks.amazonaws.com",
+      "role_arn": "arn:aws:iam::123456789012:role/fabric-eks-cluster-role",
+      "vpc_id": "vpc-0468b18dddd1d4d2d",
+      "subnets": [
+        "subnet-0e9f90d0d4e220d3a",
+        "subnet-034f4fc00bfd6cd09"
+      ],
+      "cluster_security_group_id": "sg-022cfbdb0ba1358b5",
+      "endpoint_access": {
+        "public": true,
+        "private": true
+      },
+      "encryption_config": [
+        {
+          "resources": [
+            "secrets"
+          ],
+          "provider": {
+            "keyArn": "arn:aws:kms:ap-southeast-1:123456789012:key/042b4054-bf6d-4741-8eb8-c28d745a05b8"
+          }
+        }
+      ],
+      "logging": [
+        "api",
+        "audit",
+        "authenticator",
+        "controllerManager",
+        "scheduler"
+      ],
+      "tags": {
+        "Project": "aws-eks-secure-network-fabric",
+        "Environment": "prod"
+      }
+    },
+    {
+      "name": "fabric-core-eks",
+      "status": "ACTIVE",
+      "version": "1.37",
+      "arn": "arn:aws:eks:ap-southeast-1:123456789012:cluster/fabric-core-eks",
+      "endpoint": "https://2FEB16F89E349703C1E29DB43A768ED0.gr7.ap-southeast-1.eks.amazonaws.com",
+      "role_arn": "arn:aws:iam::123456789012:role/fabric-eks-cluster-role",
+      "vpc_id": "vpc-09888cc991104c959",
+      "subnets": [
+        "subnet-0124e28037a2e4118",
+        "subnet-0fe561d6217b04955"
+      ],
+      "cluster_security_group_id": "sg-06715dfa0f671c216",
+      "endpoint_access": {
+        "public": true,
+        "private": true
+      },
+      "encryption_config": [
+        {
+          "resources": [
+            "secrets"
+          ],
+          "provider": {
+            "keyArn": "arn:aws:kms:ap-southeast-1:123456789012:key/e5634732-898f-4b32-b81a-5dc578596ebb"
+          }
+        }
+      ],
+      "logging": [
+        "api",
+        "audit",
+        "authenticator",
+        "controllerManager",
+        "scheduler"
+      ],
+      "tags": {
+        "Project": "aws-eks-secure-network-fabric",
+        "Environment": "prod"
+      }
+    }
+  ]
+}
+

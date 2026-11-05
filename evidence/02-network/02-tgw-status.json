@@ -1,0 +1,21 @@
+{
+  "timestamp": "2026-11-05T17:05:00Z",
+  "target_region": "ap-southeast-1",
+  "account_id": "123456789012",
+  "transit_gateway_id": "tgw-0fca495dfa8cfee17",
+  "name": "fabric-tgw",
+  "state": "available",
+  "amazon_side_asn": 64512,
+  "default_route_table_association": "disable",
+  "default_route_table_propagation": "disable",
+  "dns_support": "enable",
+  "vpn_ecmp_support": "enable",
+  "tags": {
+    "Name": "fabric-tgw",
+    "Project": "aws-eks-secure-network-fabric",
+    "Environment": "prod",
+    "ManagedBy": "console-lab"
+  },
+  "verification_status": "RUNTIME_PASS (Transit Gateway available, ASN 64512, default association and propagation disabled)"
+}
+

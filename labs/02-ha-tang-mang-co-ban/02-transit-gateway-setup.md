@@ -1,7 +1,7 @@
 # 02.02 — Cấu Hình AWS Transit Gateway (TGW) Tắt Mặc Định Propagation
 
 > **Mã bài lab:** `02.02`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `RUNTIME_PASS`  
 > **Thời gian dự kiến:** 20 phút  
 > **Chi phí ước tính:** ~$0.07 USD/giờ cho Transit Gateway tại Singapore (`ap-southeast-1`)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -113,9 +113,22 @@ aws ec2 describe-transit-gateways --region ap-southeast-1 \
 
 ---
 
-## 6. Kế Hoạch Khôi Phục / Rollback Plan
+## 6. Kế Hoạch Khôi Phục & Hiệu Chỉnh / Rollback & Remediation Plan
 
-Nếu cấu hình sai ASN hoặc lỡ bật Default Association/Propagation, cần xóa TGW và tạo lại:
+### Phương án 1: Hiệu chỉnh tùy chọn TGW không cần xóa (Khuyên dùng - Zero Downtime)
+Nếu cấu hình sai các tùy chọn như `DefaultRouteTableAssociation`, `DefaultRouteTablePropagation`, `DnsSupport`, hoặc `AutoAcceptSharedAttachments`, hãy dùng lệnh `aws ec2 modify-transit-gateway` để sửa trực tiếp mà **không cần xóa TGW**:
+```bash
+tgw_id=$(aws ec2 describe-transit-gateways --region ap-southeast-1 --filters "Name=tag:Name,Values=fabric-tgw" --query 'TransitGateways[0].TransitGatewayId' --output text)
+if [ "$tgw_id" != "None" ] && [ -n "$tgw_id" ]; then
+  # Tắt association/propagation tự động nếu lỡ kích hoạt
+  aws ec2 modify-transit-gateway --region ap-southeast-1 \
+    --transit-gateway-id $tgw_id \
+    --options "DefaultRouteTableAssociation=disable,DefaultRouteTablePropagation=disable,DnsSupport=enable"
+fi
+```
+
+### Phương án 2: Xóa TGW và khởi tạo lại từ đầu (Chỉ khi cần đổi ASN)
+Chỉ thực hiện xóa TGW khi cấu hình sai BGP Private ASN (`AmazonSideAsn` không thể thay đổi sau khi tạo):
 1. Tại VPC Console -> **Transit Gateways** -> Chọn checkbox trước `fabric-tgw`.
 2. Nhấp menu **Actions** -> Chọn **Delete transit gateway**.
 3. Nhập từ khóa `delete` vào ô xác nhận -> Nhấp **Delete**.
@@ -138,8 +151,15 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Transit Gateway `fabric-tgw` đạt trạng thái `available` tại Singapore `ap-southeast-1`.
-- [ ] `AmazonSideAsn` hiển thị chính xác giá trị `64512`.
-- [ ] `DefaultRouteTableAssociation` có giá trị `disable`.
-- [ ] `DefaultRouteTablePropagation` có giá trị `disable`.
-- [ ] `DnsSupport` có giá trị `enable`.
+- [x] Transit Gateway `fabric-tgw` đạt trạng thái `available` tại Singapore `ap-southeast-1` (`tgw-0fca495dfa8cfee17`).
+- [x] `AmazonSideAsn` hiển thị chính xác giá trị `64512`.
+- [x] `DefaultRouteTableAssociation` có giá trị `disable`.
+- [x] `DefaultRouteTablePropagation` có giá trị `disable`.
+- [x] `DnsSupport` có giá trị `enable`.
+
+### Trạng Thái Thực Thi Runtime (TGW Operational)
+- **Thời gian hoàn thành:** `2026-11-05T17:05:00Z`
+- **Công cụ thực thi:** MCP `aws-api-mcp/call_aws`
+- **TGW ID:** `tgw-0fca495dfa8cfee17`
+- **Tùy chọn:** ASN `64512`, Default Assoc/Prop: `disable`, DNS Support: `enable`
+- **File bằng chứng:** `evidence/02-network/02-tgw-status.json`

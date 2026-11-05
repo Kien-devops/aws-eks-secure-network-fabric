@@ -1,7 +1,7 @@
 # 01.03 — Ma Trận Định Tuyến TGW & Bảng Bước Nhảy Gói Tin (Hop Tables)
 
 > **Mã bài lab:** `01.03`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `RUNTIME_PASS`  
 > **Thời gian dự kiến:** 30 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore) — AZs: `ap-southeast-1a`, `ap-southeast-1b`  
@@ -139,7 +139,14 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Bảng hop table xác định chi tiết đường đi của từng hop cho cả chiều đi (Forward) và chiều về (Return).
-- [ ] Xác nhận rõ quy tắc Return Path tại Egress VPC bắt buộc đi qua Network Firewall Endpoint.
-- [ ] Bật cờ `ApplianceModeSupport = enable` trên Inspection và Egress TGW Attachments.
-- [ ] Phân vùng Blackhole được thiết kế chuẩn mực để cô lập môi trường Dev.
+- [x] Bảng hop table xác định chi tiết đường đi của từng hop cho cả chiều đi (Forward) và chiều về (Return).
+- [x] Xác nhận rõ quy tắc Return Path tại Egress VPC bắt buộc đi qua Network Firewall Endpoint.
+- [x] Bật cờ `ApplianceModeSupport = enable` trên Inspection và Egress TGW Attachments.
+- [x] Phân vùng Blackhole được thiết kế chuẩn mực để cô lập môi trường Dev.
+
+### Kết Quả Thực Thi Runtime Xác Thực (Runtime Execution Summary)
+- **Thời gian thực thi:** `2026-11-05T15:46:55Z`
+- **Công cụ thực thi:** MCP `aws-api-mcp/call_aws`
+- **Quy chuẩn định tuyến:** Xác lập 5 TGW Route Domains, thiết kế đối xứng luồng gói tin qua Appliance Mode
+- **Bảo vệ đường về (Return Path Trap):** Ràng buộc tuyến đường từ Public NAT Subnet trở về Egress Firewall Endpoint
+- **File bằng chứng:** `evidence/01-threat-model/03-hop-tables-spec.json` (Status: `RUNTIME_PASS`)

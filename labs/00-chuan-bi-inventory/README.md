@@ -47,7 +47,7 @@ Khởi tạo cảnh báo ngân sách khi chi phí thực tế hoặc dự báo v
 ---
 
 ## 3. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
-- [ ] Xác nhận Account ID đã được che giấu (`***` hoặc `123456789012`).
-- [ ] Báo cáo kiểm kê xác nhận không có VPC hay TGW nào xung đột với thiết kế Project 6.
-- [ ] Ngân sách Budget $50.00 đã được kích hoạt.
+- [x] Xác nhận Account ID đã được che giấu (`***` hoặc `123456789012`).
+- [x] Báo cáo kiểm kê xác nhận không có VPC hay TGW nào xung đột với thiết kế Project 6 (`evidence/00-inventory/00-environment-inventory.json`).
+- [x] Ngân sách Budget $50.00 (`fabric-project6-monthly-budget`) đã được kích hoạt và ở trạng thái HEALTHY.
 

@@ -1,7 +1,7 @@
 # 00.03 — Quy Chuẩn Thu Thập Bằng Chứng (Evidence) & Khử Trùng Dữ Liệu (Sanitization)
 
 > **Mã bài lab:** `00.03`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `RUNTIME_PASS`  
 > **Thời gian dự kiến:** 15 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -157,7 +157,14 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] S3 Bucket `fabric-evidence-vault-*` được tạo với Block Public Access = ENABLED và SSE-S3.
-- [ ] Không có chuỗi khóa bí mật, mật khẩu cơ sở dữ liệu hay token nào tồn tại trong git commits.
-- [ ] Account ID được thay thế 100% bằng `123456789012` hoặc `***`.
-- [ ] Thư mục bằng chứng `evidence/` được phân nhóm rõ ràng theo 12 modules.
+- [x] S3 Bucket `fabric-evidence-vault-*` được tạo tại `ap-southeast-1` với Block Public Access = ENABLED, Versioning = ENABLED và SSE-S3.
+- [x] Không có chuỗi khóa bí mật, mật khẩu cơ sở dữ liệu hay token nào tồn tại trong git commits.
+- [x] Account ID được thay thế 100% bằng `123456789012` hoặc `***`.
+- [x] Thư mục bằng chứng `evidence/` được phân nhóm rõ ràng theo 13 modules (00-inventory đến 12-cleanup).
+
+### Kết Quả Thực Thi Runtime Xác Thực (Runtime Execution Summary)
+- **Thời gian thực thi:** `2026-11-05T15:44:15Z`
+- **Công cụ thực thi:** MCP `aws-api-mcp/call_aws` & `scripts/sanitize-evidence.py`
+- **S3 Bucket:** `fabric-evidence-vault-apse1-123456789012` (Region: `ap-southeast-1`, Versioning & SSE-S3 enabled)
+- **Thư mục Evidence:** Đã khởi tạo 13 thư mục từ `00-inventory` đến `12-cleanup`
+- **File bằng chứng:** `evidence/00-inventory/03-sanitization-audit.log` (Status: `RUNTIME_PASS`)

@@ -1,0 +1,145 @@
+{
+  "timestamp": "2026-11-05T17:05:00Z",
+  "target_region": "ap-southeast-1",
+  "account_id": "123456789012",
+  "transit_gateway": {
+    "tgw_id": "tgw-0fca495dfa8cfee17",
+    "name": "fabric-tgw",
+    "asn": 64512,
+    "state": "available",
+    "default_association": "disable",
+    "default_propagation": "disable",
+    "dns_support": "enable"
+  },
+  "attachments": [
+    {
+      "name": "fabric-edge-tgw-attachment",
+      "attachment_id": "tgw-attach-06219b0f6f3082f3e",
+      "vpc_id": "vpc-0468b18dddd1d4d2d",
+      "subnet_ids": [
+        "subnet-0ee88bbf364687ec6",
+        "subnet-027f9fd24d6ff94ca"
+      ],
+      "appliance_mode": "disable",
+      "dns_support": "enable",
+      "state": "available"
+    },
+    {
+      "name": "fabric-core-tgw-attachment",
+      "attachment_id": "tgw-attach-0d9cc79cb91dafeb2",
+      "vpc_id": "vpc-09888cc991104c959",
+      "subnet_ids": [
+        "subnet-067ef27abb3c9fc27",
+        "subnet-0b8fbf236704cd49f"
+      ],
+      "appliance_mode": "disable",
+      "dns_support": "enable",
+      "state": "available"
+    },
+    {
+      "name": "fabric-insp-tgw-attachment",
+      "attachment_id": "tgw-attach-0fb21514974415f35",
+      "vpc_id": "vpc-0c94a30a1a915fc0f",
+      "subnet_ids": [
+        "subnet-0e260eae20eea3ccb",
+        "subnet-0a1481ce7d8302538"
+      ],
+      "appliance_mode": "enable",
+      "dns_support": "enable",
+      "state": "available"
+    },
+    {
+      "name": "fabric-egress-tgw-attachment",
+      "attachment_id": "tgw-attach-0646bdfa31c6c8e66",
+      "vpc_id": "vpc-0c1479727a5e38b4c",
+      "subnet_ids": [
+        "subnet-0a9b70d43770f1e86",
+        "subnet-0b0653845a52c4f75"
+      ],
+      "appliance_mode": "enable",
+      "dns_support": "enable",
+      "state": "available"
+    }
+  ],
+  "route_tables": [
+    {
+      "name": "fabric-tgw-edge-rt",
+      "route_table_id": "tgw-rtb-004772ba5b83f2b17",
+      "state": "available",
+      "associated_attachment": "tgw-attach-06219b0f6f3082f3e",
+      "static_routes": [
+        {
+          "destination_cidr": "0.0.0.0/0",
+          "next_hop": "tgw-attach-0fb21514974415f35",
+          "state": "active"
+        },
+        {
+          "destination_cidr": "10.50.0.0/16",
+          "next_hop": "tgw-attach-0fb21514974415f35",
+          "state": "active"
+        }
+      ]
+    },
+    {
+      "name": "fabric-tgw-core-rt",
+      "route_table_id": "tgw-rtb-03c493c67bc6dc820",
+      "state": "available",
+      "associated_attachment": "tgw-attach-0d9cc79cb91dafeb2",
+      "static_routes": [
+        {
+          "destination_cidr": "0.0.0.0/0",
+          "next_hop": "tgw-attach-0fb21514974415f35",
+          "state": "active"
+        },
+        {
+          "destination_cidr": "10.40.0.0/16",
+          "next_hop": "tgw-attach-0fb21514974415f35",
+          "state": "active"
+        }
+      ]
+    },
+    {
+      "name": "fabric-tgw-inspection-rt",
+      "route_table_id": "tgw-rtb-01abf43ebf7f1b21f",
+      "state": "available",
+      "associated_attachment": "tgw-attach-0fb21514974415f35",
+      "static_routes": [
+        {
+          "destination_cidr": "0.0.0.0/0",
+          "next_hop": "tgw-attach-0646bdfa31c6c8e66",
+          "state": "active"
+        },
+        {
+          "destination_cidr": "10.40.0.0/16",
+          "next_hop": "tgw-attach-06219b0f6f3082f3e",
+          "state": "active"
+        },
+        {
+          "destination_cidr": "10.50.0.0/16",
+          "next_hop": "tgw-attach-0d9cc79cb91dafeb2",
+          "state": "active"
+        }
+      ]
+    },
+    {
+      "name": "fabric-tgw-egress-rt",
+      "route_table_id": "tgw-rtb-066c8310ab347bf30",
+      "state": "available",
+      "associated_attachment": "tgw-attach-0646bdfa31c6c8e66",
+      "static_routes": [
+        {
+          "destination_cidr": "10.40.0.0/16",
+          "next_hop": "tgw-attach-0fb21514974415f35",
+          "state": "active"
+        },
+        {
+          "destination_cidr": "10.50.0.0/16",
+          "next_hop": "tgw-attach-0fb21514974415f35",
+          "state": "active"
+        }
+      ]
+    }
+  ],
+  "verification_status": "RUNTIME_PASS (4 attachments, 4 route tables, dedicated associations, and 8 active static routes verified)"
+}
+

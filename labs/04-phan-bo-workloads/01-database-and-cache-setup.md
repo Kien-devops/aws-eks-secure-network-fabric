@@ -50,7 +50,7 @@ Các hành động IAM cần thiết để thực thi bài lab này:
 ## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
 
 - **Chi phí:** Aurora Serverless v2 (0.5 ACU) tiêu tốn ~$0.06/giờ. ElastiCache tiêu tốn ~$0.02/giờ. Cần theo dõi chặt chẽ ngân sách $50.00 USD.
-- **Cảnh báo cô lập tầng dữ liệu (Zero Trust Data Isolation):** Cơ sở dữ liệu và Cache **CHỈ ĐƯỢC PHÉP ĐẶT TRONG CORE DATA SUBNETS**. Security Group của DB chỉ cho phép Inbound từ Core Node Subnet (`10.50.10.0/22`, `10.50.14.0/22`). Tuyệt đối cấm kết nối trực tiếp từ Edge VPC (`10.40.0.0/16`) hay Internet. Bất kỳ truy vấn nào từ Edge đều bắt buộc phải gọi qua API của `order-service` / `inventory-service`.
+- **Cảnh báo cô lập tầng dữ liệu (Zero Trust Data Isolation):** Cơ sở dữ liệu và Cache **CHỈ ĐƯỢC PHÉP ĐẶT TRONG CORE DATA SUBNETS**. Security Group của DB chỉ cho phép Inbound từ Core Node Subnet (`10.50.8.0/22`, `10.50.12.0/22`). Tuyệt đối cấm kết nối trực tiếp từ Edge VPC (`10.40.0.0/16`) hay Internet. Bất kỳ truy vấn nào từ Edge đều bắt buộc phải gọi qua API của `order-service` / `inventory-service`.
 
 ---
 
@@ -66,19 +66,19 @@ Truy cập **VPC Console** tại Singapore `ap-southeast-1`:
 3. **Inbound rules:**
    - Nhấp **Add rule**:
      - Type: `PostgreSQL` | Protocol: `TCP` | Port: `5432`.
-     - Source: `Custom` -> Nhập `10.50.10.0/22` (Core Node Subnet AZ-a).
+     - Source: `Custom` -> Nhập `10.50.8.0/22` (Core Node Subnet AZ-a).
      - Description: `PostgreSQL from Core Nodes 1a`.
    - Nhấp **Add rule**:
      - Type: `PostgreSQL` | Protocol: `TCP` | Port: `5432`.
-     - Source: `Custom` -> Nhập `10.50.14.0/22` (Core Node Subnet AZ-b).
+     - Source: `Custom` -> Nhập `10.50.12.0/22` (Core Node Subnet AZ-b).
      - Description: `PostgreSQL from Core Nodes 1b`.
    - Nhấp **Add rule**:
      - Type: `Custom TCP` | Protocol: `TCP` | Port: `6379`.
-     - Source: `Custom` -> Nhập `10.50.10.0/22`.
+     - Source: `Custom` -> Nhập `10.50.8.0/22`.
      - Description: `Redis from Core Nodes 1a`.
    - Nhấp **Add rule**:
      - Type: `Custom TCP` | Protocol: `TCP` | Port: `6379`.
-     - Source: `Custom` -> Nhập `10.50.14.0/22`.
+     - Source: `Custom` -> Nhập `10.50.12.0/22`.
      - Description: `Redis from Core Nodes 1b`.
 4. **Outbound rules:** Giữ nguyên default (All traffic).
 5. **Tags:** Key: `Project` | Value: `aws-eks-secure-network-fabric`.
@@ -207,6 +207,6 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
 - [ ] DB Subnet Group và Cache Subnet Group nằm trọn vẹn trong 2 Data Subnets `fabric-core-data-1a/b`.
-- [ ] Security Group `fabric-core-data-sg` chỉ mở cổng 5432 và 6379 cho Core Node Subnets (`10.50.10.0/22`, `10.50.14.0/22`).
+- [ ] Security Group `fabric-core-data-sg` chỉ mở cổng 5432 và 6379 cho Core Node Subnets (`10.50.8.0/22`, `10.50.12.0/22`).
 - [ ] Aurora PostgreSQL Serverless v2 ở trạng thái `available` với dải capacity 0.5 - 1.0 ACU.
 - [ ] Tính năng Public Access bị tắt (`No`) trên toàn bộ tầng dữ liệu.

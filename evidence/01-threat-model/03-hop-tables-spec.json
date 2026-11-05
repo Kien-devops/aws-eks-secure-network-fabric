@@ -1,0 +1,56 @@
+{
+  "timestamp": "2026-11-05T15:46:55Z",
+  "target_region": "ap-southeast-1",
+  "routing_domains": [
+    {
+      "table_name": "fabric-tgw-edge-rt",
+      "associated_attachment": "fabric-edge-tgw-attachment",
+      "routes": [
+        {"destination": "10.50.0.0/16", "target": "fabric-insp-tgw-attachment"},
+        {"destination": "0.0.0.0/0", "target": "fabric-egress-tgw-attachment"}
+      ]
+    },
+    {
+      "table_name": "fabric-tgw-core-rt",
+      "associated_attachment": "fabric-core-tgw-attachment",
+      "routes": [
+        {"destination": "10.40.0.0/16", "target": "fabric-insp-tgw-attachment"},
+        {"destination": "0.0.0.0/0", "target": "fabric-egress-tgw-attachment"}
+      ]
+    },
+    {
+      "table_name": "fabric-tgw-inspection-rt",
+      "associated_attachment": "fabric-insp-tgw-attachment",
+      "routes": [
+        {"destination": "10.40.0.0/16", "target": "fabric-edge-tgw-attachment"},
+        {"destination": "10.50.0.0/16", "target": "fabric-core-tgw-attachment"}
+      ]
+    },
+    {
+      "table_name": "fabric-tgw-egress-rt",
+      "associated_attachment": "fabric-egress-tgw-attachment",
+      "routes": [
+        {"destination": "10.40.0.0/16", "target": "fabric-edge-tgw-attachment"},
+        {"destination": "10.50.0.0/16", "target": "fabric-core-tgw-attachment"}
+      ]
+    },
+    {
+      "table_name": "fabric-tgw-dev-rt",
+      "associated_attachment": "fabric-dev-tgw-attachment",
+      "routes": [
+        {"destination": "10.40.0.0/16", "target": "blackhole"},
+        {"destination": "10.50.0.0/16", "target": "blackhole"}
+      ]
+    }
+  ],
+  "appliance_mode_settings": {
+    "fabric-insp-tgw-attachment": "ENABLED",
+    "fabric-egress-tgw-attachment": "ENABLED"
+  },
+  "east_west_hop_count": 8,
+  "outbound_egress_hop_count": 7,
+  "inbound_return_hop_count": 6,
+  "return_path_trap_protection": "ENFORCED (Public NAT subnet routes 10.40/16 & 10.50/16 point to AWS Network Firewall endpoints)",
+  "verification_status": "RUNTIME_PASS"
+}
+

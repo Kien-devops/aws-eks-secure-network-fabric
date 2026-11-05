@@ -1,0 +1,41 @@
+{
+  "timestamp": "2026-11-05T15:44:55Z",
+  "target_region": "ap-southeast-1",
+  "account_id": "123456789012",
+  "inventory": {
+    "existing_vpcs": [
+      {
+        "VpcId": "vpc-0ae0bf586b6f77479",
+        "CidrBlock": "10.0.0.0/16",
+        "Name": "NT548-vpc",
+        "State": "available"
+      },
+      {
+        "VpcId": "vpc-009d37950a455719b",
+        "CidrBlock": "172.31.0.0/16",
+        "IsDefault": true,
+        "State": "available"
+      }
+    ],
+    "existing_transit_gateways": [],
+    "existing_load_balancers": [
+      {
+        "Name": "nt548-shared-alb",
+        "Type": "application",
+        "VpcId": "vpc-0ae0bf586b6f77479"
+      }
+    ]
+  },
+  "cidr_conflict_check": {
+    "planned_cidrs": [
+      "10.40.0.0/16",
+      "10.50.0.0/16",
+      "10.70.0.0/16",
+      "10.80.0.0/16"
+    ],
+    "conflicts_detected": 0,
+    "verdict": "CLEAN_ENVIRONMENT_READY_FOR_DEPLOYMENT"
+  },
+  "verification_status": "RUNTIME_PASS"
+}
+

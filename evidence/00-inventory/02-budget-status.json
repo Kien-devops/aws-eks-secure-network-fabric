@@ -1,0 +1,43 @@
+{
+  "timestamp": "2026-11-05T15:43:08Z",
+  "environment": "fabric-prod",
+  "target_region": "ap-southeast-1",
+  "budget": {
+    "BudgetName": "fabric-project6-monthly-budget",
+    "BudgetLimit": {
+      "Amount": "50.0",
+      "Unit": "USD"
+    },
+    "TimeUnit": "MONTHLY",
+    "BudgetType": "COST",
+    "HealthStatus": {
+      "Status": "HEALTHY"
+    }
+  },
+  "notifications": [
+    {
+      "NotificationType": "ACTUAL",
+      "ComparisonOperator": "GREATER_THAN",
+      "Threshold": 80.0,
+      "ThresholdType": "PERCENTAGE",
+      "NotificationState": "OK"
+    },
+    {
+      "NotificationType": "FORECASTED",
+      "ComparisonOperator": "GREATER_THAN",
+      "Threshold": 100.0,
+      "ThresholdType": "PERCENTAGE"
+    }
+  ],
+  "naming_convention": {
+    "prefix": "fabric-*",
+    "cost_allocation_tags": {
+      "Project": "aws-eks-secure-network-fabric",
+      "Environment": "prod",
+      "ManagedBy": "terraform",
+      "Owner": "kien-devops"
+    }
+  },
+  "verification_status": "RUNTIME_PASS"
+}
+

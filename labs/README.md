@@ -80,8 +80,8 @@ Tài liệu hướng dẫn thực hành (Hands-on Labs) chi tiết từng bướ
     +-----------------------------------------------------------------+
     | VPC Edge EKS — 10.40.0.0/16 (ap-southeast-1a/b)                 |
     | - Public Subnets: ALB Ingress (10.40.0.0/24, 10.40.1.0/24)      |
-    | - Private Subnets: Edge Nodes EKS 1.31 (10.40.10.0/22, 14.0/22) |
-    | - VPC Endpoints: ECR, S3, STS, EKS, Logs (10.40.20.0/24, 21.0)  |
+    | - Private Subnets: Edge Nodes EKS 1.31 (10.40.8.0/22, 12.0/22)  |
+    | - VPC Endpoints: ECR, S3, STS, Logs, EC2, eks-auth (10.40.20-21)|
     | - TGW Subnets: Attachment ENIs (10.40.250.0/28, 250.16/28)      |
     +-----------------------------------------------------------------+
                                      |
@@ -90,7 +90,7 @@ Tài liệu hướng dẫn thực hành (Hands-on Labs) chi tiết từng bướ
     +-----------------------------------------------------------------+
     | VPC Inspection — 10.70.0.0/16 (ap-southeast-1a/b)               |
     | - TGW Subnets: TGW Attachment (Appliance Mode = ENABLED)        |
-    | - GWLBe Subnets: Zonal VPC Endpoints (gwlbe-a, gwlbe-b)         |
+    | - GWLBe Subnets: Zonal VPC Endpoints (10.70.1.0/28, 10.70.1.16/28)    |
     | - Firewall Subnets: Suricata EC2 Instances (GENEVE 6081)        |
     |   <---> Gateway Load Balancer (GWLB)                            |
     +-----------------------------------------------------------------+
@@ -99,19 +99,19 @@ Tài liệu hướng dẫn thực hành (Hands-on Labs) chi tiết từng bướ
                                      |
     +-----------------------------------------------------------------+
     | VPC Core EKS — 10.50.0.0/16 (ap-southeast-1a/b)                 |
-    | - Private Subnets: Core Nodes EKS 1.31 (10.50.10.0/22, 14.0/22) |
-    | - VPC Endpoints: ECR, S3, STS, EKS, Logs (10.50.30.0/24, 31.0)  |
+    | - Private Subnets: Core Nodes EKS 1.31 (10.50.8.0/22, 12.0/22)  |
+    | - VPC Endpoints: ECR, S3, STS, Logs, EC2, SQS, eks-auth (30-31) |
     | - Data Subnets: Aurora DB, Redis Cache (10.50.20.0/24, 21.0/24) |
     | - TGW Subnets: Attachment ENIs (10.50.250.0/28, 250.16/28)      |
     +-----------------------------------------------------------------+
                                      |
-                               0.0.0.0/0 qua TGW
+                      (0.0.0.0/0 qua TGW -> Inspection)
                                      |
     +-----------------------------------------------------------------+
     | VPC Centralized Egress — 10.80.0.0/16 (ap-southeast-1a/b)       |
-    | - TGW Subnets: TGW Attachment (Appliance Mode = ENABLED)        |
-    | - Firewall Subnets: AWS Network Firewall Endpoints (AZ-A, AZ-B) |
-    | - Public Subnets: NAT Gateway A/B, Internet Gateway             |
+    | - TGW Subnets: TGW Attachment (10.80.0.0/28, 10.80.0.16/28)     |
+    | - Firewall Subnets: AWS Network Firewall Endpoints (10.80.1.0/28, 1.16/28) |
+    | - Public Subnets: NAT Gateway A/B + IGW (10.80.10.0/24, 11.0/24)|
     +-----------------------------------------------------------------+
                                      |
                                   Internet
@@ -127,11 +127,11 @@ Tài liệu hướng dẫn thực hành (Hands-on Labs) chi tiết từng bướ
 
 | TGW Route Table | Associated VPC Attachment | Routes Cấu Hình | Mục Đích Luồng Traffic |
 |---|---|---|---|
-| **`edge-rt`** | Edge VPC | - `10.50.0.0/16` -> Inspection Attachment (hoặc Direct route tạm thời trong Phase 02)<br>- `0.0.0.0/0` -> Egress Attachment | Traffic tới Core bắt buộc qua GWLB kiểm tra; traffic ra Internet vào Egress |
-| **`core-rt`** | Core VPC | - `10.40.0.0/16` -> Inspection Attachment (hoặc Direct route tạm thời trong Phase 02)<br>- `0.0.0.0/0` -> Egress Attachment | Traffic về Edge bắt buộc qua GWLB kiểm tra; traffic ra Internet vào Egress |
-| **`inspection-rt`**| Inspection VPC | - `10.40.0.0/16` -> Edge Attachment<br>- `10.50.0.0/16` -> Core Attachment | Trả traffic đã qua kiểm duyệt Suricata về đúng VPC đích |
-| **`egress-rt`** | Egress VPC | - `10.40.0.0/16` -> Edge Attachment<br>- `10.50.0.0/16` -> Core Attachment | Trả traffic phản hồi từ Internet về đúng VPC khởi tạo kết nối |
-| **`dev-rt`** | Dev Test VPC *(Mở rộng)* | - `10.40.0.0/16` -> Blackhole<br>- `10.50.0.0/16` -> Blackhole | Cô lập tuyệt đối môi trường thử nghiệm với môi trường Production |
+| **`fabric-tgw-edge-rt`** | Edge VPC | - `10.50.0.0/16` -> Inspection Attachment<br>- `0.0.0.0/0` -> Inspection Attachment | Toàn bộ traffic sang Core hoặc ra Internet bắt buộc vào Inspection VPC kiểm tra |
+| **`fabric-tgw-core-rt`** | Core VPC | - `10.40.0.0/16` -> Inspection Attachment<br>- `0.0.0.0/0` -> Inspection Attachment | Toàn bộ traffic sang Edge hoặc ra Internet bắt buộc vào Inspection VPC kiểm tra |
+| **`fabric-tgw-inspection-rt`**| Inspection VPC | - `10.40.0.0/16` -> Edge Attachment<br>- `10.50.0.0/16` -> Core Attachment<br>- `0.0.0.0/0` -> Egress Attachment | Chuyển traffic đã kiểm duyệt tới đúng Spoke VPC hoặc chuyển ra Egress VPC |
+| **`fabric-tgw-egress-rt`** | Egress VPC | - `10.40.0.0/16` -> Inspection Attachment<br>- `10.50.0.0/16` -> Inspection Attachment | Traffic phản hồi từ Internet về Spoke VPC bắt buộc qua Inspection kiểm tra đối xứng |
+| **`fabric-tgw-dev-rt`** | Dev Test VPC *(Mở rộng)* | - `10.40.0.0/16` -> Blackhole<br>- `10.50.0.0/16` -> Blackhole | Cô lập tuyệt đối môi trường thử nghiệm với môi trường Production |
 
 ---
 
@@ -139,8 +139,8 @@ Tài liệu hướng dẫn thực hành (Hands-on Labs) chi tiết từng bướ
 
 | VPC | CIDR Block | Phân Bổ Subnet Chi Tiết |
 |---|---|---|
-| **Edge EKS** | `10.40.0.0/16` | Public ALB: `10.40.0.0/24`, `10.40.1.0/24`<br>Private Node: `10.40.10.0/22`, `10.40.14.0/22`<br>Private VPCE: `10.40.20.0/24`, `10.40.21.0/24`<br>TGW Attachment: `10.40.250.0/28`, `10.40.250.16/28` |
-| **Core EKS** | `10.50.0.0/16` | Private Node: `10.50.10.0/22`, `10.50.14.0/22`<br>Private VPCE: `10.50.30.0/24`, `10.50.31.0/24`<br>Data Subnet (DB/Cache): `10.50.20.0/24`, `10.50.21.0/24`<br>TGW Attachment: `10.50.250.0/28`, `10.50.250.16/28` |
+| **Edge EKS** | `10.40.0.0/16` | Public ALB: `10.40.0.0/24`, `10.40.1.0/24`<br>Private Node: `10.40.8.0/22`, `10.40.12.0/22`<br>Private VPCE: `10.40.20.0/24`, `10.40.21.0/24`<br>TGW Attachment: `10.40.250.0/28`, `10.40.250.16/28` |
+| **Core EKS** | `10.50.0.0/16` | Private Node: `10.50.8.0/22`, `10.50.12.0/22`<br>Private VPCE: `10.50.30.0/24`, `10.50.31.0/24`<br>Data Subnet (DB/Cache): `10.50.20.0/24`, `10.50.21.0/24`<br>TGW Attachment: `10.50.250.0/28`, `10.50.250.16/28` |
 | **Inspection** | `10.70.0.0/16` | TGW Subnet: `10.70.0.0/28`, `10.70.0.16/28`<br>GWLBe Subnet: `10.70.1.0/28`, `10.70.1.16/28`<br>Suricata EC2 Subnet: `10.70.10.0/24`, `10.70.11.0/24` |
 | **Centralized Egress** | `10.80.0.0/16` | TGW Subnet: `10.80.0.0/28`, `10.80.0.16/28`<br>Firewall Endpoint Subnet: `10.80.1.0/28`, `10.80.1.16/28`<br>Public Subnet (NAT/IGW): `10.80.10.0/24`, `10.80.11.0/24` |
 

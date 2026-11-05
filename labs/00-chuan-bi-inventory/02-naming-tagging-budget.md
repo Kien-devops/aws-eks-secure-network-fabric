@@ -1,7 +1,7 @@
 # 00.02 — Quy Chuẩn Đặt Tên (Naming), Gắn Nhãn (Tagging) & Thiết Lập AWS Budgets ($50.00)
 
 > **Mã bài lab:** `00.02`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `RUNTIME_PASS`  
 > **Thời gian dự kiến:** 20 phút  
 > **Chi phí ước tính:** $0.00 USD (AWS Budgets miễn phí 2 ngân sách đầu tiên)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -152,6 +152,13 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Ngân sách `fabric-project6-monthly-budget` ở trạng thái Active với giới hạn $50.00 USD.
-- [ ] 2 ngưỡng thông báo (80% actual = $40 USD, 100% forecasted = $50 USD) được kích hoạt với email nhận tin hợp lệ.
-- [ ] Quy ước tiền tố `fabric-*` và bộ Cost Allocation Tags được ghi nhận đầy đủ.
+- [x] Ngân sách `fabric-project6-monthly-budget` ở trạng thái Active/Healthy với giới hạn $50.00 USD.
+- [x] 2 ngưỡng thông báo (80% actual = $40 USD, 100% forecasted = $50 USD) được kích hoạt với email nhận tin hợp lệ.
+- [x] Quy ước tiền tố `fabric-*` và bộ Cost Allocation Tags được ghi nhận đầy đủ.
+
+### Kết Quả Thực Thi Runtime Xác Thực (Runtime Execution Summary)
+- **Thời gian thực thi:** `2026-11-05T15:43:08Z`
+- **Công cụ thực thi:** MCP `aws-api-mcp/call_aws`
+- **Tên ngân sách:** `fabric-project6-monthly-budget` ($50.00 USD, Monthly, Fixed, All Services)
+- **Cảnh báo kích hoạt:** 80% Actual Spend ($40.00) & 100% Forecasted Spend ($50.00)
+- **File bằng chứng:** `evidence/00-inventory/02-budget-status.json` (Status: `RUNTIME_PASS`)

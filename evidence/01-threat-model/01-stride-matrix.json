@@ -1,0 +1,65 @@
+{
+  "timestamp": "2026-11-05T15:45:29Z",
+  "target_region": "ap-southeast-1",
+  "trust_boundaries": [
+    {
+      "boundary": "Ingress (Internet <-> Edge EKS VPC)",
+      "threats": ["L7 DDoS", "SQLi/XSS", "Port scanning"],
+      "mitigations": ["AWS WAF v2 Count-to-Block", "Strict Security Group (80/443 only)"]
+    },
+    {
+      "boundary": "East-West (Edge EKS <-> Core EKS)",
+      "threats": ["Lateral Movement", "Payload Tampering", "Unauthorized inter-service calls"],
+      "mitigations": ["TGW Route Table Chaining to Inspection VPC", "GWLB + Suricata EC2 GENEVE 6081 IDS/IPS", "mTLS L7 internal encryption"]
+    },
+    {
+      "boundary": "Egress (Core/Edge <-> Internet)",
+      "threats": ["Data Exfiltration", "C2 Communication", "DNS Tunneling"],
+      "mitigations": ["Centralized Egress VPC with AWS Network Firewall", "Domain allowlist filtering via TLS SNI", "NAT Gateways in private egress subnets"]
+    },
+    {
+      "boundary": "Transit Gateway Routing Domain",
+      "threats": ["Route Leakage", "Cross-environment hopping (Dev to Prod)"],
+      "mitigations": ["Isolated TGW Route Tables", "Default Association & Propagation DISABLED", "Blackhole routes for dev-rt"]
+    },
+    {
+      "boundary": "Intra-Cluster (Pod <-> Pod)",
+      "threats": ["Compromised pod accessing sensitive services directly"],
+      "mitigations": ["Kubernetes NetworkPolicy default-deny-all", "Pod Identity least-privilege IAM roles"]
+    }
+  ],
+  "stride_matrix": {
+    "Spoofing": {
+      "risk": "IP/Pod spoofing across VPC boundaries",
+      "mitigation": "AWS VPC CNI ENI binding, EC2 source/dest check, K8s NetworkPolicy",
+      "implemented_in": ["Module 02", "Module 03"]
+    },
+    "Tampering": {
+      "risk": "Packet sniffing or in-transit tampering between Edge and Core",
+      "mitigation": "mTLS, KMS Secrets Encryption, GWLB inspection",
+      "implemented_in": ["Module 03", "Module 04", "Module 05"]
+    },
+    "Repudiation": {
+      "risk": "Untracked or deleted connection trails",
+      "mitigation": "VPC Flow Logs on 4 VPCs, TGW Logs, Suricata eve.json, CW Insights",
+      "implemented_in": ["Module 02", "Module 09"]
+    },
+    "InformationDisclosure": {
+      "risk": "PII/cardholder data leaked to unauthorized C2 destination",
+      "mitigation": "Centralized AWS Network Firewall egress domain allowlist, Suricata deep packet inspection",
+      "implemented_in": ["Module 05", "Module 06"]
+    },
+    "DenialOfService": {
+      "risk": "SYN/HTTP floods degrading Edge Ingress or Core API",
+      "mitigation": "AWS WAF v2 rate limiting, AWS Shield Standard, GWLB auto-recovery",
+      "implemented_in": ["Module 05", "Module 07"]
+    },
+    "ElevationOfPrivilege": {
+      "risk": "Frontend container breakout attempting direct RDS 5432 access",
+      "mitigation": "Isolated Core DB Subnets without direct route from Edge, NetworkPolicy deny-all",
+      "implemented_in": ["Module 02", "Module 03"]
+    }
+  },
+  "verification_status": "RUNTIME_PASS"
+}
+

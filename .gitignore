@@ -36,3 +36,9 @@ GEMINI.md
 .antigravity/
 skills/
 scratch/
+__pycache__/
+*.pyc
+*.bkp
+.$*
+
+
