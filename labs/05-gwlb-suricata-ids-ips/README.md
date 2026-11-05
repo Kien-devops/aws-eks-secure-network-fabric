@@ -76,3 +76,4 @@
 - [ ] Cả 2 target Suricata đều ở trạng thái `healthy` trên GWLB Target Group.
 - [ ] Lưu lượng Edge -> Core đi qua đúng GWLBe và máy chủ Suricata.
 - [ ] Bằng chứng `tcpdump` xác nhận cả chiều đi và chiều về của flow đều xử lý trên cùng 1 AZ (Symmetric Routing PASS).
+

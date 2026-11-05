@@ -98,3 +98,4 @@ Sau khi test lưu lượng bình thường không bị false-positive, cập nh�
 - [ ] ALB tiếp nhận traffic HTTPS cổng 443 và phân phối tới các Pod `frontend`.
 - [ ] AWS WAF v2 chặn thành công payload tấn công mẫu (HTTP 403).
 - [ ] Toàn bộ request độc hại có bản ghi chi tiết trong CloudWatch WAF Access Logs.
+

@@ -66,3 +66,4 @@ curl -Iv https://order.internal.fabric/health --insecure
 - [ ] 5 microservices chạy ổn định trên đúng cluster phân bổ (Edge vs Core).
 - [ ] Database Aurora PostgreSQL và Redis chỉ nhận traffic từ Core Private Node Subnets.
 - [ ] Tên miền `internal.fabric` phân giải chính xác sang địa chỉ IP private của Core Internal NLB.
+

@@ -50,3 +50,4 @@ Khởi tạo cảnh báo ngân sách khi chi phí thực tế hoặc dự báo v
 - [ ] Xác nhận Account ID đã được che giấu (`***` hoặc `123456789012`).
 - [ ] Báo cáo kiểm kê xác nhận không có VPC hay TGW nào xung đột với thiết kế Project 6.
 - [ ] Ngân sách Budget $50.00 đã được kích hoạt.
+

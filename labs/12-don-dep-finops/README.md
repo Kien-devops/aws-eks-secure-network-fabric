@@ -89,3 +89,4 @@ aws eks list-clusters --region ap-southeast-1 --output table
 - [ ] Không còn bất kỳ tài nguyên mạng, máy chủ ảo, cụm EKS hay tường lửa nào tồn tại trên `ap-southeast-1`.
 - [ ] Tất cả Elastic IPs đã được giải phóng (Released) tránh phát sinh phí nhàn rỗi.
 - [ ] Báo cáo kiểm kê cuối cùng xác nhận chi phí tồn dư duy trì ở mức **$0.00**.
+

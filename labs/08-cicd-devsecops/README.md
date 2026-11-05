@@ -81,3 +81,4 @@ spec:
 - [ ] Không có lỗ hổng mức CRITICAL/HIGH chưa vá tồn tại trong ảnh container triển khai.
 - [ ] File SBOM và chữ ký Cosign được lưu trữ kèm theo ảnh trên ECR.
 - [ ] Toàn bộ Deployment manifests trong GitOps sử dụng immutable digest `@sha256:...`.
+

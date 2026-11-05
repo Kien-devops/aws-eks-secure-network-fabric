@@ -78,3 +78,4 @@ aws ec2 get-reachability-analyzer-path-analysis \
 - [ ] Toàn bộ 5 luồng log được thu thập liên tục và có thể truy vấn bằng CloudWatch Insights.
 - [ ] Nhật ký `eve.json` của Suricata ghi nhận chi tiết các phiên kiểm tra GENEVE.
 - [ ] AWS VPC Reachability Analyzer xác nhận đường truyền logic giữa Edge và Core thông suốt qua GWLB.
+

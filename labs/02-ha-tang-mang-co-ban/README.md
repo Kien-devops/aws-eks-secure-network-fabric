@@ -93,3 +93,4 @@ aws ec2 describe-transit-gateway-vpc-attachments \
 - [ ] TGW tắt hoàn toàn default association và propagation.
 - [ ] Inspection Attachment xác nhận `ApplianceModeSupport = enable`.
 - [ ] VPC Flow Logs đã được kích hoạt đẩy về CloudWatch Logs.
+

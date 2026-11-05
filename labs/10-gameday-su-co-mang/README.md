@@ -59,3 +59,4 @@
 - [ ] Bằng chứng xác nhận khi tắt Appliance Mode, phiên kết nối bị ngắt do routing bất đối xứng.
 - [ ] Bằng chứng failover của GWLB: chuyển dịch tải sang instance còn sống trong thời gian < 30 giây.
 - [ ] Báo cáo tổng kết GameDay ghi nhận đầy đủ MTTD, MTTR và root-cause analysis.
+

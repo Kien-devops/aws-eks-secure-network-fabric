@@ -82,3 +82,4 @@ Tạo Rule Group loại `Domain list` hoặc `Suricata compatible`:
 - [ ] AWS Network Firewall ở trạng thái `READY` trên cả 2 AZs.
 - [ ] Truy cập ra ngoài tới domain cho phép thành công 100%.
 - [ ] Truy cập domain hoặc IP bị cấm bị chặn đứng lập tức và xuất hiện log `DROP` trong CloudWatch Logs.
+

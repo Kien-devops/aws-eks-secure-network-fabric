@@ -72,3 +72,4 @@ aws eks describe-cluster \
 - [ ] Khóa KMS CMK được liên kết thành công để mã hóa Kubernetes Secrets.
 - [ ] EKS Pod Identity Agent add-on đã được kích hoạt.
 - [ ] Chính sách NetworkPolicy Default Deny được áp dụng thành công.
+

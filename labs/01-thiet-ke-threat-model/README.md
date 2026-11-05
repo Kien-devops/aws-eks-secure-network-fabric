@@ -59,3 +59,4 @@
 - [ ] Bảng định tuyến chi tiết không có vòng lặp (No routing loop).
 - [ ] Ma trận phân tách rõ ràng, không có kết nối trực tiếp (no direct peering) giữa Edge và Core.
 - [ ] Ranh giới chi phí dự kiến duy trì dưới $50.00 cho phiên chạy GameDay.
+

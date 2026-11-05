@@ -56,3 +56,4 @@ Mỗi sự cố diễn tập được tổng kết theo mẫu chuẩn:
 - [ ] Toàn bộ các file log/json trong thư mục evidence đã được kiểm duyệt không còn lộ thông tin nhạy cảm.
 - [ ] Mọi log output đều có timestamp thực tế, không chứa dữ liệu giả mạo.
 - [ ] Báo cáo Post-Mortem và FinOps Cost Report được hoàn thiện đầy đủ.
+
