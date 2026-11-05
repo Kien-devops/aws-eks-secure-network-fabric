@@ -1,4 +1,4 @@
-﻿.terraform/
+.terraform/
 *.tfstate
 *.tfstate.*
 crash.log
@@ -13,3 +13,10 @@ override.tf.json
 terraform.rc
 .DS_Store
 Thumbs.db
+*.log
+*.tmp
+.code-review-graph/
+.gemini/
+.antigravity/
+skills/
+scratch/
