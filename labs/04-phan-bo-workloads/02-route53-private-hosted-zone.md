@@ -1,74 +1,157 @@
-# 04.02 — Thiết Lập Route 53 Private Hosted Zone (internal.fabric)
+# 04.02 — Cấu Hình Route 53 Private Hosted Zone Cho Nội Bộ Fabric
 
-> **Trạng thái:** Hướng dẫn thực hành chi tiết trên AWS Management Console (Console-first).  
-> **Áp dụng cho:** Cung cấp dịch vụ phân giải tên miền nội bộ giữa các VPC độc lập (Edge VPC và Core VPC).
-
----
-
-## 1. Mục Tiêu Kỹ Thuật
-
-- Khởi tạo **Route 53 Private Hosted Zone (PHZ)** với tên miền `internal.fabric`.
-- Liên kết Hosted Zone với cả 2 VPCs:
-  1. `fabric-edge-vpc`
-  2. `fabric-core-vpc`
-- Tạo bản ghi A Record phân giải tên miền `order.internal.fabric` trỏ về địa chỉ IP của Core Internal NLB.
-- Đảm bảo Pod từ Edge EKS có thể phân giải trực tiếp IP của Core Backend mà không cần phơi lộ dịch vụ ra Internet.
+> **Mã bài lab:** `04.02`  
+> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Thời gian dự kiến:** 25 phút  
+> **Chi phí ước tính:** ~$0.50 USD / hosted zone / tháng  
+> **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
 
 ---
 
-## 2. Các Bước Thực Hiện Chi Tiết Trên AWS Console
+## 1. Tiền đề (Prerequisites)
 
-### Bước 1: Khởi Tạo Private Hosted Zone
-1. Trên thanh tìm kiếm AWS Console, nhập **Route 53** -> Chọn dịch vụ **Route 53**.
-2. Tại menu bên trái, nhấp vào **Hosted zones** -> Nhấp nút cam **Create hosted zone**.
-3. **Hosted zone configuration:**
-   - **Domain name:** Nhập `internal.fabric`.
-   - **Description:** Nhập `Private DNS hosted zone for internal microservices communication`.
-   - **Type:** Chọn radio button **Private hosted zone**.
-4. **VPCs to associate with the hosted zone:**
-   - **Region:** Chọn `Asia Pacific (Singapore) (ap-southeast-1)`.
-   - **VPC ID:** Chọn `fabric-edge-vpc`.
-5. Nhấp nút cam **Create hosted zone**.
+- Đã hoàn thành các bài lab tại [Module 02](../02-ha-tang-mang-co-ban/README.md) và [04.01](01-database-and-cache-setup.md).
+- Cả `fabric-edge-vpc` và `fabric-core-vpc` đều đã bật 2 thuộc tính: `Enable DNS resolution` và `Enable DNS hostnames`.
+- Đang mở phiên AWS Management Console tại Singapore `ap-southeast-1`.
 
 ---
 
-### Bước 2: Liên Kết Thêm Core VPC Vào Hosted Zone
-1. Tại trang chi tiết Hosted Zone `internal.fabric` vừa tạo, mở tab **Hosted zone details** (hoặc mục **VPCs**).
-2. Nhấp nút **Associate VPC**.
-3. Chọn Region: `ap-southeast-1`.
-4. Chọn VPC: `fabric-core-vpc`.
-5. Nhấp **Associate VPC**.
+## 2. Quyền IAM Yêu Cầu (Required IAM Permissions)
 
----
-
-### Bước 3: Tạo Bản Ghi DNS (DNS Records)
-1. Trong Hosted Zone `internal.fabric`, nhấp vào nút **Create record**.
-2. **Record 1 (Order Backend):**
-   - **Record name:** Nhập `order` (tên miền đầy đủ sẽ là `order.internal.fabric`).
-   - **Record type:** Chọn `A - Routes traffic to an IPv4 address and some AWS resources`.
-   - **Alias:** Bật `Yes` -> Chọn Target là Core Internal Network Load Balancer (hoặc nhập địa chỉ IP nội bộ của NLB nếu cấu hình IP trực tiếp).
-   - **Routing policy:** `Simple routing`.
-   - Nhấp **Create records**.
-3. **Record 2 (Auth Backend):**
-   - Tạo bản ghi `auth.internal.fabric` trỏ về service Auth trong Edge cluster.
-
----
-
-## 3. Xác Minh (Verification)
-
-Kiểm tra thông tin Private Hosted Zone qua AWS CLI:
-```bash
-aws route53 list-hosted-zones-by-name \
-  --dns-name internal.fabric \
-  --query 'HostedZones[0].{Id:Id,Name:Name,PrivateZone:Config.PrivateZone}' \
-  --output table
+Các hành động IAM cần thiết để thực thi bài lab này:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "route53:CreateHostedZone",
+        "route53:AssociateVPCWithHostedZone",
+        "route53:DisassociateVPCFromHostedZone",
+        "route53:ChangeResourceRecordSets",
+        "route53:GetHostedZone",
+        "route53:ListHostedZones",
+        "route53:ListResourceRecordSets",
+        "route53:DeleteHostedZone"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
 ```
-> Kết quả: `Name = internal.fabric.`, `PrivateZone = True`.
 
 ---
 
-## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
-- [ ] Hosted Zone `internal.fabric` được tạo thành công với loại Private.
-- [ ] Cả 2 VPCs (`fabric-edge-vpc` và `fabric-core-vpc`) đều được liên kết thành công.
-- [ ] Bản ghi `order.internal.fabric` được tạo sẵn sàng phân giải sang Core Internal NLB.
+## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
 
+- **Chi phí:** Route 53 Private Hosted Zone (PHZ) tính phí $0.50 USD/tháng cho mỗi zone và $0.40 USD cho mỗi 1 triệu truy vấn DNS đầu tiên.
+- **Cảnh báo liên kết đa VPC (Cross-VPC Association):** PHZ bắt buộc phải được liên kết (associated) đồng thời với cả **Edge VPC** và **Core VPC**. Nếu quên liên kết một trong hai, các Pod tại Edge EKS sẽ không thể phân giải được tên miền nội bộ của Core (`core.fabric.internal`, `db.fabric.internal`), dẫn đến lỗi `Host unresolved` hoặc `Connection refused`.
+
+---
+
+## 4. Các Bước Thực Hiện Chi Tiết Trên Console (Console Walkthrough)
+
+### Bước 1: Khởi Tạo Route 53 Private Hosted Zone (`fabric.internal`)
+1. Trên thanh tìm kiếm AWS Console, nhập `Route 53` và chọn dịch vụ **Route 53**.
+2. Tại menu điều hướng bên trái, chọn **Hosted zones**.
+3. Nhấp vào nút cam **Create hosted zone** ở góc trên bên phải.
+4. **Hosted zone configuration:**
+   - **Domain name:** Nhập `fabric.internal`.
+   - **Description:** Nhập `Private DNS hosted zone for AWS EKS Secure Network Fabric internal resolution`.
+   - **Type:** Chọn **Private hosted zone** (Rất quan trọng: Ngăn chặn việc lộ tên miền nội bộ ra Internet).
+5. **VPCs to associate with the hosted zone:**
+   - **Region:** Chọn **Asia Pacific (Singapore) (ap-southeast-1)**.
+   - **VPC ID:** Tìm và chọn `fabric-edge-vpc`.
+6. Nhấp nút cam **Create hosted zone** ở cuối trang.
+
+---
+
+### Bước 2: Liên Kết Thêm Core VPC (`fabric-core-vpc`) Vào Hosted Zone
+1. Sau khi zone được khởi tạo thành công, hệ thống chuyển đến trang chi tiết của `fabric.internal`.
+2. Mở tab **Hosted zone details** (hoặc cuộn xuống mục **VPCs**).
+3. Nhấp nút **Associate VPC**:
+   - **Region:** Chọn **Asia Pacific (Singapore) (ap-southeast-1)**.
+   - **VPC ID:** Chọn `fabric-core-vpc`.
+4. Nhấp **Associate VPC**.
+5. Xác nhận trên bảng danh sách VPCs hiển thị cả 2 dòng:
+   - `ap-southeast-1` — `fabric-edge-vpc`
+   - `ap-southeast-1` — `fabric-core-vpc`
+
+---
+
+### Bước 3: Tạo Các Bản Ghi DNS Nội Bộ (Internal DNS Records)
+Tại trang chi tiết `fabric.internal`, nhấp nút cam **Create record**:
+
+1. **Bản ghi Cơ sở dữ liệu (`db.fabric.internal`):**
+   - **Record name:** Nhập `db` (Tên đầy đủ sẽ là `db.fabric.internal`).
+   - **Record type:** Chọn **CNAME**.
+   - **Value:** Dán Writer Endpoint của Aurora PostgreSQL đã tạo ở lab 04.01 (Ví dụ: `fabric-core-db.cluster-xxxxxx.ap-southeast-1.rds.amazonaws.com`).
+   - **TTL (seconds):** Nhập `60`.
+   - **Routing policy:** Chọn **Simple routing**.
+   - Nhấp **Create records**.
+
+2. **Bản ghi Bộ đệm Cache (`redis.fabric.internal`):**
+   - Nhấp **Create record**.
+   - **Record name:** Nhập `redis` (`redis.fabric.internal`).
+   - **Record type:** Chọn **CNAME**.
+   - **Value:** Dán Endpoint của ElastiCache Redis Cluster (Ví dụ: `fabric-core-redis.xxxxxx.0001.apse1.cache.amazonaws.com`).
+   - **TTL:** `60`.
+   - Nhấp **Create records**.
+
+3. **Bản ghi Dịch vụ Core Ingress (`core.fabric.internal`):**
+   - *(Bản ghi này sẽ được hoàn thiện hoặc cập nhật trỏ tới DNS Name của Internal NLB trong bài lab 04.03)*.
+   - Nhấp **Create record** -> Record name: `core` -> Record type: `CNAME` -> Value: `fabric-core-nlb-temp` (Placeholder) -> TTL: `60` -> Nhấp **Create records**.
+
+---
+
+## 5. Lệnh Kiểm Tra / CLI Verification (Zero Fake Data)
+
+Chạy các lệnh xác minh danh sách VPC liên kết và các bản ghi DNS:
+```bash
+# 1. Tìm Hosted Zone ID của fabric.internal
+ZONE_ID=$(aws route53 list-hosted-zones-by-name --dns-name fabric.internal --query 'HostedZones[0].Id' --output text)
+echo "Hosted Zone ID: $ZONE_ID"
+
+# 2. Kiểm tra danh sách VPCs liên kết với Hosted Zone
+aws route53 get-hosted-zone --id $ZONE_ID \
+  --query '{Name:HostedZone.Name,VPCs:VPCs[*].VPCId}' \
+  --output table
+
+# 3. Liệt kê toàn bộ Resource Record Sets trong fabric.internal
+aws route53 list-resource-record-sets --hosted-zone-id $ZONE_ID \
+  --query 'ResourceRecordSets[*].{Name:Name,Type:Type,TTL:TTL,Value:ResourceRecords[0].Value}' \
+  --output table
+
+# 4. Kiểm tra phân giải thử nghiệm từ máy trạm trong VPC hoặc CloudShell
+nslookup db.fabric.internal
+```
+
+---
+
+## 6. Kế Hoạch Khôi Phục / Rollback Plan
+
+Để xóa Private Hosted Zone:
+1. Xóa toàn bộ các bản ghi DNS thủ công đã tạo (ngoại trừ SOA và NS mặc định).
+2. Gỡ bỏ association của `fabric-core-vpc`.
+3. Xóa Private Hosted Zone qua Console hoặc CLI:
+   ```bash
+   ZONE_ID=$(aws route53 list-hosted-zones-by-name --dns-name fabric.internal --query 'HostedZones[0].Id' --output text)
+   aws route53 delete-hosted-zone --id $ZONE_ID
+   ```
+
+---
+
+## 7. Đường Dẫn Bằng Chứng (Expected Evidence Path)
+
+Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) được lưu trữ tại:
+`evidence/04-workloads/02-route53-phz.json`
+
+---
+
+## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
+
+- [ ] Private Hosted Zone `fabric.internal` được tạo với cấu hình loại Private.
+- [ ] Cả 2 VPCs `fabric-edge-vpc` và `fabric-core-vpc` đều được liên kết hợp lệ.
+- [ ] Các bản ghi `db.fabric.internal` và `redis.fabric.internal` trỏ chính xác về Endpoint tương ứng.
+- [ ] Truy vấn DNS từ các Pod trong cụm EKS phân giải thành công địa chỉ IP nội bộ.

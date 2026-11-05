@@ -15,7 +15,23 @@ terraform.rc
 Thumbs.db
 *.log
 *.tmp
+
+# Code graph & codebase memory
 .code-review-graph/
+code-review-graph/
+.codebase-memory/
+codebase-memory/
+.cbmignore
+
+# AI Agent & Assistant Files
+agent.md
+AGENT.md
+agent*.md
+codex.md
+CODEX.md
+gemini.md
+GEMINI.md
+.codex/
 .gemini/
 .antigravity/
 skills/

@@ -1,81 +1,194 @@
-# 03.02 — Khởi Tạo 2 Cụm Private EKS Độc Lập (Edge EKS & Core EKS)
+# 03.02 — Khởi Tạo Hai Cụm Private EKS 1.31 Riêng Biệt (Edge & Core)
 
-> **Trạng thái:** Hướng dẫn thực hành chi tiết trên AWS Management Console (Console-first).  
-> **Áp dụng cho:** Khởi tạo cụm điều khiển EKS Control Plane cho `fabric-edge-eks` và `fabric-core-eks` với chế độ hoàn toàn riêng tư.
-
----
-
-## 1. Mục Tiêu Kỹ Thuật
-
-- Khởi tạo 2 cụm Kubernetes EKS (phiên bản v1.30):
-  1. `fabric-edge-eks` trong `fabric-edge-vpc`.
-  2. `fabric-core-eks` trong `fabric-core-vpc`.
-- **Cấu hình bảo mật API Server Endpoint:**
-  - `endpointPublicAccess`: `false` (Khóa toàn bộ truy cập từ Internet vào API server).
-  - `endpointPrivateAccess`: `true` (Chỉ cho phép truy cập qua mạng nội bộ).
-- Gắn khóa KMS CMK tương ứng vào cấu hình Envelope Encryption của etcd.
+> **Mã bài lab:** `03.02`  
+> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Thời gian dự kiến:** 45 phút  
+> **Chi phí ước tính:** ~$0.10 USD / giờ / cluster (~$0.20 USD / giờ cho 2 cụm EKS)  
+> **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
 
 ---
 
-## 2. Các Bước Thực Hiện Chi Tiết Trên AWS Console
+## 1. Tiền đề (Prerequisites)
 
-### Bước 1: Khởi Tạo IAM Role Cho EKS Cluster
-1. Tại dịch vụ **IAM**, tạo Role với Trusted Entity là `eks.amazonaws.com`.
-2. Gắn policy: `AmazonEKSClusterPolicy`.
-3. Đặt tên: `fabric-eks-cluster-role`.
-
----
-
-### Bước 2: Tạo Cụm `fabric-edge-eks`
-1. Mở dịch vụ **Amazon EKS** tại Region Singapore (`ap-southeast-1`).
-2. Chọn **Clusters** -> Nhấp nút cam **Create cluster** -> Chọn **Create standard cluster**.
-3. **Configure cluster:**
-   - **Name:** `fabric-edge-eks`
-   - **Kubernetes version:** Chọn `1.30` (hoặc mới nhất).
-   - **Cluster service role:** Chọn `fabric-eks-cluster-role`.
-   - Nhấp **Next**.
-4. **Specify networking:**
-   - **VPC:** Chọn `fabric-edge-vpc`.
-   - **Subnets:** Chọn 2 subnets Private Node (`fabric-edge-node-1a` và `fabric-edge-node-1b`).
-   - **Cluster endpoint access:** Chọn radio button **Private** (Chỉ truy cập nội bộ).
-   - Nhấp **Next**.
-5. **Configure observability:**
-   - Bật Control plane logging: `API server`, `Audit`, `Authenticator`.
-   - Nhấp **Next**.
-6. **Configure encryption:**
-   - Tại mục **Secrets encryption**: Tích chọn **Enable**.
-   - **Key:** Chọn alias `alias/fabric-edge-eks-secrets-key`.
-   - Nhấp **Next** -> Nhấp **Create**.
+- Đã hoàn thành bài lab [03.01](01-kms-encryption-keys.md) và toàn bộ hạ tầng mạng [Module 02](../02-ha-tang-mang-co-ban/README.md) (đặc biệt là các Private VPC Endpoints tại `02.06`).
+- Hai khóa KMS CMK `alias/fabric-edge-eks-secrets` và `alias/fabric-core-eks-secrets` đang ở trạng thái `Enabled`.
+- Đăng nhập AWS Management Console tại Singapore `ap-southeast-1`.
 
 ---
 
-### Bước 3: Tạo Cụm `fabric-core-eks`
-Lặp lại thao tác tương tự cho cụm thứ 2:
-- **Name:** `fabric-core-eks`
-- **VPC:** Chọn `fabric-core-vpc`
-- **Subnets:** Chọn `fabric-core-node-1a` và `fabric-core-node-1b`.
-- **Cluster endpoint access:** Chọn **Private**.
-- **Secrets encryption:** Chọn alias `alias/fabric-core-eks-secrets-key`.
-- Nhấp **Create**.
+## 2. Quyền IAM Yêu Cầu (Required IAM Permissions)
 
----
-
-## 3. Xác Minh (Verification)
-
-Chạy lệnh kiểm tra trạng thái cluster và cấu hình mã hóa:
-```bash
-aws eks describe-cluster \
-  --name fabric-edge-eks \
-  --region ap-southeast-1 \
-  --query 'cluster.{Name:name,Status:status,PrivateAccess:resourcesVpcConfig.endpointPrivateAccess,PublicAccess:resourcesVpcConfig.endpointPublicAccess,KMS:encryptionConfig[0].provider.keyArn}' \
-  --output table
+Các hành động IAM cần thiết để thực thi bài lab này:
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "iam:CreateRole",
+        "iam:AttachRolePolicy",
+        "iam:PassRole",
+        "eks:CreateCluster",
+        "eks:DescribeCluster",
+        "eks:ListClusters",
+        "eks:UpdateClusterConfig",
+        "eks:DeleteCluster",
+        "kms:CreateGrant",
+        "kms:DescribeKey"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
 ```
-> Kết quả: `Status: ACTIVE`, `PrivateAccess: True`, `PublicAccess: False`.
 
 ---
 
-## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
-- [ ] Cả 2 cụm EKS chuyển sang trạng thái `ACTIVE`.
-- [ ] Truy cập công khai API server bị khóa (`PublicAccess = False`).
-- [ ] Cấu hình KMS encryption gắn đúng Key ARN cho từng cluster.
+## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
 
+- **Chi phí:** EKS Control Plane tính phí $0.10 USD/giờ mỗi cụm (~$4.80 USD/ngày cho 2 cụm EKS). Cần theo dõi chặt chẽ ngân sách $50.00 USD.
+- **Cảnh báo Phiên Bản EKS:** **BẮT BUỘC DÙNG EKS 1.31** (hoặc 1.32). Phiên bản EKS 1.30 đã kết thúc hỗ trợ tiêu chuẩn (End of Standard Support) từ tháng 11/2025, AWS sẽ tính thêm phí mở rộng hỗ trợ (Extended Support Fee: $0.60/giờ).
+- **Cảnh báo Subnet Selection:** Khi chọn Subnets cho cụm EKS, **CHỈ CHỌN 2 SUBNET PRIVATE NODE** (`fabric-*-nodes-1a` và `fabric-*-nodes-1b`). Tuyệt đối không chọn Subnet TGW hoặc Subnet Public để tránh việc AWS đặt các giao diện mạng quản trị (ENIs) của cluster vào sai phân vùng.
+
+---
+
+## 4. Các Bước Thực Hiện Chi Tiết Trên Console (Console Walkthrough)
+
+### Bước 1: Khởi Tạo IAM Cluster Service Role Cho EKS
+1. Truy cập **IAM Console** (Global service).
+2. Tại menu điều hướng bên trái, chọn **Roles** -> Nhấp nút cam **Create role**.
+3. **Select trusted entity:**
+   - Trusted entity type: Chọn **AWS service**.
+   - Use case: Tìm và chọn **EKS** -> Chọn **EKS - Cluster** (Cho phép EKS quản lý các tài nguyên AWS thay mặt bạn).
+   - Nhấp **Next**.
+4. **Add permissions:**
+   - Xác nhận policy `AmazonEKSClusterPolicy` đã được tự động chọn.
+   - Nhấp **Next**.
+5. **Name, review, and create:**
+   - **Role name:** Nhập `fabric-eks-cluster-role`.
+   - **Description:** Nhập `Cluster service role for fabric dual EKS clusters in Singapore`.
+   - **Tags:** Key: `Project` | Value: `aws-eks-secure-network-fabric`.
+   - Nhấp **Create role**.
+
+---
+
+### Bước 2: Khởi Tạo Cụm `fabric-edge-eks` (EKS 1.31) Trên Edge VPC
+1. Trên thanh tìm kiếm AWS Console, nhập `EKS` và chọn dịch vụ **Amazon EKS**.
+2. Đảm bảo góc trên bên phải hiển thị vùng **Singapore `ap-southeast-1`**.
+3. Tại menu bên trái, chọn **Clusters** -> Nhấp nút **Add cluster** -> Chọn **Create**.
+
+4. **Step 1 — Configure cluster:**
+   - **Name:** Nhập `fabric-edge-eks`.
+   - **Kubernetes version:** Chọn **1.31**.
+   - **Cluster service role:** Chọn `fabric-eks-cluster-role`.
+   - **Cluster access:** Chọn **EKS API and ConfigMap** (hoặc EKS API).
+   - **Secrets encryption:**
+     - Đánh dấu tích vào **Enable secrets encryption**.
+     - KMS key: Chọn khóa `alias/fabric-edge-eks-secrets`.
+   - **Tags:** Key: `Project` | Value: `aws-eks-secure-network-fabric`; Key: `Environment` | Value: `prod`.
+   - Nhấp nút cam **Next**.
+
+5. **Step 2 — Specify networking:**
+   - **VPC:** Chọn `fabric-edge-vpc` (`10.40.0.0/16`).
+   - **Subnets:**
+     - Tích chọn: `fabric-edge-nodes-1a` (`10.40.10.0/22`).
+     - Tích chọn: `fabric-edge-nodes-1b` (`10.40.14.0/22`).
+     - *(Bỏ chọn toàn bộ các subnet public, vpce, và tgw)*.
+   - **Security groups:** Để AWS tạo Cluster Security Group mặc định.
+   - **Cluster endpoint access:**
+     - Chọn **Public and private** (Private access cho phép worker nodes giao tiếp qua VPC Endpoints; Public access cho phép máy quản trị kết nối `kubectl`).
+     - *Nâng cao an ninh:* Tại ô **Advanced settings**, nhập địa chỉ Public IP của máy trạm bạn vào **Source allowlist** (ví dụ: `203.0.113.50/32`) để chặn toàn bộ thế giới quét cổng API EKS.
+   - Nhấp **Next**.
+
+6. **Step 3 — Configure observability:**
+   - **Control plane logging:** Bật các mục:
+     - [x] **API server**
+     - [x] **Audit**
+     - [x] **Authenticator**
+     - [x] **Controller manager**
+     - [x] **Scheduler**
+   - Nhấp **Next**.
+
+7. **Step 4 — Select add-ons:**
+   - Giữ nguyên các Add-on mặc định được chọn:
+     - Amazon VPC CNI
+     - CoreDNS
+     - kube-proxy
+     - EKS Pod Identity Agent
+   - Nhấp **Next** -> Nhấp **Next** (Cấu hình add-on mặc định).
+
+8. **Step 5 — Review and create:**
+   - Kiểm tra lại toàn bộ cấu hình: Name `fabric-edge-eks`, Version `1.31`, Subnets `fabric-edge-nodes-1a/b`, KMS Key `alias/fabric-edge-eks-secrets`.
+   - Nhấp nút cam **Create**.
+   - Trạng thái cluster hiển thị **Creating** (Mất khoảng 10 đến 12 phút).
+
+---
+
+### Bước 3: Khởi Tạo Cụm `fabric-core-eks` (EKS 1.31) Trên Core VPC
+Tại trang **Clusters**, nhấp lại **Add cluster** -> **Create**:
+1. **Configure cluster:**
+   - **Name:** Nhập `fabric-core-eks`.
+   - **Kubernetes version:** Chọn **1.31**.
+   - **Cluster service role:** Chọn `fabric-eks-cluster-role`.
+   - **Secrets encryption:** Enable -> Chọn `alias/fabric-core-eks-secrets`.
+   - Nhấp **Next**.
+2. **Specify networking:**
+   - **VPC:** Chọn `fabric-core-vpc` (`10.50.0.0/16`).
+   - **Subnets:**
+     - Tích chọn: `fabric-core-nodes-1a` (`10.50.10.0/22`).
+     - Tích chọn: `fabric-core-nodes-1b` (`10.50.14.0/22`).
+     - *(Bỏ chọn data, vpce, tgw subnets)*.
+   - **Cluster endpoint access:** Chọn **Public and private** (kèm allowlist IP quản trị).
+   - Nhấp **Next**.
+3. **Configure observability:** Bật đủ 5 loại control plane logs (API server, Audit, Authenticator, Controller manager, Scheduler) -> Nhấp **Next**.
+4. **Select add-ons:** Giữ nguyên các default add-ons -> Nhấp **Next** -> **Create**.
+5. Chờ cả 2 cụm `fabric-edge-eks` và `fabric-core-eks` chuyển sang trạng thái xanh **`Active`**.
+
+---
+
+## 5. Lệnh Kiểm Tra / CLI Verification (Zero Fake Data)
+
+Kiểm tra trạng thái sẵn sàng của 2 cụm EKS qua CLI:
+```bash
+# 1. Kiểm tra trạng thái cụm Edge EKS
+aws eks describe-cluster --region ap-southeast-1 --name fabric-edge-eks \
+  --query 'cluster.{Name:name,Version:version,Status:status,EndpointAccess:resourcesVpcConfig.endpointPublicAccess,KmsKey:encryptionConfig[0].provider.keyArn}' \
+  --output table
+
+# 2. Kiểm tra trạng thái cụm Core EKS
+aws eks describe-cluster --region ap-southeast-1 --name fabric-core-eks \
+  --query 'cluster.{Name:name,Version:version,Status:status,EndpointAccess:resourcesVpcConfig.endpointPublicAccess,KmsKey:encryptionConfig[0].provider.keyArn}' \
+  --output table
+
+# 3. Cập nhật kubeconfig cho 2 cụm
+aws eks update-kubeconfig --region ap-southeast-1 --name fabric-edge-eks --alias fabric-edge
+aws eks update-kubeconfig --region ap-southeast-1 --name fabric-core-eks --alias fabric-core
+```
+
+---
+
+## 6. Kế Hoạch Khôi Phục / Rollback Plan
+
+Nếu cần xóa cụm EKS:
+```bash
+aws eks delete-cluster --region ap-southeast-1 --name fabric-edge-eks
+aws eks delete-cluster --region ap-southeast-1 --name fabric-core-eks
+```
+
+---
+
+## 7. Đường Dẫn Bằng Chứng (Expected Evidence Path)
+
+Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) được lưu trữ tại:
+`evidence/03-eks/02-clusters-active.json`
+
+---
+
+## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
+
+- [ ] Cả 2 cụm EKS `fabric-edge-eks` và `fabric-core-eks` đạt trạng thái `ACTIVE`.
+- [ ] Phiên bản Kubernetes hiển thị chính xác `1.31`.
+- [ ] Tính năng mã hóa Secrets bằng KMS CMK hiển thị chính xác ARN của 2 khóa đã tạo tại `03.01`.
+- [ ] Subnets gắn vào EKS chỉ gồm các Subnet Node riêng tư trong 2 AZs (`ap-southeast-1a` và `ap-southeast-1b`).
+- [ ] Cả 5 loại Control Plane Logs được kích hoạt đầy đủ về CloudWatch.
