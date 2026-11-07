@@ -1,7 +1,7 @@
 # 10.01 — GameDay Kịch Bản 1: Sự Cố Rò Rỉ Tuyến Đường (Route Leak Attack / Drift)
 
 > **Mã bài lab:** `10.01`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `DRAFT`  
 > **Thời gian dự kiến:** 45 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -61,7 +61,7 @@ Các hành động IAM cần thiết để tiêm lỗi định tuyến (Fault In
    - Đảm bảo tuyến đường tới mạng Core `10.50.0.0/16` đang có Target là **`fabric-insp-tgw-attachment`** (Bắt buộc phải đi qua Inspection VPC).
 5. Từ một Pod kiểm thử trong Edge EKS, gửi lệnh kiểm tra tới Core NLB:
    ```bash
-   kubectl exec -it deploy/frontend -n default -- curl -kIv https://order.internal.fabric/health
+   kubectl exec deploy/frontend -n fabric-apps --context fabric-edge -- curl --fail --cacert /etc/fabric-ca/ca.crt -Iv https://core.fabric.internal/health
    ```
    *Kết quả baseline:* Kết nối HTTP/2 200 OK thành công.
 
@@ -71,31 +71,31 @@ Các hành động IAM cần thiết để tiêm lỗi định tuyến (Fault In
 *Mô phỏng tình huống:* Kỹ sư cấu hình sai thêm static route trỏ thẳng sang Core VPC, cố tình bỏ qua cụm kiểm tra an ninh Suricata IDS/IPS.
 
 1. Trên bảng định tuyến **`fabric-tgw-edge-rt`**, chọn tab **Routes**.
-2. Nhấp nút màu cam **Create static route**.
+2. Chọn route `10.50.0.0/16` đã có → **Replace static route**; lưu target trước sửa vào evidence. Không Create trùng CIDR.
 3. Trong giao diện tạo tuyến đường:
    - **CIDR:** Nhập `10.50.0.0/16` (Dải IP của Core VPC).
    - **Attachment type:** Chọn `VPC`.
    - **Transit gateway attachment:** Chọn attachment trỏ thẳng sang Core: **`fabric-core-tgw-attachment`**.
 4. Ghi lại timestamp chính xác lúc bấm tạo: **$T_{fault}$** (Ví dụ: `2026-11-05 10:15:00 UTC`).
-5. Nhấp nút cam **Create static route**.
+5. Nhấp **Replace static route**. Chỉ thao tác đúng route dự án trong cửa sổ GameDay đã cho phép; chuẩn bị rollback trước khi Save.
 6. Xác nhận dòng route `10.50.0.0/16` hiện tại đã ghi đè target sang Core Attachment.
 
 ---
 
 ### Bước 3: Quan Sát Hiện Tượng & Kiểm Chứng Khả Năng Phòng Thủ Đa Tầng (Defense-in-Depth)
-Khi tuyến đường TGW bị rò rỉ bỏ qua Inspection, các chốt chặn an ninh nội bộ (Defense-in-Depth) phải phát huy tác dụng:
+Mục tiêu là chứng minh đường đi bypass và ảnh hưởng bất đối xứng, không giả định NetworkPolicy biết gói tin đã qua Suricata. GWLB không tự SNAT hay gắn nhãn inspection cho SG/NetworkPolicy.
 
 1. **Kiểm tra truy cập từ Edge Pod:**
    ```bash
-   kubectl exec -it deploy/frontend -n default -- curl -m 3 -kIv https://order.internal.fabric/health
+   kubectl exec deploy/frontend -n fabric-apps --context fabric-edge -- curl --cacert /etc/fabric-ca/ca.crt -m 5 -Iv https://core.fabric.internal/health
    ```
-   - **Hiện tượng thực tế:** Gói tin bị chặn đứng ngay tại Core Node / Core Pod. Kết nối trả về lỗi `curl: (28) Failed to connect to order.internal.fabric port 443: Connection timed out`.
+   - Ghi exit code, HTTP status, source/destination và timestamp thực. Kết nối có thể timeout hoặc thành công tùy stateful behavior; cả hai đều phải điều tra đường đi. Không viết trước kết quả runtime.
 2. **Nguyên nhân kỹ thuật (Multi-layer Defense):**
-   - **Lớp 1 (NetworkPolicy):** Calico / Kubernetes NetworkPolicy trên `order-service` chỉ cho phép lưu lượng có Source IP sau khi đã được SNAT hoặc kiểm tra phiên hợp lệ.
-   - **Lớp 2 (Security Group):** Security Group của Core Worker Nodes chỉ cho phép traffic đến từ CIDR kiểm tra hợp lệ hoặc từ chối các port không được khai báo.
-   - **Lớp 3 (Asymmetric Return Failure):** Core TGW Route Table (`fabric-tgw-core-rt`) vẫn có route trả lời `10.40.0.0/16` trỏ sang Inspection VPC (`fabric-insp-tgw-attachment`). Do đó gói tin chiều đi đi thẳng, nhưng gói tin chiều về lại bị ném vào Inspection VPC -> Gây mất đối xứng nghiêm trọng và bị Suricata drop tại chỗ!
+   - **Policy:** native VPC CNI NetworkPolicy xét nguồn/đích/port. Backend Order thấy NLB IP theo 04.03; policy không xác nhận đã qua Inspection.
+   - **Routing:** forward Edge→Core đi thẳng, return vẫn qua Inspection; capture inner flow trên hai appliance để xác nhận thiếu chiều SYN hoặc SYN-ACK. Suricata có drop midstream hay không phải đọc EVE/config thực tế.
+   - **Giới hạn:** direct path thành công nghĩa là route misconfiguration có thể bypass inspection; cần kiểm soát quyền thay route và drift detection. Không thay SG để ép phép thử báo fail.
 3. **Mở CloudWatch Logs Insights:**
-   - Chọn Log Group `/aws/vpc/fabric-core-flow`.
+   - Chọn Log Group `/aws/vpc/fabric-centralized-flow-logs`, lọc ENI/IP flow tương ứng.
    - Chạy query phát hiện các gói tin `REJECT`:
      ```sql
      fields @timestamp, srcAddr, dstAddr, dstPort, action
@@ -103,7 +103,7 @@ Khi tuyến đường TGW bị rò rỉ bỏ qua Inspection, các chốt chặn 
      | sort @timestamp desc
      | limit 10
      ```
-   - Xác nhận có các bản ghi REJECT xuất hiện trùng khớp với mốc thời gian $T_{fault}$.
+   - VPC Flow Logs REJECT thường phản ánh SG/NACL, không phải bằng chứng Suricata drop. Đối chiếu capture, EVE và route snapshot; không bắt buộc phải có REJECT để nghiệm thu bài route leak.
    - Ghi lại mốc thời gian phát hiện: **$T_{detect}$**.
 
 ---
@@ -124,7 +124,7 @@ Khi tuyến đường TGW bị rò rỉ bỏ qua Inspection, các chốt chặn 
 ### Bước 5: Kiểm Chứng Phục Hồi Hoàn Toàn (Verification)
 1. Thực hiện lại lệnh gọi dịch vụ từ Edge Pod:
    ```bash
-   kubectl exec -it deploy/frontend -n default -- curl -kIv https://order.internal.fabric/health
+   kubectl exec deploy/frontend -n fabric-apps --context fabric-edge -- curl --fail --cacert /etc/fabric-ca/ca.crt -Iv https://core.fabric.internal/health
    ```
    *Kết quả phục hồi:* Phản hồi `HTTP/2 200 OK` thành công ngay lập tức.
 2. Ghi lại mốc thời gian phục hồi hoàn toàn: **$T_{recover}$**.
@@ -166,6 +166,9 @@ TGW_INSP_ATTACH=$(aws ec2 describe-transit-gateway-vpc-attachments \
   --query 'TransitGatewayVpcAttachments[0].TransitGatewayAttachmentId' \
   --output text)
 
+TGW_EDGE_RT=$(aws ec2 describe-transit-gateway-route-tables --region ap-southeast-1 --filters 'Name=tag:Name,Values=fabric-tgw-edge-rt' --query 'TransitGatewayRouteTables[0].TransitGatewayRouteTableId' --output text)
+test -n "$TGW_EDGE_RT" && test "$TGW_EDGE_RT" != None || exit 1
+
 aws ec2 replace-transit-gateway-route \
   --region ap-southeast-1 \
   --transit-gateway-route-table-id "$TGW_EDGE_RT" \
@@ -186,7 +189,7 @@ aws ec2 replace-transit-gateway-route \
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
 - [ ] Tiêm thành công lỗi định tuyến trực tiếp trên TGW Route Table và ghi lại $T_{fault}$.
-- [ ] Chứng minh nguyên lý Defense-in-Depth: Lưu lượng vi phạm bị chặn đứng ở tầng tiếp theo, không thể truy cập trái phép vào tài nguyên Core.
-- [ ] Flow Logs và CloudWatch Insights ghi nhận đầy đủ sự kiện REJECT.
+- [ ] Route snapshot/capture chứng minh forward bypass; ghi kết quả ứng dụng thật, phân biệt asymmetry với SG/NetworkPolicy.
+- [ ] Đối chiếu Flow Logs, EVE và capture; không dùng timeout/REJECT đơn lẻ làm bằng chứng inspection.
 - [ ] Khôi phục tuyến đường về `fabric-insp-tgw-attachment` thành công.
 - [ ] Dịch vụ giữa Edge và Core thông suốt 100% với HTTP 200 sau khi khắc phục.

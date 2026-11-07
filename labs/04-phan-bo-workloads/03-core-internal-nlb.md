@@ -1,7 +1,7 @@
 # 04.03 — Triển Khai Core Internal NLB Sử Dụng AWS Load Balancer Controller (IP-target)
 
 > **Mã bài lab:** `04.03`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `DRAFT`  
 > **Thời gian dự kiến:** 45 phút  
 > **Chi phí ước tính:** ~$0.0225 USD / giờ cho Network Load Balancer tại Singapore  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore) — VPC: `fabric-core-vpc`  
@@ -10,7 +10,8 @@
 
 ## 1. Tiền đề (Prerequisites)
 
-- Đã hoàn thành bài lab [03.04](../03-cum-eks-kep/04-eks-pod-identity-and-addons.md) với EKS Pod Identity Association đã được cấu hình cho ServiceAccount `aws-load-balancer-controller`.
+- Đã hoàn thành bài lab [03.04](../03-cum-eks-kep/04-eks-pod-identity-and-addons.md) với Pod Identity association **trên Core**, namespace `kube-system`, SA `aws-load-balancer-controller`. Kiểm tra đúng cluster; association trên Edge không cấp quyền Core.
+- Repo app đã có manifest `order-service`, namespace `fabric-apps`, ServiceAccount và TLS listener `8082`. Tạo NLB trước app được, nhưng target health chỉ nghiệm thu sau 04.04; không chờ healthy khi chưa có Pod.
 - Private Hosted Zone `fabric.internal` đã được khởi tạo và liên kết cả 2 VPCs tại bài lab [04.02](02-route53-private-hosted-zone.md).
 - Kết nối `kubectl` tới cụm `fabric-core-eks` đang hoạt động.
 
@@ -87,6 +88,12 @@ AWS Load Balancer Controller sử dụng EKS Pod Identity để gọi các API q
 ---
 
 ### Bước 2: Triển Khai Kubernetes Service Với Annotation IP-Target
+
+**Hợp đồng mạng/TLS:** chọn NLB **TCP passthrough 443 → TLS tại Order 8082**, `preserve_client_ip.enabled=false`. NLB nằm trong `10.50.8.0/22`, `10.50.12.0/22`; Pod nhận nguồn từ NLB, health check cũng từ các subnet này. SG NLB chỉ nhận 443 từ Edge node CIDRs; SG backend chỉ nhận 8082 từ SG NLB. NetworkPolicy 03.05 cho nguồn NLB subnet, không coi IP backend là IP frontend.
+
+1. Trênù máy quản trị được phép, dng CA nội bộ lab (private key không đưa Git/evidence) để cấp server certificate SAN `DNS:core.fabric.internal`; lưu chứng chỉ/key vào Kubernetes TLS Secret `core-backend-tls` trong Core `fabric-apps`. App manifest mount secret read-only và cấu hình TLS listener 8082. Có thể nhập file qua EKS resource editor nếu hỗ trợ Secret; ưu tiên `kubectl create secret tls ... --cert=... --key=... --context fabric-core` để tránh clipboard chứa private key.
+2. Mount **CA certificate công khai** vào Frontend; cấu hình client xác minh SAN/chain, không dùng `-k`. Không yêu cầu mTLS trong MVP; muốn mTLS phải thêm client certificate, rotation và server client-auth.
+3. Đây là gate triển khai: nếu app chưa hỗ trợ TLS/secret mounts thì dừng, chưa apply Service rồi kết luận HTTPS chạy. Không tự suy ra port 443 đồng nghĩa mã hóa.
 Tạo file manifest `core-internal-nlb.yaml`:
 ```yaml
 apiVersion: v1
@@ -97,6 +104,7 @@ metadata:
   annotations:
     # Yêu cầu AWS Load Balancer Controller quản trị
     service.beta.kubernetes.io/aws-load-balancer-type: "external"
+    service.beta.kubernetes.io/aws-load-balancer-name: "fabric-core-internal-nlb"
     # Target-type IP: Định tuyến trực tiếp tới IP của Pod (Không qua NodePort SNAT)
     service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: "ip"
     # Scheme nội bộ: Chỉ cấp phát Private IP trong Core VPC
@@ -105,6 +113,9 @@ metadata:
     service.beta.kubernetes.io/aws-load-balancer-subnets: "fabric-core-nodes-1a, fabric-core-nodes-1b"
     # Bật cân bằng tải chéo AZ
     service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+    service.beta.kubernetes.io/aws-load-balancer-target-group-attributes: "preserve_client_ip.enabled=false"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-protocol: "TCP"
+    service.beta.kubernetes.io/aws-load-balancer-healthcheck-port: "traffic-port"
     # Tag phân loại
     service.beta.kubernetes.io/aws-load-balancer-additional-resource-tags: "Project=aws-eks-secure-network-fabric,Environment=prod"
 spec:
@@ -119,7 +130,7 @@ spec:
 ```
 Áp dụng manifest vào cụm Core EKS:
 ```bash
-kubectl apply -f core-internal-nlb.yaml
+kubectl apply -f core-internal-nlb.yaml --context fabric-core
 ```
 
 ---
@@ -128,7 +139,7 @@ kubectl apply -f core-internal-nlb.yaml
 1. Mở **EC2 Console** tại Region Singapore `ap-southeast-1`.
 2. Tại menu điều hướng bên trái, cuộn xuống nhóm **Load Balancing** -> Chọn **Load Balancers**.
 3. Tìm kiếm Load Balancer kiểu **Network** vừa được tạo:
-   - **Name:** Có định dạng tự động `k8s-fabricap-coreinte-...`.
+   - **Name:** `fabric-core-internal-nlb` theo annotation. Nếu Service cũ đã tạo tên tự động, lấy DNS/ARN thật; thêm annotation không tự đổi tên LB đang tồn tại.
    - **Scheme:** Xác nhận là **`internal`**.
    - **Type:** Xác nhận là **`network`**.
    - **VPC:** Xác nhận là **`fabric-core-vpc`**.
@@ -140,7 +151,7 @@ kubectl apply -f core-internal-nlb.yaml
    - Chọn tab **Targets**:
      - Xác nhận **Target type** hiển thị: **`IP`**.
      - Quan sát danh sách Registered targets: Hiển thị các địa chỉ IP của Pod `order-service` (nằm trong dải `10.50.10.x` hoặc `10.50.14.x`).
-     - Cột **Health status** hiển thị: **`healthy`**.
+     - Sau 04.04, cột **Health status** phải `healthy`. Trước đó có thể chưa có targets; chỉ ghi nghiệm thu provisioning. TCP health check không thay thế HTTPS readiness của app.
 
 ---
 
@@ -151,8 +162,7 @@ kubectl apply -f core-internal-nlb.yaml
    echo "Core Internal NLB DNS: $NLB_DNS"
    ```
 2. Mở **Route 53 Console** -> **Hosted zones** -> Chọn `fabric.internal`.
-3. Tìm bản ghi `core.fabric.internal` (đã tạo nháp ở lab 04.02):
-   - Nhấp vào bản ghi -> Chọn **Edit record**.
+3. Chọn **Create record** nếu 04.02 chưa tạo record; nếu đã có `core.fabric.internal` thì Edit record và ghi giá trị cũ để rollback:
    - **Record type:** Chọn `CNAME`.
    - **Value:** Dán chính xác chuỗi `$NLB_DNS` vừa lấy được.
    - **TTL:** `60`.
@@ -168,9 +178,10 @@ Chạy các lệnh xác minh trạng thái Service và Target Health:
 kubectl get svc core-internal-nlb -n fabric-apps -o wide
 
 # 2. Lấy Target Group ARN của NLB
-TG_ARN=$(aws elbv2 describe-target-groups --region ap-southeast-1 \
-  --names $(aws elbv2 describe-load-balancers --region ap-southeast-1 --query 'LoadBalancers[?Scheme==`internal` && VpcId==`'"$(aws ec2 describe-vpcs --region ap-southeast-1 --filters "Name=tag:Name,Values=fabric-core-vpc" --query 'Vpcs[0].VpcId' --output text)"'`].LoadBalancerName' --output text) \
-  --query 'TargetGroups[0].TargetGroupArn' --output text 2>/dev/null)
+NLB_DNS=$(kubectl get svc core-internal-nlb -n fabric-apps --context fabric-core -o jsonpath='{.status.loadBalancer.ingress[0].hostname}')
+NLB_ARN=$(aws elbv2 describe-load-balancers --region ap-southeast-1 --query "LoadBalancers[?DNSName=='${NLB_DNS}'].LoadBalancerArn | [0]" --output text)
+test -n "$NLB_ARN" && test "$NLB_ARN" != None || exit 1
+TG_ARN=$(aws elbv2 describe-target-groups --region ap-southeast-1 --load-balancer-arn "$NLB_ARN" --query 'TargetGroups[0].TargetGroupArn' --output text)
 
 # 3. Kiểm tra sức khỏe của các targets trong Target Group
 aws elbv2 describe-target-health --region ap-southeast-1 \
@@ -186,7 +197,7 @@ aws elbv2 describe-target-health --region ap-southeast-1 \
 Để gỡ bỏ Internal NLB:
 ```bash
 # Xóa Service, AWS Load Balancer Controller sẽ tự động thu hồi NLB và Target Group trên AWS
-kubectl delete -f core-internal-nlb.yaml
+kubectl delete -f core-internal-nlb.yaml --context fabric-core
 ```
 
 ---

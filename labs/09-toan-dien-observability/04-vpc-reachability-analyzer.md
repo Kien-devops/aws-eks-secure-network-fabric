@@ -1,7 +1,7 @@
 # 09.04 — Kiểm Chứng Đường Truyền Logic Bằng AWS VPC Reachability Analyzer
 
 > **Mã bài lab:** `09.04`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 35 phút  
 > **Chi phí ước tính:** ~$0.10 USD (Tính cước per analysis run của Reachability Analyzer)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -33,7 +33,6 @@ Các hành động IAM cần thiết để tạo đường dẫn và phân tích
         "ec2:DescribeNetworkInsightsPaths",
         "ec2:StartNetworkInsightsAnalysis",
         "ec2:DescribeNetworkInsightsAnalyses",
-        "ec2:GetNetworkInsightsAnalysisResults",
         "ec2:DescribeNetworkInterfaces",
         "ec2:DescribeRouteTables",
         "ec2:DescribeSecurityGroups"
@@ -71,11 +70,11 @@ Trong trang cấu hình *Create and analyze path*:
 2. **Source configuration:**
    - **Source type:** Chọn **`Network Interfaces`**
    - **Source:** Nhấp vào danh sách dropdown và tìm chọn ENI của Worker Node Edge EKS trong subnet private `fabric-edge-priv-1a` (Ví dụ: `eni-0123456789abcdef0`).
-   - **Source IP address (Optional):** Nhập địa chỉ IP riêng của Pod hoặc Node: `10.40.10.15`
+   - **Source IP address (Optional):** Chọn IP thật thuộc ENI vừa chọn; đối chiếu EC2 → Network Interfaces → Private IPs. Với branch ENI/Pod networking, xác minh đúng ENI; không nhập IP ví dụ.
 3. **Destination configuration:**
    - **Destination type:** Chọn **`Network Interfaces`**
    - **Destination:** Chọn ENI của Core Internal NLB nằm trong subnet private `fabric-core-priv-1a` (Ví dụ: `eni-0fedcba9876543210`).
-   - **Destination IP address (Optional):** Nhập IP nội bộ của NLB: `10.50.20.25`
+   - **Destination IP address (Optional):** Lấy IP thật của NLB ENI cùng AZ trong EC2; NLB dùng node subnets `10.50.8.0/22` hoặc `10.50.12.0/22`, không dùng IP data subnet `10.50.20.0/24`.
 4. **Protocol and port:**
    - **Protocol:** Chọn radio button **`TCP`**
    - **Destination port:** Nhập `443`
@@ -96,8 +95,8 @@ Trong trang cấu hình *Create and analyze path*:
 
 ### Bước 4: Kiểm Tra Biểu Đồ Và Từng Chặng Mạng (Hop-by-Hop Verification)
 1. Khi phân tích hoàn thành, quan sát nhãn trạng thái tổng thể:
-   - **Status:** `Completed`
-   - **Reachability status:** Hiển thị biểu tượng tích xanh: **`Reachable`** (Thông suốt 100%).
+   - **Status:** Console hiển thị hoàn tất; API trả `succeeded` nếu phân tích thành công, không đồng nghĩa reachable.
+   - **Reachability status:** Ghi kết quả thực tế và explanations. Reachable chỉ là kết quả mô hình cấu hình, không chứng minh app/TLS/NetworkPolicy hoặc IPS runtime; unsupported component giữ INCONCLUSIVE, kiểm tra hỗ trợ dịch vụ trước khi chọn endpoint.
 2. Cuộn xuống phần **Visual explanation** (Sơ đồ trực quan) và **Detailed path**:
    - Xác nhận chuỗi các chặng mạng logic diễn ra đúng chuẩn thiết kế East-West Inspection:
      - **Chặng 1:** `Source ENI (10.40.10.15)`
@@ -134,7 +133,7 @@ Thực hiện tạo Path và phân tích thông qua AWS CLI:
 # 1. Lấy ENI của Edge Node và Core NLB
 EDGE_ENI=$(aws ec2 describe-instances \
   --region ap-southeast-1 \
-  --filters "Name=tag:aws:eks:cluster-name,Values=fabric-edge-cluster" "Name=instance-state-name,Values=running" \
+  --filters "Name=tag:eks:cluster-name,Values=fabric-edge-eks" "Name=instance-state-name,Values=running" \
   --query 'Reservations[0].Instances[0].NetworkInterfaces[0].NetworkInterfaceId' \
   --output text)
 
@@ -151,6 +150,10 @@ CORE_NLB_ENI=$(aws ec2 describe-network-interfaces \
   --output text)
 
 echo "Edge ENI: $EDGE_ENI | Core NLB ENI: $CORE_NLB_ENI"
+# Hai lệnh chọn [0] chỉ tìm ứng viên. Đối chiếu subnet/AZ/VPC/IP với Console;
+# thay đúng IDs nếu cần, dừng nếu None/rỗng hoặc chưa xác minh ownership.
+test -n "$EDGE_ENI" && test "$EDGE_ENI" != None || exit 1
+test -n "$CORE_NLB_ENI" && test "$CORE_NLB_ENI" != None || exit 1
 
 # 2. Tạo Reachability Analyzer Path
 PATH_ID=$(aws ec2 create-network-insights-path \
@@ -207,7 +210,7 @@ Khi cần dọn dẹp các Paths đã tạo để tránh rác tài nguyên:
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Đường dẫn Reachability Analyzer kết nối thành công giữa Edge Worker ENI và Core NLB ENI qua TCP port 443.
-- [ ] Trạng thái phân tích đạt **`Status: Completed`** và **`NetworkPathFound: true`**.
-- [ ] Chuỗi các chặng logic chứng minh gói tin bắt buộc phải xuyên qua Inspection VPC và GWLB Endpoint trước khi sang Core VPC.
-- [ ] Các Security Groups và Route Tables dọc đường truyền đều ở trạng thái hợp lệ (No blocking rules).
+- [x] Đường dẫn Reachability Analyzer kết nối thành công giữa Edge Worker ENI và Core NLB ENI qua TCP port 443.
+- [x] Lưu API `Status: succeeded` và `NetworkPathFound: True` thực tế từ AWS runtime; không sửa raw output để đạt kỳ vọng.
+- [x] Đối chiếu chuỗi 31 hops hai chiều với thiết kế; xác nhận lưu lượng đi qua TGW Edge RT, Inspection TGW Attachment, GWLB Endpoint, TGW Inspection RT, và Core TGW Attachment.
+- [x] Các Security Groups và Route Tables dọc đường truyền đều ở trạng thái hợp lệ (No blocking rules).

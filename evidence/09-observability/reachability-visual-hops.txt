@@ -1,0 +1,46 @@
+====================================================================================================
+AWS VPC REACHABILITY ANALYZER - HOP-BY-HOP VERIFICATION REPORT
+Path: fabric-edge-to-core-path (nip-0a52f7e379e4e42ec)
+Analysis ID: nia-0487cb60da228bc66
+Source: eni-0a1adfaedba377d17 (Edge Worker Node 1a - 10.40.10.143)
+Destination: eni-0d194b050388e9931 (Core Internal NLB 1a - 10.50.9.248)
+Protocol: TCP 443
+NetworkPathFound: True | Status: succeeded
+====================================================================================================
+--------------------------------------------------------------------------------------------------------------------------------------------
+|                                                      DescribeNetworkInsightsAnalyses                                                     |
++--------------------------------------------------------------------------------------------------+-------------------------------+-------+
+|                                           ComponentArn                                           |          ComponentId          |  Seq  |
++--------------------------------------------------------------------------------------------------+-------------------------------+-------+
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-interface/eni-0a1adfaedba377d17                 |  eni-0a1adfaedba377d17        |  1    |
+|  arn:aws:ec2:ap-southeast-1:123456789012:security-group/sg-022cfbdb0ba1358b5                     |  sg-022cfbdb0ba1358b5         |  2    |
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-acl/acl-0be7d59b37640ca79                       |  acl-0be7d59b37640ca79        |  3    |
+|  arn:aws:ec2:ap-southeast-1:123456789012:route-table/rtb-00cd096fd0d4a2615                       |  rtb-00cd096fd0d4a2615        |  4    |
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-acl/acl-0be7d59b37640ca79                       |  acl-0be7d59b37640ca79        |  5    |
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-interface/eni-0295a6e5a8ff3828c                 |  eni-0295a6e5a8ff3828c        |  6    |
+|  arn:aws:ec2:ap-southeast-1:123456789012:transit-gateway-attachment/tgw-attach-06219b0f6f3082f3e |  tgw-attach-06219b0f6f3082f3e |  7    |
+|  arn:aws:ec2:ap-southeast-1:123456789012:transit-gateway-route-table/tgw-rtb-004772ba5b83f2b17   |  tgw-rtb-004772ba5b83f2b17    |  8    |
+|  arn:aws:ec2:ap-southeast-1:123456789012:transit-gateway-attachment/tgw-attach-0fb21514974415f35 |  tgw-attach-0fb21514974415f35 |  9    |
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-interface/eni-0770e6d90f738e56f                 |  eni-0770e6d90f738e56f        |  10   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-acl/acl-033d4e2b5b31ca555                       |  acl-033d4e2b5b31ca555        |  11   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:route-table/rtb-0b04448561b80d486                       |  rtb-0b04448561b80d486        |  12   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-acl/acl-033d4e2b5b31ca555                       |  acl-033d4e2b5b31ca555        |  13   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-interface/eni-04d59ed0e5d4d4468                 |  eni-04d59ed0e5d4d4468        |  14   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:vpc-endpoint/vpce-0f16354ca5bb55c14                     |  vpce-0f16354ca5bb55c14       |  15   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:vpc-endpoint-service/vpce-svc-07e921c9775e0e4ce         |  vpce-svc-07e921c9775e0e4ce   |  16   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:vpc-endpoint/vpce-0f16354ca5bb55c14                     |  vpce-0f16354ca5bb55c14       |  17   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-interface/eni-04d59ed0e5d4d4468                 |  eni-04d59ed0e5d4d4468        |  18   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-acl/acl-033d4e2b5b31ca555                       |  acl-033d4e2b5b31ca555        |  19   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:route-table/rtb-0378f50d79f1ed01f                       |  rtb-0378f50d79f1ed01f        |  20   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-acl/acl-033d4e2b5b31ca555                       |  acl-033d4e2b5b31ca555        |  21   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-interface/eni-0770e6d90f738e56f                 |  eni-0770e6d90f738e56f        |  22   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:transit-gateway-attachment/tgw-attach-0fb21514974415f35 |  tgw-attach-0fb21514974415f35 |  23   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:transit-gateway-route-table/tgw-rtb-01abf43ebf7f1b21f   |  tgw-rtb-01abf43ebf7f1b21f    |  24   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:transit-gateway-attachment/tgw-attach-0d9cc79cb91dafeb2 |  tgw-attach-0d9cc79cb91dafeb2 |  25   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-interface/eni-0e7103266a0ec24f3                 |  eni-0e7103266a0ec24f3        |  26   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-acl/acl-084c5122744b0928c                       |  acl-084c5122744b0928c        |  27   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:route-table/rtb-047cf904c6c014554                       |  rtb-047cf904c6c014554        |  28   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-acl/acl-084c5122744b0928c                       |  acl-084c5122744b0928c        |  29   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:security-group/sg-02e5d9beddd1c093e                     |  sg-02e5d9beddd1c093e         |  30   |
+|  arn:aws:ec2:ap-southeast-1:123456789012:network-interface/eni-0d194b050388e9931                 |  eni-0d194b050388e9931        |  31   |
++--------------------------------------------------------------------------------------------------+-------------------------------+-------+

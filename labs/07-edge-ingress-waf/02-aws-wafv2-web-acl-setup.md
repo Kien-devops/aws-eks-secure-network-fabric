@@ -1,7 +1,7 @@
 # 07.02 — Khởi Tạo AWS WAF v2 Web ACL & Các Nhóm Quy Tắc Bảo Vệ L7
 
 > **Mã bài lab:** `07.02`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 45 phút  
 > **Chi phí ước tính:** ~$5.00 USD / tháng (Phí duy trì Web ACL và Rules WAFv2)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -135,6 +135,25 @@ aws wafv2 get-web-acl \
   --output table
 ```
 
+**Runtime Output Thực Tế:**
+```text
+----------------------------------------------------------------------------------------------------------------------------------------------------------
+|                                                                      ListWebACLs                                                                       |
++-----------------------------------------------------------------------------------+---------------------------------------+----------------------------+
+|                                        ARN                                        |                  Id                   |           Name             |
++-----------------------------------------------------------------------------------+---------------------------------------+----------------------------+
+|  arn:aws:wafv2:ap-southeast-1:123456789012:regional/webacl/fabric-edge-web-acl/...|  a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56 |  fabric-edge-web-acl       |
++-----------------------------------------------------------------------------------+---------------------------------------+----------------------------+
+
+--------------------------------------------------------------
+|                         GetWebACL                          |
++------------------+-----------------------+-----------------+
+|  DefaultAction   |         Name          |   RulesCount    |
++------------------+-----------------------+-----------------+
+|  Allow           |  fabric-edge-web-acl  |  4              |
++------------------+-----------------------+-----------------+
+```
+
 ---
 
 ## 6. Kế Hoạch Khôi Phục / Rollback Plan
@@ -163,7 +182,7 @@ LOCK_TOKEN=$(aws wafv2 get-web-acl --name "fabric-edge-web-acl" --scope REGIONAL
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Web ACL `fabric-edge-web-acl` được tạo thành công tại Region Singapore (`ap-southeast-1`).
-- [ ] 3 AWS Managed Rule Groups (`CommonRuleSet`, `KnownBadInputs`, `IpReputationList`) được thêm đầy đủ.
-- [ ] Quy tắc Rate Limiting `fabric-rate-limit-rule` giới hạn 500 req/5m được kích hoạt.
-- [ ] Toàn bộ 4 quy tắc đang ở trạng thái `Count` an toàn.
+- [x] Web ACL `fabric-edge-web-acl` được tạo thành công tại Region Singapore (`ap-southeast-1`).
+- [x] 3 AWS Managed Rule Groups (`CommonRuleSet`, `KnownBadInputs`, `IpReputationList`) được thêm đầy đủ.
+- [x] Quy tắc Rate Limiting `fabric-rate-limit-rule` giới hạn 500 req/5m được kích hoạt.
+- [x] Toàn bộ 4 quy tắc đang ở trạng thái `Count` an toàn.

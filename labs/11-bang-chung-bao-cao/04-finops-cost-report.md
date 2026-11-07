@@ -1,7 +1,7 @@
 # 11.04 — Báo Cáo Đo Lường Chi Phí Thực Tế & Tối Ưu Hóa FinOps
 
 > **Mã bài lab:** `11.04`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `DRAFT`  
 > **Thời gian dự kiến:** 30 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  

@@ -1,0 +1,177 @@
+{
+  "timestamp": "2026-11-07T16:35:30Z",
+  "lab": "03.05",
+  "title": "Thiết lập ma trận Kubernetes NetworkPolicy hoàn chỉnh (Zero Trust)",
+  "region": "ap-southeast-1",
+  "account_id": "123456789012",
+  "vpc_cni_status": {
+    "fabric-edge-eks": {
+      "addon": "vpc-cni",
+      "version": "v1.22.4-eksbuild.10",
+      "status": "ACTIVE",
+      "configurationValues": "{\"enableNetworkPolicy\":\"true\"}",
+      "enforcing_mode": "standard",
+      "daemonset_status": "2/2 Ready",
+      "agent_container": "aws-eks-nodeagent (Running)",
+      "agent_image": "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/amazon/aws-network-policy-agent:v1.4.0-eksbuild.1"
+    },
+    "fabric-core-eks": {
+      "addon": "vpc-cni",
+      "version": "v1.22.4-eksbuild.10",
+      "status": "ACTIVE",
+      "configurationValues": "{\"enableNetworkPolicy\":\"true\"}",
+      "enforcing_mode": "standard",
+      "daemonset_status": "2/2 Ready",
+      "agent_container": "aws-eks-nodeagent (Running)",
+      "agent_image": "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/amazon/aws-network-policy-agent:v1.4.0-eksbuild.1"
+    }
+  },
+  "namespaces": {
+    "fabric-edge-eks": ["fabric-apps"],
+    "fabric-core-eks": ["fabric-apps"]
+  },
+  "network_policies": {
+    "fabric-edge-eks": [
+      {
+        "name": "default-deny-all",
+        "namespace": "fabric-apps",
+        "podSelector": {},
+        "policyTypes": ["Ingress", "Egress"],
+        "finalizers": ["networking.k8s.aws/resources"],
+        "status": "ENFORCED"
+      },
+      {
+        "name": "allow-coredns-egress",
+        "namespace": "fabric-apps",
+        "podSelector": {},
+        "policyTypes": ["Egress"],
+        "ports": [
+          {"port": 53, "protocol": "UDP"},
+          {"port": 53, "protocol": "TCP"}
+        ],
+        "toNamespace": "kube-system",
+        "finalizers": ["networking.k8s.aws/resources"],
+        "status": "ENFORCED"
+      },
+      {
+        "name": "frontend-policy",
+        "namespace": "fabric-apps",
+        "podSelector": {"app": "frontend"},
+        "policyTypes": ["Ingress", "Egress"],
+        "ingress": [
+          {"fromCidr": "10.40.0.0/23", "port": 8080, "protocol": "TCP"}
+        ],
+        "egress": [
+          {"toPod": {"app": "auth-service"}, "port": 8081, "protocol": "TCP"},
+          {"toCidr": "10.50.0.0/16", "ports": [443, 8082], "protocol": "TCP"}
+        ],
+        "finalizers": ["networking.k8s.aws/resources"],
+        "status": "ENFORCED"
+      },
+      {
+        "name": "auth-service-policy",
+        "namespace": "fabric-apps",
+        "podSelector": {"app": "auth-service"},
+        "policyTypes": ["Ingress"],
+        "ingress": [
+          {"fromPod": {"app": "frontend"}, "port": 8081, "protocol": "TCP"}
+        ],
+        "finalizers": ["networking.k8s.aws/resources"],
+        "status": "ENFORCED"
+      },
+      {
+        "name": "allow-pod-identity",
+        "namespace": "fabric-apps",
+        "podSelector": {"aws-credentials": "pod-identity"},
+        "policyTypes": ["Egress"],
+        "egress": [
+          {"toCidr": "169.254.170.23/32", "port": 80, "protocol": "TCP"}
+        ],
+        "finalizers": ["networking.k8s.aws/resources"],
+        "status": "ENFORCED"
+      }
+    ],
+    "fabric-core-eks": [
+      {
+        "name": "default-deny-all",
+        "namespace": "fabric-apps",
+        "podSelector": {},
+        "policyTypes": ["Ingress", "Egress"],
+        "finalizers": ["networking.k8s.aws/resources"],
+        "status": "ENFORCED"
+      },
+      {
+        "name": "allow-coredns-egress",
+        "namespace": "fabric-apps",
+        "podSelector": {},
+        "policyTypes": ["Egress"],
+        "ports": [
+          {"port": 53, "protocol": "UDP"},
+          {"port": 53, "protocol": "TCP"}
+        ],
+        "toNamespace": "kube-system",
+        "finalizers": ["networking.k8s.aws/resources"],
+        "status": "ENFORCED"
+      },
+      {
+        "name": "order-service-policy",
+        "namespace": "fabric-apps",
+        "podSelector": {"app": "order-service"},
+        "policyTypes": ["Ingress", "Egress"],
+        "ingress": [
+          {"fromCidr": "10.50.8.0/21", "port": 8082, "protocol": "TCP"}
+        ],
+        "egress": [
+          {"toPod": {"app": "inventory-service"}, "port": 8083, "protocol": "TCP"},
+          {"toCidr": "10.50.20.0/23", "ports": [5432, 6379], "protocol": "TCP"},
+          {"toCidr": "10.50.30.0/23", "port": 443, "protocol": "TCP"}
+        ],
+        "finalizers": ["networking.k8s.aws/resources"],
+        "status": "ENFORCED"
+      },
+      {
+        "name": "inventory-service-policy",
+        "namespace": "fabric-apps",
+        "podSelector": {"app": "inventory-service"},
+        "policyTypes": ["Ingress", "Egress"],
+        "ingress": [
+          {"fromPod": {"app": "order-service"}, "port": 8083, "protocol": "TCP"}
+        ],
+        "egress": [
+          {"toCidr": "10.50.20.0/23", "port": 6379, "protocol": "TCP"},
+          {"toCidr": "10.50.30.0/23", "port": 443, "protocol": "TCP"}
+        ],
+        "finalizers": ["networking.k8s.aws/resources"],
+        "status": "ENFORCED"
+      },
+      {
+        "name": "payment-worker-policy",
+        "namespace": "fabric-apps",
+        "podSelector": {"app": "payment-worker"},
+        "policyTypes": ["Egress"],
+        "egress": [
+          {"toCidr": "10.50.20.0/23", "port": 5432, "protocol": "TCP"},
+          {"toCidr": "10.50.30.0/23", "port": 443, "protocol": "TCP"}
+        ],
+        "finalizers": ["networking.k8s.aws/resources"],
+        "status": "ENFORCED"
+      },
+      {
+        "name": "allow-pod-identity",
+        "namespace": "fabric-apps",
+        "podSelector": {"aws-credentials": "pod-identity"},
+        "policyTypes": ["Egress"],
+        "egress": [
+          {"toCidr": "169.254.170.23/32", "port": 80, "protocol": "TCP"}
+        ],
+        "finalizers": ["networking.k8s.aws/resources"],
+        "status": "ENFORCED"
+      }
+    ]
+  },
+  "ebpf_controller_reconciliation": {
+    "finalizer_injected": "networking.k8s.aws/resources",
+    "status": "ACTIVE_BPF_PROG_ATTACHED",
+    "verification": "All NetworkPolicy resources are reconciled and finalizer injected by AWS Network Policy Agent controller."
+  }
+}

@@ -1,0 +1,60 @@
+{
+    "value":  [
+                  {
+                      "queryLanguage":  "CWLI",
+                      "queryDefinitionId":  "dba6d1ff-5c08-4395-966b-ef7ee54d5703",
+                      "name":  "fabric-nfw-egress-blocked-domains",
+                      "queryString":  "fields @timestamp, event.src_ip, event.dest_ip, event.dest_port, event.http.hostname, event.alert.signature | filter event.alert.action = \u0027drop\u0027 or event.alert.action = \u0027blocked\u0027 | stats count(*) as dropCount by event.http.hostname, event.src_ip | sort dropCount desc | limit 20",
+                      "lastModified":  1794082862769,
+                      "logGroupNames":  [
+                                            "/aws/network-firewall/fabric-egress-alerts"
+                                        ],
+                      "parameters":  [
+
+                                     ]
+                  },
+                  {
+                      "queryLanguage":  "CWLI",
+                      "queryDefinitionId":  "af131656-4e06-4d51-994c-ad0fe780ad22",
+                      "name":  "fabric-waf-top-blocked-ips",
+                      "queryString":  "fields @timestamp, httpRequest.clientIp, httpRequest.country, terminatingRuleId, httpRequest.uri | filter action = \u0027BLOCK\u0027 | stats count(*) as blockCount by httpRequest.clientIp, httpRequest.country, terminatingRuleId | sort blockCount desc | limit 20",
+                      "lastModified":  1794082865063,
+                      "logGroupNames":  [
+                                            "aws-waf-logs-fabric-edge-waf"
+                                        ],
+                      "parameters":  [
+
+                                     ]
+                  },
+                  {
+                      "queryLanguage":  "CWLI",
+                      "queryDefinitionId":  "ac0fdbae-f9b2-4302-80a1-417e7d745633",
+                      "name":  "fabric-suricata-ids-alerts",
+                      "queryString":  "fields @timestamp, src_ip, dest_ip, dest_port, alert.signature, alert.category, alert.severity | filter event_type = \u0027alert\u0027 | sort @timestamp desc | limit 50",
+                      "lastModified":  1794082860336,
+                      "logGroupNames":  [
+                                            "/aws/suricata/fabric-inspection-eve"
+                                        ],
+                      "parameters":  [
+
+                                     ]
+                  },
+                  {
+                      "queryLanguage":  "CWLI",
+                      "queryDefinitionId":  "1de378c1-98b5-480d-9a58-3f90bfa0c8df",
+                      "name":  "fabric-vpc-flow-top-rejects",
+                      "queryString":  "fields @timestamp, srcAddr, dstAddr, srcPort, dstPort, protocol, action | filter action = \u0027REJECT\u0027 | stats count(*) as rejectedCount by srcAddr, dstAddr, dstPort | sort rejectedCount desc | limit 20",
+                      "lastModified":  1794082857995,
+                      "logGroupNames":  [
+                                            "/aws/vpc/fabric-edge-flow",
+                                            "/aws/vpc/fabric-core-flow",
+                                            "/aws/vpc/fabric-inspection-flow",
+                                            "/aws/vpc/fabric-egress-flow"
+                                        ],
+                      "parameters":  [
+
+                                     ]
+                  }
+              ],
+    "Count":  4
+}

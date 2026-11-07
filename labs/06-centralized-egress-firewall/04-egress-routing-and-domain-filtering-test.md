@@ -1,7 +1,7 @@
 # 06.04 — Cấu Hình Bảng Định Tuyến Egress Return Path & Kiểm Thử Lọc Tên Miền
 
 > **Mã bài lab:** `06.04`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `DRAFT`  
 > **Thời gian dự kiến:** 45 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore) — Subnets: Egress VPC  
@@ -13,6 +13,7 @@
 - Đã hoàn thành toàn bộ các bài lab [06.01](01-nat-gateways-per-az.md), [06.02](02-network-firewall-rule-groups.md), và [06.03](03-network-firewall-deployment.md).
 - Đã trích xuất chính xác 2 Firewall Endpoint IDs (`vpce-...`) của AWS Network Firewall tại AZ-a và AZ-b.
 - Cụm Core EKS đang hoạt động và sẵn sàng thực thi lệnh kiểm thử từ Pods.
+- Tách bài thành cấu hình route trước và nghiệm thu sau: route có thể chuẩn bị khi chưa có EKS; chỉ chạy phần probe khi 03 đã có nodes/CNI/DNS và policy baseline. Không lấy phần nghiệm thu EKS làm prerequisite dựng route rồi tạo vòng phụ thuộc.
 - Đang mở phiên AWS Management Console tại Singapore `ap-southeast-1`.
 
 ---
@@ -65,15 +66,23 @@ Trước khi cấu hình bảng định tuyến, mở **VPC Console** -> **Netwo
 ### Bước 2: Cấu Hình 6 Bảng Định Tuyến Phân Tách Theo Từng AZ Tại Egress VPC
 Mở **VPC Console** -> Menu bên trái chọn **Route tables**:
 
+Trước khi đổi: xuất Routes/Associations của các bảng cũ vào evidence phiên chạy. `fabric-egress-tgw-rt-1a/b` đã có ở module 02: chọn bảng đó và **Edit routes**, không Create trùng tên. Hai bảng dùng chung `fabric-egress-fw-rt`, `fabric-egress-public-rt` phải tách theo AZ như bên dưới; khi chuyển association, chọn **Replace association**, ghi bảng cũ để rollback. Không xóa bảng cũ trước kiểm chứng.
+
+### Gate TGW trước cutover egress
+
+1. TGW route tables → `fabric-tgw-edge-rt` và `fabric-tgw-core-rt` → Routes: default `0.0.0.0/0` phải tới **Egress attachment**; route CIDR đối diện vẫn tới Inspection.
+2. `fabric-tgw-egress-rt`: `10.40.0.0/16` tới Edge, `10.50.0.0/16` tới Core. `inspection-rt` không cần default route. Nếu live còn ma trận cũ, đây là **thay đổi routing có ảnh hưởng**, phải có ủy quyền riêng và bản backup trước khi Replace; việc sửa tài liệu không đã sửa live.
+3. Hoàn tất firewall Ready, NAT available, HOME_NET và logging trước thay route; chưa có probe sẵn thì không cutover để nghiệm thu.
+
 #### 1. Nhóm Bảng Định Tuyến TGW Subnets (Gói tin từ TGW vào Egress VPC):
-- **Tạo `fabric-egress-tgw-rt-1a`:**
-  - Nhấp **Create route table** -> Name: `fabric-egress-tgw-rt-1a` | VPC: `fabric-egress-vpc` -> Nhấp **Create**.
+- **Sửa `fabric-egress-tgw-rt-1a` đã có:**
+  - Chọn đúng VPC/ID → Edit routes; sửa default route nếu đã có, chỉ Add khi chưa có.
   - Tab **Subnet associations**: Gắn duy nhất subnet `fabric-egress-tgw-1a` (`10.80.0.0/28`).
   - Tab **Routes** -> **Edit routes**:
     - Nhấp **Add route**: Destination: `0.0.0.0/0` -> Target: Chọn **VPC Endpoint** -> Chọn `VPCE_1A`.
     - Nhấp **Save changes**.
-- **Tạo `fabric-egress-tgw-rt-1b`:**
-  - Nhấp **Create route table** -> Name: `fabric-egress-tgw-rt-1b` | VPC: `fabric-egress-vpc` -> Nhấp **Create**.
+- **Sửa `fabric-egress-tgw-rt-1b` đã có:**
+  - Chọn đúng VPC/ID → Edit routes; không tạo trùng bảng/route.
   - Tab **Subnet associations**: Gắn duy nhất subnet `fabric-egress-tgw-1b` (`10.80.0.16/28`).
   - Tab **Routes** -> **Edit routes**:
     - Nhấp **Add route**: Destination: `0.0.0.0/0` -> Target: Chọn **VPC Endpoint** -> Chọn `VPCE_1B`.
@@ -120,10 +129,12 @@ Mở **VPC Console** -> Menu bên trái chọn **Route tables**:
 ## 5. Lệnh Kiểm Tra / CLI Verification (Zero Fake Data)
 
 ### 1. Kiểm Thử Dương Tính: Truy Cập Tên Miền Trong Allowlist (PASS HTTP 200)
+**Trước lệnh kiểm thử:** đọc và apply `egress-test-only` ở mục 2. Dùng Deployment probe tên `egress-test`, label `purpose=egress-test`, image `PROBE_IMAGE` ECR ghim digest có curl và `sleep 3600`; đặt replicas 1, ghi node/AZ, chờ Available. Không dùng standalone Pod: native VPC CNI NetworkPolicy có giới hạn ownerReferences. Tạo bằng manifest Deployment đã review; chưa có artifact này thì giữ DRAFT. Khi lặp AZ, thay nodeSelector `topology.kubernetes.io/zone` và chờ probe mới Ready.
+
 Từ một Pod trong cụm `fabric-core-eks`, thực hiện gọi HTTPS tới các domain đã cho phép trong Stateful Domain Group (`github.com`, `quay.io`):
 ```bash
 # Thực thi từ pod kiểm thử trong cụm Core EKS
-kubectl run egress-allow-test --rm -it --image=curlimages/curl --restart=Never -n fabric-apps --context fabric-core -- \
+kubectl exec deploy/egress-test -n fabric-apps --context fabric-core -- \
   curl -Iv https://github.com --connect-timeout 5
 ```
 **Kết quả kỳ vọng:** Bắt tay TLS thành công, trả về mã trạng thái `HTTP/2 200` hoặc `HTTP/1.1 200 OK`.
@@ -133,10 +144,33 @@ kubectl run egress-allow-test --rm -it --image=curlimages/curl --restart=Never -
 ### 2. Kiểm Thử Âm Tính: Truy Cập Tên Miền Ngoài Danh Mục (Kỳ vọng: DROP / Timeout)
 Thực hiện truy cập một domain không có trong danh mục allowlist (ví dụ: `example.com` hoặc `facebook.com`):
 ```bash
-kubectl run egress-deny-test --rm -it --image=curlimages/curl --restart=Never -n fabric-apps --context fabric-core -- \
-  curl -Iv https://example.com --connect-timeout 5 || echo "PASSED: Unauthorized Domain Blocked by Network Firewall!"
+kubectl exec deploy/egress-test -n fabric-apps --context fabric-core -- \
+  curl -Iv https://example.com --connect-timeout 5
 ```
 **Kết quả kỳ vọng:** Kết nối bị treo và báo `Connection timed out` sau 5 giây do gói tin bị Network Firewall DROP âm thầm.
+
+**Điều kiện để quy kết firewall:** chuẩn bị `PROBE_IMAGE` là image ECR có curl, ghim digest, đã kéo được trước cutover. Tạo policy sau trong Core; baseline DNS 03.05 cho phép DNS. Chạy allow và deny cùng node/AZ, đối chiếu timestamp, IP và firewall logs. Timeout riêng lẻ là **INCONCLUSIVE**; Pod Pending, ImagePullBackOff, DNS lỗi hoặc NetworkPolicy deny không phải firewall PASS.
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: egress-test-only
+  namespace: fabric-apps
+spec:
+  podSelector:
+    matchLabels: {purpose: egress-test}
+  policyTypes: [Egress]
+  egress:
+  - to:
+    - ipBlock:
+        cidr: 0.0.0.0/0
+        except: [10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16, 169.254.0.0/16]
+    ports:
+    - {protocol: TCP, port: 443}
+```
+
+Lưu manifest thành `egress-test-only.yaml`, `kubectl apply -f egress-test-only.yaml --context fabric-core` **trước** thử nghiệm; xóa riêng policy và Deployment probe sau khi xong. Nếu tiếp tục 10.05 trong cùng cửa sổ, giữ probe/policy có thời hạn và cleanup sau đó. Kiểm tra cả hai AZ, domain allow vẫn hoạt động ngay sau deny.
 
 ---
 
@@ -156,7 +190,7 @@ aws logs filter-log-events --region ap-southeast-1 \
 
 Trong trường hợp phát sinh lỗi định tuyến khiến toàn bộ kết nối ra Internet bị tắc nghẽn:
 1. Kiểm tra lại việc trỏ Endpoint ID tại các bảng `fabric-egress-public-rt-1a/b`.
-2. Nếu cần khôi phục khẩn cấp, có thể tạm thời trỏ `10.40.0.0/16` và `10.50.0.0/16` trên Public Subnet về `fabric-tgw` để xác định nguyên nhân.
+2. Khôi phục **đồng bộ** toàn bộ route và association đã lưu trước cutover, cả hai AZ và TGW. Không chỉ trỏ return trực tiếp về TGW trong khi forward còn qua firewall: gây bất đối xứng và bypass. Nếu baseline trước cutover là fail-closed chưa có egress, ghi rõ rollback phục hồi cấu hình đó, không hứa phục hồi Internet.
 
 ---
 

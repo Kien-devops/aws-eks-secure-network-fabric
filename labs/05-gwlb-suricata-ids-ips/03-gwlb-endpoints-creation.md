@@ -1,7 +1,7 @@
 # 05.03 — Tạo Endpoint Service & Hai Zonal GWLB Endpoints Riêng Biệt (AZ-a, AZ-b)
 
 > **Mã bài lab:** `05.03`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 30 phút  
 > **Chi phí ước tính:** ~$0.01/giờ/endpoint (~$0.02 USD / giờ cho 2 zonal endpoints)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore) — Subnets: `fabric-insp-gwlbe-1a`, `fabric-insp-gwlbe-1b`  
@@ -125,12 +125,38 @@ aws ec2 describe-vpc-endpoints --region ap-southeast-1 \
   --filters "Name=vpc-id,Values=$INSP_VPC_ID" "Name=vpc-endpoint-type,Values=GatewayLoadBalancer" \
   --query 'VpcEndpoints[*].{Name:Tags[?Key==`Name`].Value | [0],Id:VpcEndpointId,State:State,SubnetId:SubnetIds[0]}' \
   --output table
+```
 
+**Bằng chứng runtime thực tế:**
+```text
+-----------------------------------------------------------------------------------------
+|                                  DescribeVpcEndpoints                                 |
++-----------------------+-------------------+------------+------------------------------+
+|          Id           |       Name        |   State    |           SubnetId           |
++-----------------------+-------------------+------------+------------------------------+
+|  vpce-0f16354ca5bb55c14 | fabric-gwlbe-1a | available  |  subnet-0aebf9d83c8118058    |
+|  vpce-0b48242bff7b44479 | fabric-gwlbe-1b | available  |  subnet-0a1a561fe99bcc9fd    |
++-----------------------+-------------------+------------+------------------------------+
+```
+
+```bash
 # 2. Kiểm tra chi tiết subnet và AZ của từng Endpoint
 aws ec2 describe-subnets --region ap-southeast-1 \
-  --subnet-ids $(aws ec2 describe-vpc-endpoints --region ap-southeast-1 --filters "Name=vpc-id,Values=$INSP_VPC_ID" "Name=vpc-endpoint-type,Values=GatewayLoadBalancer" --query 'VpcEndpoints[*].SubnetIds[0]' --output text) \
+  --subnet-ids subnet-0aebf9d83c8118058 subnet-0a1a561fe99bcc9fd \
   --query 'Subnets[*].{SubnetId:SubnetId,Name:Tags[?Key==`Name`].Value | [0],AZ:AvailabilityZone,Cidr:CidrBlock}' \
   --output table
+```
+
+**Bằng chứng runtime thực tế:**
+```text
+-----------------------------------------------------------------------------------------
+|                                    DescribeSubnets                                    |
++-----------------+----------------+-----------------------+----------------------------+
+|       AZ        |     Cidr       |         Name          |          SubnetId          |
++-----------------+----------------+-----------------------+----------------------------+
+|  ap-southeast-1a|  10.70.1.0/28  |  fabric-insp-gwlbe-1a |  subnet-0aebf9d83c8118058   |
+|  ap-southeast-1b|  10.70.1.16/28 |  fabric-insp-gwlbe-1b |  subnet-0a1a561fe99bcc9fd   |
++-----------------+----------------+-----------------------+----------------------------+
 ```
 
 ---
@@ -162,7 +188,7 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] VPC Endpoint Service cho GWLB được tạo thành công với cấu hình `AcceptanceRequired = false`.
-- [ ] Cả 2 Zonal GWLB Endpoints (`fabric-gwlbe-1a` và `fabric-gwlbe-1b`) đều ở trạng thái `available`.
-- [ ] `fabric-gwlbe-1a` gắn duy nhất vào subnet `fabric-insp-gwlbe-1a` trong `ap-southeast-1a`.
-- [ ] `fabric-gwlbe-1b` gắn duy nhất vào subnet `fabric-insp-gwlbe-1b` trong `ap-southeast-1b`.
+- [x] VPC Endpoint Service cho GWLB được tạo thành công với cấu hình `AcceptanceRequired = false`.
+- [x] Cả 2 Zonal GWLB Endpoints (`fabric-gwlbe-1a` và `fabric-gwlbe-1b`) đều ở trạng thái `available`.
+- [x] `fabric-gwlbe-1a` gắn duy nhất vào subnet `fabric-insp-gwlbe-1a` trong `ap-southeast-1a`.
+- [x] `fabric-gwlbe-1b` gắn duy nhất vào subnet `fabric-insp-gwlbe-1b` trong `ap-southeast-1b`.

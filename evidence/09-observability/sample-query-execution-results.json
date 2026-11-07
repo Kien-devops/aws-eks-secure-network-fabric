@@ -1,0 +1,42 @@
+{
+    "queryLanguage":  "CWLI",
+    "results":  [
+                    [
+                        {
+                            "field":  "@timestamp",
+                            "value":  "2026-11-07 20:13:47.835"
+                        },
+                        {
+                            "field":  "@message",
+                            "value":  "{\"timestamp\":1794082427835,\"formatVersion\":1,\"webaclId\":\"arn:aws:wafv2:ap-southeast-1:123456789012:regional/webacl/fabric-edge-web-acl/a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56\",\"terminatingRuleId\":\"AWS-AWSManagedRulesAmazonIpReputationList\",\"terminatingRuleType\":\"MANAGED_RULE_GROUP\",\"action\":\"BLOCK\",\"terminatingRuleMatchDetails\":[],\"httpSourceName\":\"ALB\",\"httpSourceId\":\"123456789012-app/fabric-edge-public-alb/61108d1397d1c55c\",\"ruleGroupList\":[{\"ruleGroupId\":\"AWS#AWSManagedRulesCommonRuleSet\",\"terminatingRule\":null,\"nonTerminatingMatchingRules\":[],\"excludedRules\":null,\"customerConfig\":null},{\"ruleGroupId\":\"AWS#AWSManagedRulesKnownBadInputsRuleSet\",\"terminatingRule\":null,\"nonTerminatingMatchingRules\":[],\"excludedRules\":null,\"customerConfig\":null},{\"ruleGroupId\":\"AWS#AWSManagedRulesAmazonIpReputationList\",\"terminatingRule\":{\"ruleId\":\"AWSManagedIPReputationList\",\"action\":\"BLOCK\",\"ruleMatchDetails\":null},\"nonTerminatingMatchingRules\":[],\"excludedRules\":null,\"customerConfig\":null}],\"rateBasedRuleList\":[{\"rateBasedRuleId\":\"arn:aws:wafv2:ap-southeast-1:123456789012_MANAGED:regional/ipset/a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56_aba7c6d9-2acf-4a22-8663-bc1ab56007c2_IPV4/aba7c6d9-2acf-4a22-8663-bc1ab56007c2\",\"rateBasedRuleName\":\"fabric-rate-limit-rule\",\"limitKey\":\"IP\",\"maxRateAllowed\":500,\"evaluationWindowSec\":300,\"limitValue\":\"71.6.134.233\"}],\"nonTerminatingMatchingRules\":[],\"requestHeadersInserted\":null,\"responseCodeSent\":null,\"httpRequest\":{\"clientIp\":\"71.6.134.233\",\"country\":\"US\",\"headers\":[{\"name\":\"Host\",\"value\":\"54.251.228.197\"},{\"name\":\"User-Agent\",\"value\":\"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/153.0.0.0 Safari/537.36\"},{\"name\":\"Accept\",\"value\":\"*/*\"},{\"name\":\"Accept-Encoding\",\"value\":\"gzip\"}],\"uri\":\"/\",\"args\":\"\",\"httpVersion\":\"HTTP/1.1\",\"httpMethod\":\"GET\",\"requestId\":\"1-6aef867b-1a4beddc3edf858c4e201cbe\",\"fragment\":\"\",\"scheme\":\"https\",\"host\":\"54.251.228.197\"},\"labels\":[{\"name\":\"awswaf:managed:aws:amazon-ip-list:AWSManagedIPReputationList\"}],\"ja3Fingerprint\":\"02fc9e6401d2c8c1bf8f91bd21b8e17e\",\"ja4Fingerprint\":\"t13i150900_8daaf6152771_18e8a06d9b2d\"}"
+                        },
+                        {
+                            "field":  "@ptr",
+                            "value":  "Cq4BCnMKKTYyMDMwNjM4NzAzMzphd3Mtd2FmLWxvZ3MtZmFicmljLWVkZ2Utd2FmEAAaJGRlNzdkM2YwLTBiNDAtNDI4Zi1iMTRlLTcxMWJhZjdmZWIyZiIOCPbg/bybNBDPgLK9mzQ40/mZ/JY0QPbg/bybNEgAEjUaGAIGrt890QAAAAGAewBZAAau+GUwAAAGEiABKLunlb2bNDC7p5W9mzQ4AUDrEEitNFD2HSACEAAYAQ=="
+                        }
+                    ],
+                    [
+                        {
+                            "field":  "@timestamp",
+                            "value":  "2026-11-07 20:10:37.063"
+                        },
+                        {
+                            "field":  "@message",
+                            "value":  "{\"timestamp\":1794082237063,\"formatVersion\":1,\"webaclId\":\"arn:aws:wafv2:ap-southeast-1:123456789012:regional/webacl/fabric-edge-web-acl/a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56\",\"terminatingRuleId\":\"AWS-AWSManagedRulesSQLiRuleSet\",\"terminatingRuleType\":\"MANAGED_RULE_GROUP\",\"action\":\"BLOCK\",\"terminatingRuleMatchDetails\":[{\"conditionType\":\"SQL_INJECTION\",\"location\":\"ALL_QUERY_ARGS\",\"matchedData\":[\"1\",\"OR\",\"1\",\"=\",\"1\"],\"matchedFieldName\":\"id\",\"sensitivityLevel\":\"LOW\"}],\"httpSourceName\":\"ALB\",\"httpSourceId\":\"123456789012-app/fabric-edge-public-alb/61108d1397d1c55c\",\"ruleGroupList\":[{\"ruleGroupId\":\"AWS#AWSManagedRulesCommonRuleSet\",\"terminatingRule\":null,\"nonTerminatingMatchingRules\":[],\"excludedRules\":null,\"customerConfig\":null},{\"ruleGroupId\":\"AWS#AWSManagedRulesKnownBadInputsRuleSet\",\"terminatingRule\":null,\"nonTerminatingMatchingRules\":[],\"excludedRules\":null,\"customerConfig\":null},{\"ruleGroupId\":\"AWS#AWSManagedRulesAmazonIpReputationList\",\"terminatingRule\":null,\"nonTerminatingMatchingRules\":[],\"excludedRules\":null,\"customerConfig\":null},{\"ruleGroupId\":\"AWS#AWSManagedRulesSQLiRuleSet\",\"terminatingRule\":{\"ruleId\":\"SQLi_QUERYARGUMENTS\",\"action\":\"BLOCK\",\"ruleMatchDetails\":null},\"nonTerminatingMatchingRules\":[],\"excludedRules\":null,\"customerConfig\":null}],\"rateBasedRuleList\":[{\"rateBasedRuleId\":\"arn:aws:wafv2:ap-southeast-1:123456789012_MANAGED:regional/ipset/a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56_aba7c6d9-2acf-4a22-8663-bc1ab56007c2_IPV4/aba7c6d9-2acf-4a22-8663-bc1ab56007c2\",\"rateBasedRuleName\":\"fabric-rate-limit-rule\",\"limitKey\":\"IP\",\"maxRateAllowed\":500,\"evaluationWindowSec\":300,\"limitValue\":\"104.28.210.151\"}],\"nonTerminatingMatchingRules\":[],\"requestHeadersInserted\":null,\"responseCodeSent\":null,\"httpRequest\":{\"clientIp\":\"104.28.210.151\",\"country\":\"VN\",\"headers\":[{\"name\":\"Host\",\"value\":\"app3.devopsss.site\"},{\"name\":\"User-Agent\",\"value\":\"curl/8.13.0\"},{\"name\":\"Accept\",\"value\":\"*/*\"}],\"uri\":\"/\",\"args\":\"id=1\u0027%20OR%20\u00271\u0027=\u00271\",\"httpVersion\":\"HTTP/1.1\",\"httpMethod\":\"GET\",\"requestId\":\"1-6aef85bd-5bdca6b024a940e06d37e205\",\"fragment\":\"\",\"scheme\":\"https\",\"host\":\"app3.devopsss.site\"},\"labels\":[{\"name\":\"awswaf:managed:aws:sql-database:SQLi_QueryArguments\"}],\"ja3Fingerprint\":\"74954a0c86284d0d6e1c4efefe92b521\",\"ja4Fingerprint\":\"t12d2108h1_76e208dd3e22_2dae41c691ec\"}"
+                        },
+                        {
+                            "field":  "@ptr",
+                            "value":  "Cq4BCnMKKTYyMDMwNjM4NzAzMzphd3Mtd2FmLWxvZ3MtZmFicmljLWVkZ2Utd2FmEAAaJGRlNzdkM2YwLTBiNDAtNDI4Zi1iMTRlLTcxMWJhZjdmZWIyZiIOCPbg/bybNBDPgLK9mzQ40/mZ/JY0QPbg/bybNEgAEjUaGAIGrlBrWgAAAALCAIF7AAau+FjwAAAEoiABKIfVib2bNDCH1Ym9mzQ4AUCIEkifO1DyHyACEAAYAQ=="
+                        }
+                    ]
+                ],
+    "statistics":  {
+                       "recordsMatched":  2.0,
+                       "recordsScanned":  9.0,
+                       "estimatedRecordsSkipped":  0.0,
+                       "bytesScanned":  22707.0,
+                       "estimatedBytesSkipped":  0.0,
+                       "logGroupsScanned":  1.0
+                   },
+    "status":  "Complete"
+}

@@ -1,4 +1,4 @@
-# 03.02 — Khởi Tạo Hai Cụm Private EKS 1.31 Riêng Biệt (Edge & Core)
+# 03.02 — Khởi Tạo Hai Cụm EKS 1.37 Riêng Biệt (Edge & Core)
 
 > **Mã bài lab:** `03.02`  
 > **Trạng thái:** `RUNTIME_PASS`  
@@ -48,7 +48,7 @@ Các hành động IAM cần thiết để thực thi bài lab này:
 ## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
 
 - **Chi phí:** EKS Control Plane tính phí $0.10 USD/giờ mỗi cụm (~$4.80 USD/ngày cho 2 cụm EKS). Cần theo dõi chặt chẽ ngân sách $50.00 USD.
-- **Cảnh báo Phiên Bản EKS:** **BẮT BUỘC DÙNG EKS 1.31** (hoặc 1.32). Phiên bản EKS 1.30 đã kết thúc hỗ trợ tiêu chuẩn (End of Standard Support) từ tháng 11/2025, AWS sẽ tính thêm phí mở rộng hỗ trợ (Extended Support Fee: $0.60/giờ).
+- **Phiên bản:** Baseline/evidence dự án là **1.37**. Trước khi tạo mới, kiểm tra EKS Console hỗ trợ version này tại Singapore và tương thích add-ons/AMI. Không tự chọn phiên bản mới nhất hoặc upgrade cluster hiện có để khớp tài liệu; không tạo lại cluster đã có.
 - **Cảnh báo Subnet Selection:** Khi chọn Subnets cho cụm EKS, **CHỈ CHỌN 2 SUBNET PRIVATE NODE** (`fabric-*-nodes-1a` và `fabric-*-nodes-1b`). Tuyệt đối không chọn Subnet TGW hoặc Subnet Public để tránh việc AWS đặt các giao diện mạng quản trị (ENIs) của cluster vào sai phân vùng.
 
 ---
@@ -73,14 +73,14 @@ Các hành động IAM cần thiết để thực thi bài lab này:
 
 ---
 
-### Bước 2: Khởi Tạo Cụm `fabric-edge-eks` (EKS 1.31) Trên Edge VPC
+### Bước 2: Khởi Tạo Cụm `fabric-edge-eks` (EKS 1.37) Trên Edge VPC
 1. Trên thanh tìm kiếm AWS Console, nhập `EKS` và chọn dịch vụ **Amazon EKS**.
 2. Đảm bảo góc trên bên phải hiển thị vùng **Singapore `ap-southeast-1`**.
 3. Tại menu bên trái, chọn **Clusters** -> Nhấp nút **Add cluster** -> Chọn **Create**.
 
 4. **Step 1 — Configure cluster:**
    - **Name:** Nhập `fabric-edge-eks`.
-   - **Kubernetes version:** Chọn **1.31**.
+   - **Kubernetes version:** Chọn **1.37**, kiểm tra prerequisite phiên bản phía trên.
    - **Cluster service role:** Chọn `fabric-eks-cluster-role`.
    - **Cluster access:** Chọn **EKS API and ConfigMap** (hoặc EKS API).
    - **Secrets encryption:**
@@ -97,7 +97,7 @@ Các hành động IAM cần thiết để thực thi bài lab này:
      - *(Bỏ chọn toàn bộ các subnet public, vpce, và tgw)*.
    - **Security groups:** Để AWS tạo Cluster Security Group mặc định.
    - **Cluster endpoint access:**
-     - Chọn **Public and private** (Private access cho phép worker nodes giao tiếp qua VPC Endpoints; Public access cho phép máy quản trị kết nối `kubectl`).
+     - Chọn **Public and private**: nodes dùng private Kubernetes API endpoint; public endpoint dành máy quản trị qua allowlist. Interface endpoint `eks` chỉ phục vụ AWS EKS management API, không thay thế Kubernetes API private endpoint.
      - *Nâng cao an ninh:* Tại ô **Advanced settings**, nhập địa chỉ Public IP của máy trạm bạn vào **Source allowlist** (ví dụ: `203.0.113.50/32`) để chặn toàn bộ thế giới quét cổng API EKS.
    - Nhấp **Next**.
 
@@ -119,17 +119,17 @@ Các hành động IAM cần thiết để thực thi bài lab này:
    - Nhấp **Next** -> Nhấp **Next** (Cấu hình add-on mặc định).
 
 8. **Step 5 — Review and create:**
-   - Kiểm tra lại toàn bộ cấu hình: Name `fabric-edge-eks`, Version `1.31`, Subnets `fabric-edge-nodes-1a/b`, KMS Key `alias/fabric-edge-eks-secrets`.
+   - Kiểm tra Name `fabric-edge-eks`, Version `1.37`, Subnets `fabric-edge-nodes-1a/b`, KMS Key `alias/fabric-edge-eks-secrets`, public CIDR là IP quản trị `/32`, không `0.0.0.0/0`. Đây là cấu hình dự kiến, không xác nhận live đã thu hẹp CIDR.
    - Nhấp nút cam **Create**.
    - Trạng thái cluster hiển thị **Creating** (Mất khoảng 10 đến 12 phút).
 
 ---
 
-### Bước 3: Khởi Tạo Cụm `fabric-core-eks` (EKS 1.31) Trên Core VPC
+### Bước 3: Khởi Tạo Cụm `fabric-core-eks` (EKS 1.37) Trên Core VPC
 Tại trang **Clusters**, nhấp lại **Add cluster** -> **Create**:
 1. **Configure cluster:**
    - **Name:** Nhập `fabric-core-eks`.
-   - **Kubernetes version:** Chọn **1.31**.
+   - **Kubernetes version:** Chọn **1.37**, kiểm tra tương thích trước tạo mới.
    - **Cluster service role:** Chọn `fabric-eks-cluster-role`.
    - **Secrets encryption:** Enable -> Chọn `alias/fabric-core-eks-secrets`.
    - Nhấp **Next**.

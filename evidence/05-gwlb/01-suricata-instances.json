@@ -1,0 +1,71 @@
+{
+  "timestamp": "2026-11-08T02:14:00+07:00",
+  "region": "ap-southeast-1",
+  "module": "05-gwlb-suricata-ids-ips",
+  "lab": "05.01-suricata-ec2-instances",
+  "instances": [
+    {
+      "name": "fabric-suricata-1a",
+      "instance_id": "i-089127472b112deff",
+      "state": "running",
+      "instance_lifecycle": "spot",
+      "spot_request_id": "sir-p9vfmt6k",
+      "instance_type": "c6i.large",
+      "availability_zone": "ap-southeast-1a",
+      "subnet_id": "subnet-0b743a1b6492b62ce",
+      "vpc_id": "vpc-0c94a30a1a915fc0f",
+      "private_ip": "10.70.10.161",
+      "public_ip": "56.10.185.216",
+      "source_dest_check": false,
+      "security_groups": ["sg-0c7491f668b508231"],
+      "iam_instance_profile": "arn:aws:iam::123456789012:instance-profile/fabric-ssm-instance-profile",
+      "ami_id": "ami-0403d346e3210afd6",
+      "os": "Ubuntu Server 24.04 LTS amd64"
+    },
+    {
+      "name": "fabric-suricata-1b",
+      "instance_id": "i-091e84ae2b923eea2",
+      "state": "running",
+      "instance_lifecycle": "spot",
+      "spot_request_id": "sir-2387mdfh",
+      "instance_type": "c6i.large",
+      "availability_zone": "ap-southeast-1b",
+      "subnet_id": "subnet-00621165b37f9a04e",
+      "vpc_id": "vpc-0c94a30a1a915fc0f",
+      "private_ip": "10.70.11.137",
+      "public_ip": "13.213.60.61",
+      "source_dest_check": false,
+      "security_groups": ["sg-0c7491f668b508231"],
+      "iam_instance_profile": "arn:aws:iam::123456789012:instance-profile/fabric-ssm-instance-profile",
+      "ami_id": "ami-0403d346e3210afd6",
+      "os": "Ubuntu Server 24.04 LTS amd64"
+    }
+  ],
+  "verification": {
+    "ssm_ping_status": {
+      "i-089127472b112deff": "Online",
+      "i-091e84ae2b923eea2": "Online"
+    },
+    "services_status": {
+      "fabric-suricata": "active (running)",
+      "gwlb-handler": "active (running)"
+    },
+    "open_ports": [
+      {
+        "protocol": "udp",
+        "port": 6081,
+        "process": "gwlbtun",
+        "purpose": "GENEVE encapsulation handler"
+      },
+      {
+        "protocol": "tcp",
+        "port": 80,
+        "process": "gwlbtun",
+        "purpose": "GWLB HTTP health check endpoint"
+      }
+    ],
+    "health_check_response": "HTTP/1.1 200 OK (UDP receiver threads Healthy)",
+    "iptables_forward": "NFQUEUE num 0 on gwi+ interfaces"
+  }
+}
+

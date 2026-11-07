@@ -52,7 +52,7 @@ checkov -d terraform/ --framework terraform --check CKV_AWS_*
 
 ### Bước 2: Quét Ảnh Container & Chặn Lỗ Hổng Nguy Hiểm với Trivy
 ```bash
-trivy image --severity HIGH,CRITICAL --ignore-unfixed <image-uri>
+trivy image --severity HIGH,CRITICAL --exit-code 1 <image-uri-ghim-digest>
 ```
 
 ### Bước 3: Tạo SBOM & Ký Số Ảnh với Cosign

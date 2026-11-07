@@ -1,0 +1,50 @@
+{
+  "Timestamp": "2026-11-08T03:51:48Z",
+  "Region": "ap-southeast-1",
+  "PromotionType": "Automated GitOps Immutable Digest Lock",
+  "BotActor": "github-actions[bot]",
+  "LoopGuard": {
+    "Status": "ACTIVE",
+    "Mechanisms": [
+      "Path Filtering: paths-ignore on ['k8s/**', 'docs/**', 'evidence/**', '**.md']",
+      "Job Guard: if github.actor != 'github-actions[bot]' && !contains('[skip ci]')",
+      "Commit Flag: [skip ci] appended to promotion commit messages",
+      "Concurrency: cancel-in-progress on workflow ref"
+    ]
+  },
+  "Promotions": [
+    {
+      "Service": "core-service",
+      "TargetCluster": "fabric-core-eks",
+      "TargetVPC": "Core VPC (10.50.0.0/16)",
+      "ManifestPath": "k8s/core/deployment.yaml",
+      "Branch": "gitops/promote-core-service",
+      "CommitSHA": "506fe5fbf340d15f2baa9cf113f018f7320cef9f",
+      "ECRImageURI": "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/fabric-core-service",
+      "ImmutableDigest": "sha256:fa38d8073ebbe9f17f21f2b0089dd5dc7e8ee88c541860d255031ed5301c7e60",
+      "TrivyScanStatus": "PASSED (0 Critical, 0 High)",
+      "RuntimePodImageID": "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/fabric-core-service@sha256:fa38d8073ebbe9f17f21f2b0089dd5dc7e8ee88c541860d255031ed5301c7e60",
+      "Status": "PROMOTED_AND_SYNCED"
+    },
+    {
+      "Service": "edge-frontend",
+      "TargetCluster": "fabric-edge-eks",
+      "TargetVPC": "Edge VPC (10.40.0.0/16)",
+      "ManifestPath": "k8s/edge/deployment.yaml",
+      "Branch": "gitops/promote-edge-frontend",
+      "CommitSHA": "2aa5ddb705eaac4294702d33e7167dfc29e0158c",
+      "ECRImageURI": "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/fabric-edge-frontend",
+      "ImmutableDigest": "sha256:aa90588851dca4af1ca6a3c0af72525ab9a3c5ad091f391ec7d4672e63020c07",
+      "TrivyScanStatus": "PASSED (0 Critical, 0 High)",
+      "RuntimePodImageID": "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/fabric-edge-frontend@sha256:aa90588851dca4af1ca6a3c0af72525ab9a3c5ad091f391ec7d4672e63020c07",
+      "Status": "PROMOTED_AND_SYNCED"
+    }
+  ],
+  "VerificationSummary": {
+    "TotalServices": 2,
+    "LockedWithDigest": 2,
+    "MutableTagsRemaining": 0,
+    "InfiniteLoopsDetected": 0
+  }
+}
+

@@ -1,7 +1,7 @@
 # 04.01 — Khởi Tạo Aurora PostgreSQL & ElastiCache Redis Tại Core Data Subnets
 
 > **Mã bài lab:** `04.01`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `DRAFT`  
 > **Thời gian dự kiến:** 40 phút  
 > **Chi phí ước tính:** ~$0.12 USD / giờ (Aurora Serverless v2 0.5 ACU + Redis cache)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore) — Subnets: `10.50.20.0/24`, `10.50.21.0/24`  
@@ -33,9 +33,16 @@ Các hành động IAM cần thiết để thực thi bài lab này:
         "rds:DeleteDBCluster",
         "rds:DeleteDBInstance",
         "elasticache:CreateCacheSubnetGroup",
-        "elasticache:CreateServerlessCache",
-        "elasticache:DescribeServerlessCaches",
-        "elasticache:DeleteServerlessCache",
+        "elasticache:CreateReplicationGroup",
+        "elasticache:DescribeReplicationGroups",
+        "elasticache:DescribeCacheClusters",
+        "elasticache:DeleteReplicationGroup",
+        "ec2:CreateSecurityGroup",
+        "ec2:AuthorizeSecurityGroupIngress",
+        "sqs:CreateQueue",
+        "sqs:GetQueueAttributes",
+        "sqs:TagQueue",
+        "secretsmanager:CreateSecret",
         "secretsmanager:GetSecretValue",
         "secretsmanager:DescribeSecret"
       ],
@@ -147,12 +154,32 @@ Tại **ElastiCache Console** -> Chọn **Valkey / Redis caches** -> Nhấp **Cr
 2. **Cluster info:**
    - **Name:** Nhập `fabric-core-redis`.
    - **Node type:** Chọn `cache.t4g.micro` (Tối ưu chi phí).
-   - **Number of replicas:** `1` (Đặt tại AZ còn lại).
+   - **Number of replicas:** `1` (Đặt tại AZ còn lại); bật **Multi-AZ / automatic failover**.
 3. **Connectivity:**
    - **Location:** Chọn **Amazon VPC**.
    - **Subnet group:** Chọn `fabric-core-redis-subnet-group`.
    - **Security groups:** Chọn `fabric-core-data-sg`.
-4. Nhấp **Create**.
+4. Security → bật **Encryption at rest**, **Encryption in transit**; chọn Redis AUTH hoặc RBAC phù hợp client. Lưu credential vào Secrets Manager, không ghi vào Git/evidence. Client dùng `rediss://` và kiểm tra chứng chỉ.
+5. Nhấp **Create**. Ghi **Primary endpoint** từ replication group; không coi field `CacheClusters[0].Endpoint` là endpoint cluster-mode-disabled.
+
+### Bước 5: Tạo SQS và DLQ trên Console
+
+1. SQS → Queues → Create queue → **Standard**, tên `fabric-order-events-dlq`. Encryption: bật SSE-SQS; Message retention 14 ngày → Create.
+2. Create queue → Standard → tên `fabric-order-events`; bật SSE-SQS. Visibility timeout phải lớn hơn thời gian xử lý tối đa của worker (ban đầu 120 giây, điều chỉnh theo contract ứng dụng); long polling 20 giây.
+3. Dead-letter queue → Enabled → chọn `fabric-order-events-dlq`, maximum receives 5 → Create. DLQ → Redrive allow policy → By queue → chỉ cho queue nguồn vừa tạo.
+4. Sao chép **Queue URL**, **Queue ARN**, **DLQ ARN**; tag cả hai `Project=aws-eks-secure-network-fabric`. Queue policy không mở public. Worker phải idempotent vì Standard queue giao ít nhất một lần; chỉ DeleteMessage sau commit xử lý thành công.
+
+### Bước 6: Quyền workload và secret — hoàn tất trước 04.04
+
+1. IAM → Roles → Create role → custom trust `pods.eks.amazonaws.com` với `sts:AssumeRole` và `sts:TagSession` như 03.04; tạo role riêng Order, Inventory, Payment.
+2. IAM → Policies → Create policy → JSON: Order chỉ `sqs:SendMessage`, `sqs:GetQueueAttributes` trên ARN queue nguồn; Payment chỉ `sqs:ReceiveMessage`, `sqs:DeleteMessage`, `sqs:ChangeMessageVisibility`, `sqs:GetQueueAttributes` trên queue nguồn. Inventory không được quyền SQS nếu contract không cần.
+3. Secret access: chỉ `secretsmanager:GetSecretValue` trên ARN secret ứng dụng tương ứng; `kms:Decrypt` chỉ key mã hóa secret nếu dùng CMK và key policy cho phép. Không dùng master DB user cho app.
+4. EKS Core → Access → Pod Identity associations → Create: namespace `fabric-apps`, ServiceAccount `order-service`, `inventory-service`, `payment-worker` → role tương ứng. Manifest app phải tạo các ServiceAccount cùng tên và SDK hỗ trợ Pod Identity.
+5. Từ admin pod/job chạy trong Core có quyền mạng DB, kết nối endpoint Aurora trực tiếp với TLS `verify-full` và RDS CA bundle; tạo database/schema, user app có quyền tối thiểu, migration có phiên bản. Không mở SG DB cho máy quản trị Internet. Dừng nếu repo app chưa có migration/command; không tự đặt schema.
+6. Secrets Manager → Store a new secret → lưu DB user app và cache credential theo schema cấu hình app; chọn KMS key và tag dự án. App đọc secret bằng AWS SDK lúc khởi động, không in giá trị. Phương án này cần endpoint `secretsmanager` trong Core: VPC → Endpoints → Create → AWS services → `com.amazonaws.ap-southeast-1.secretsmanager` → Core VPC → hai VPCE subnet → bật Private DNS → SG 443 từ Core → Create.
+7. Config không nhạy cảm gồm DB endpoint/port, Redis endpoint, Queue URL và Region đưa vào ConfigMap; secret ARN đưa vào cấu hình riêng. App phải reconnect/retry có backoff và reload credential khi rotation; kiểm thử trước khi bật tự động rotation cho user app.
+
+> Master secret do RDS quản lý chỉ phục vụ bootstrap quản trị. Phần IAM đầu bài là danh sách thao tác cho người triển khai, không phải policy gán nguyên khối cho workload. Aurora writer + reader và Redis primary + replica đều có phí; giá minh họa đầu bài không phải tổng chi phí HA. Xem Pricing Calculator Singapore trước Create.
 
 ---
 
@@ -172,10 +199,10 @@ aws secretsmanager list-secrets --region ap-southeast-1 \
   --query 'SecretList[*].{Name:Name,ARN:ARN}' \
   --output table
 
-# 3. Kiểm tra trạng thái ElastiCache Redis Cluster
-aws elasticache describe-cache-clusters --region ap-southeast-1 \
-  --cache-cluster-id fabric-core-redis-001 \
-  --query 'CacheClusters[0].{Id:CacheClusterId,Status:CacheClusterStatus,NodeType:CacheNodeType,Endpoint:Endpoint.Address}' \
+# 3. Endpoint và các cờ bảo mật Redis replication group
+aws elasticache describe-replication-groups --region ap-southeast-1 \
+  --replication-group-id fabric-core-redis \
+  --query 'ReplicationGroups[0].{Id:ReplicationGroupId,Status:Status,Endpoint:NodeGroups[0].PrimaryEndpoint,Transit:TransitEncryptionEnabled,AtRest:AtRestEncryptionEnabled,Failover:AutomaticFailover}' \
   --output table
 ```
 
@@ -185,15 +212,20 @@ aws elasticache describe-cache-clusters --region ap-southeast-1 \
 
 Xóa cụm Aurora PostgreSQL và ElastiCache khi hoàn tất bài lab:
 ```bash
-# Xóa Aurora DB Cluster (Bỏ qua Final Snapshot)
+# Chỉ sau khi đã cho phép mất dữ liệu lab: xóa từng reader/writer instance trước,
+# chờ instance biến mất rồi mới xóa cluster. Production phải có snapshot/backup.
+# Xóa Aurora DB Cluster (Bỏ qua Final Snapshot chỉ cho dữ liệu lab bỏ được)
 aws rds delete-db-cluster --region ap-southeast-1 \
   --db-cluster-identifier fabric-core-db \
   --skip-final-snapshot
 
-# Xóa ElastiCache Cluster
-aws elasticache delete-cache-cluster --region ap-southeast-1 \
-  --cache-cluster-id fabric-core-redis-001
+# Xóa replication group provisioned, không xóa riêng member của group.
+# Quyết định final snapshot trước khi chạy; dữ liệu lab bỏ được mới bỏ snapshot.
+aws elasticache delete-replication-group --region ap-southeast-1 \
+  --replication-group-id fabric-core-redis
 ```
+
+Nếu cần giữ Redis backup, thêm `--final-snapshot-identifier <tên-snapshot-duy-nhất>`. Nếu lỗi giữa chừng: dừng writers, ghi resource IDs đã tạo, chỉ xóa tài nguyên của lần chạy sau khi quyết định giữ dữ liệu. IAM → Pod Identity associations/policies, Secrets Manager, SQS queue/DLQ và subnet/SG groups phải đối chiếu ownership, xử lý theo 12.01; không xóa role/secret dùng chung.
 
 ---
 

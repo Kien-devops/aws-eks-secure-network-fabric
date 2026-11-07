@@ -1,0 +1,58 @@
+{
+  "Certificate": {
+    "CertificateArn": "arn:aws:acm:ap-southeast-1:123456789012:certificate/0907f419-dd72-4b90-89af-e2bf7ce67391",
+    "DomainName": "app3.devopsss.site",
+    "SubjectAlternativeNames": [
+      "app3.devopsss.site",
+      "*.devopsss.site",
+      "devopsss.site"
+    ],
+    "DomainValidationOptions": [
+      {
+        "DomainName": "app3.devopsss.site",
+        "ValidationDomain": "app3.devopsss.site",
+        "ValidationStatus": "SUCCESS",
+        "ResourceRecord": {
+          "Name": "_676f0dca51b603dc162d0a6d8fb4914a.app3.devopsss.site.",
+          "Type": "CNAME",
+          "Value": "_16d92f33573b0816a94a8c76e2e4a630.wzccmgtwzk.acm-validations.aws."
+        },
+        "ValidationMethod": "DNS"
+      },
+      {
+        "DomainName": "*.devopsss.site",
+        "ValidationDomain": "*.devopsss.site",
+        "ValidationStatus": "SUCCESS",
+        "ResourceRecord": {
+          "Name": "_f139e0a1ff98631c8f03aaa2669ddc0c.devopsss.site.",
+          "Type": "CNAME",
+          "Value": "_01e2e596cb56adfb27888575d5ad12f7.wzccmgtwzk.acm-validations.aws."
+        },
+        "ValidationMethod": "DNS"
+      },
+      {
+        "DomainName": "devopsss.site",
+        "ValidationDomain": "devopsss.site",
+        "ValidationStatus": "SUCCESS",
+        "ResourceRecord": {
+          "Name": "_f139e0a1ff98631c8f03aaa2669ddc0c.devopsss.site.",
+          "Type": "CNAME",
+          "Value": "_01e2e596cb56adfb27888575d5ad12f7.wzccmgtwzk.acm-validations.aws."
+        },
+        "ValidationMethod": "DNS"
+      }
+    ],
+    "Serial": "40:a6:88:84:0e:5f:4f:41:de:80:87:b0:bb:49:65:2f",
+    "Subject": "CN=app3.devopsss.site",
+    "Issuer": "Amazon",
+    "Status": "ISSUED",
+    "KeyAlgorithm": "RSA-2048",
+    "SignatureAlgorithm": "SHA256WITHRSA",
+    "InUseBy": [
+      "arn:aws:elasticloadbalancing:ap-southeast-1:123456789012:loadbalancer/app/fabric-edge-public-alb/61108d1397d1c55c"
+    ],
+    "Type": "AMAZON_ISSUED",
+    "RenewalEligibility": "ELIGIBLE"
+  }
+}
+

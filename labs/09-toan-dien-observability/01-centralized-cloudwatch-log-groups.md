@@ -1,7 +1,7 @@
 # 09.01 — Khởi Tạo & Quản Trị Hệ Thống CloudWatch Log Groups Tập Trung
 
 > **Mã bài lab:** `09.01`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 30 phút  
 > **Chi phí ước tính:** ~$0.20 USD (Lưu trữ và ingestion CloudWatch Logs)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -220,7 +220,7 @@ Lưu kết quả xác minh vào thư mục bằng chứng chuẩn hóa của d�
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Tạo thành công 8 Log Groups với đúng cú pháp đặt tên quy chuẩn `fabric-*`.
-- [ ] 100% Log Groups được cấu hình Retention Period chính xác là `7 days (1 week)`.
-- [ ] Áp dụng đầy đủ thẻ Tag (`Project`, `Environment`, `Module`) trên toàn bộ tài nguyên.
-- [ ] Lệnh kiểm tra CLI trả về danh sách 8 Log Groups với `RetentionInDays = 7`.
+- [x] Tạo thành công 8 Log Groups với đúng cú pháp đặt tên quy chuẩn `fabric-*`.
+- [x] 100% Log Groups được cấu hình Retention Period chính xác là `7 days (1 week)`.
+- [x] Áp dụng đầy đủ thẻ Tag (`Project`, `Environment`, `Module`) trên toàn bộ tài nguyên.
+- [x] Lệnh kiểm tra CLI trả về danh sách 8 Log Groups với `RetentionInDays = 7`.

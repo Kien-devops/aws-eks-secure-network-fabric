@@ -126,8 +126,8 @@ Dự án thiết kế dải IP riêng tư không chồng lấn trong Region Sing
 
 | Tên VPC | Dải Mạng Chính (CIDR) | Phân Bổ Subnet Chi Tiết (Tại `ap-southeast-1a` & `ap-southeast-1b`) |
 |---|---|---|
-| **VPC Edge EKS** | `10.40.0.0/16` | - Subnet Public (ALB Ingress): `10.40.0.0/24`, `10.40.1.0/24`<br>- Subnet Private Node: `10.40.8.0/22`, `10.40.12.0/22`<br>- Subnet Private Pod (Secondary CIDR): `10.40.64.0/18`<br>- Subnet VPC Endpoints: `10.40.20.0/24`, `10.40.21.0/24`<br>- Subnet TGW Attachment: `10.40.250.0/28`, `10.40.250.16/28` |
-| **VPC Core EKS** | `10.50.0.0/16` | - Subnet Private Node: `10.50.8.0/22`, `10.50.12.0/22`<br>- Subnet Private Pod (Secondary CIDR): `10.50.64.0/18`<br>- Subnet Dữ liệu (Aurora/Redis): `10.50.20.0/24`, `10.50.21.0/24`<br>- Subnet VPC Endpoints: `10.50.30.0/24`, `10.50.31.0/24`<br>- Subnet TGW Attachment: `10.50.250.0/28`, `10.50.250.16/28` |
+| **VPC Edge EKS** | `10.40.0.0/16` | - Subnet Public (ALB Ingress): `10.40.0.0/24`, `10.40.1.0/24`<br>- Subnet Private Node: `10.40.8.0/22`, `10.40.12.0/22`<br>- Dải dự phòng chưa dùng: `10.40.64.0/18` (nằm trong primary CIDR)<br>- Subnet VPC Endpoints: `10.40.20.0/24`, `10.40.21.0/24`<br>- Subnet TGW Attachment: `10.40.250.0/28`, `10.40.250.16/28` |
+| **VPC Core EKS** | `10.50.0.0/16` | - Subnet Private Node: `10.50.8.0/22`, `10.50.12.0/22`<br>- Dải dự phòng chưa dùng: `10.50.64.0/18` (nằm trong primary CIDR)<br>- Subnet Dữ liệu (Aurora/Redis): `10.50.20.0/24`, `10.50.21.0/24`<br>- Subnet VPC Endpoints: `10.50.30.0/24`, `10.50.31.0/24`<br>- Subnet TGW Attachment: `10.50.250.0/28`, `10.50.250.16/28` |
 | **VPC Kiểm Tra (Inspection)** | `10.70.0.0/16` | - Subnet TGW Attachment: `10.70.0.0/28`, `10.70.0.16/28`<br>- Subnet GWLB Endpoint (GWLBe): `10.70.1.0/28`, `10.70.1.16/28`<br>- Subnet Máy chủ Tường lửa Suricata: `10.70.10.0/24`, `10.70.11.0/24` |
 | **VPC Cổng Ra (Egress)** | `10.80.0.0/16` | - Subnet TGW Attachment: `10.80.0.0/28`, `10.80.0.16/28`<br>- Subnet Điểm cuối Network Firewall: `10.80.1.0/28`, `10.80.1.16/28`<br>- Subnet Public (NAT Gateway & IGW): `10.80.10.0/24`, `10.80.11.0/24` |
 
@@ -138,7 +138,7 @@ Dự án thiết kế dải IP riêng tư không chồng lấn trong Region Sing
 Tận dụng toàn bộ các dịch vụ microservices từ `app3`, phân bổ khoa học giữa 2 cụm Kubernetes EKS hoàn toàn riêng tư trong Region Singapore:
 
 ### Cụm Edge EKS (Biên tiếp nhận kết nối công khai)
-- **`frontend`**: Nhận yêu cầu từ người dùng Internet thông qua ALB Ingress và AWS WAF. Gọi xác thực nội bộ tới `auth-service` hoặc gọi backend Core qua tên miền nội bộ bảo mật `https://core.internal.fabric`.
+- **`frontend`**: Nhận yêu cầu từ người dùng Internet thông qua ALB Ingress và AWS WAF. Gọi xác thực nội bộ tới `auth-service` hoặc gọi backend Core qua tên miền nội bộ bảo mật `https://core.fabric.internal`.
 - **`auth-service`**: Quản lý phiên đăng nhập, tạo và xác thực tính hợp lệ của JWT token.
 
 ### Cụm Core EKS (Khu vực xử lý dữ liệu nghiệp vụ quan trọng)
@@ -148,15 +148,17 @@ Tận dụng toàn bộ các dịch vụ microservices từ `app3`, phân bổ k
 
 ---
 
-## 6. Lộ Trình Triển Khai 12 Giai Đoạn (Phases 0 - 12)
+## 6. Lộ Trình Triển Khai 13 Giai Đoạn (Phases 0 - 12)
+
+Đây là nhóm chức năng, không phải thứ tự chạy tuyến tính. Theo dependency/gates tại `labs/README.md`; app source/manifests, Terraform và pipelines hiện chưa có. EKS nodes private; baseline lab dùng API public+private với public allowlist quản trị, chưa phải private-only API. Suricata giải đóng gói GENEVE, **không giải mã TLS**; payload IPS thử bằng probe plaintext riêng.
 
 | Giai Đoạn | Tên Giai Đoạn | Mục Tiêu & Kết Quả Bàn Giao Cụ Thể (Deliverables) |
 |---|---|---|
-| **Giai đoạn 0** | **Kiểm Kê Tài Nguyên (Inventory)** | Sử dụng lệnh chỉ đọc (read-only) qua AWS MCP (`aws-api-mcp/call_aws`) kiểm kê tài nguyên trên Region Singapore (`ap-southeast-1`); xác nhận môi trường sạch không trùng lặp dải mạng. |
+| **Giai đoạn 0** | **Kiểm Kê Tài Nguyên (Inventory)** | Kiểm kê chỉ đọc qua Console hoặc `aws-mcp` tại Singapore; đối chiếu ownership và CIDR, giữ tài nguyên ngoài dự án. |
 | **Giai đoạn 1** | **Thiết Kế & Mô Hình Đe Dọa (Design & Threat Model)** | Hoàn thiện tài liệu phân tích rủi ro STRIDE, lập ma trận định tuyến TGW, xây dựng bảng hop-by-hop packet flow và ranh giới kiểm soát chi phí (Cost Boundary $50). |
-| **Giai đoạn 2** | **Thiết Lập Hạ Tầng Mạng Cơ Bản (Foundation)** | Triển khai mã Terraform cho 4 VPCs, chia subnets theo 2 AZs tại Singapore, khởi tạo Transit Gateway, tắt default propagation, cấu hình route tables và kích hoạt VPC Flow Logs. |
-| **Giai đoạn 3** | **Cụm Kubernetes EKS Kép (Dual EKS)** | Triển khai 2 cụm EKS hoàn toàn riêng tư (`edge-eks` và `core-eks`) tại `ap-southeast-1`, cấu hình EKS Pod Identity, mã hóa Secrets bằng khóa KMS chuyên biệt, cài đặt Argo CD và NetworkPolicy. |
-| **Giai đoạn 4** | **Triển Khai Ứng Dụng (Workloads)** | Đưa các container microservices từ repo app lên 2 cụm; thiết lập Route 53 Private Hosted Zone (`internal.fabric`), chứng chỉ số TLS nội bộ và Internal NLB cho Core Ingress. |
+| **Giai đoạn 2** | **Thiết Lập Hạ Tầng Mạng Cơ Bản (Foundation)** | Walkthrough Console 4 VPCs, subnets hai AZ, TGW không default propagation, routes và Flow Logs; Terraform là artifact tương lai cần triển khai riêng. |
+| **Giai đoạn 3** | **Cụm Kubernetes EKS Kép (Dual EKS)** | `fabric-edge-eks` và `fabric-core-eks`, nodes private, API public+private có allowlist, Pod Identity/KMS/add-ons; policy enforcement cần kiểm chứng, Argo CD bootstrap ở 04.04. |
+| **Giai đoạn 4** | **Triển Khai Ứng Dụng (Workloads)** | Sau artifact gate: deploy hai cụm, private zone `fabric.internal`, alias `core.fabric.internal`, CA nội bộ và NLB TCP 443 → backend TLS 8082; không dùng CNAME DB/Redis để verify hostname chứng chỉ AWS. |
 | **Giai đoạn 5** | **Cụm Kiểm Tra GWLB & Suricata IDS/IPS** | Triển khai Gateway Load Balancer, các điểm cuối GWLBe tại VPC Inspection, dựng 2 máy chủ ảo Suricata EC2 hỗ trợ giao thức GENEVE; kiểm tra luồng định tuyến đối xứng. |
 | **Giai đoạn 6** | **Tường Lửa Ra Ngoài Tập Trung (Centralized Egress)** | Khởi tạo AWS Network Firewall tại VPC Egress, cấu hình bộ quy tắc Suricata stateful rules, triển khai cụm NAT Gateway riêng theo từng AZ; thiết lập danh sách tên miền cho phép đi ra Internet. |
 | **Giai đoạn 7** | **Cổng Vào Biên & Tường Lửa Ứng Dụng (Ingress & WAF)** | Cấu hình Route 53 công khai, cấp phát chứng chỉ ACM, tạo Application Load Balancer công khai và gắn AWS WAF v2 (chế độ Count sau đó chuyển sang Block), thu thập log truy cập WAF. |
@@ -164,7 +166,7 @@ Tận dụng toàn bộ các dịch vụ microservices từ `app3`, phân bổ k
 | **Giai đoạn 9** | **Hệ Thống Quan Sát Toàn Diện (Observability)** | Tập trung hóa VPC Flow Logs, nhật ký TGW Logs, cảnh báo AWS Network Firewall, nhật ký sự kiện Suricata `eve.json` và ALB access logs; kiểm thử luồng truyền thông qua VPC Reachability Analyzer. |
 | **Giai đoạn 10** | **Kịch Bản Diễn Tập Sự Cố Mạng (GameDay Scenarios)** | Tiến hành các kịch bản phá vỡ thực tế: Làm rò rỉ tuyến đường (route leak), tạo bất đối xứng luồng gói tin, tắt cưỡng bức 1 node Suricata, kiểm tra tường lửa drop gói tin độc hại, mô phỏng lỗi đường về từ NAT. |
 | **Giai đoạn 11** | **Báo Cáo Bằng Chứng & Sự Cố (Evidence & Incident Report)** | Thu thập dữ liệu log thực tế kèm dấu thời gian (timestamp), sơ đồ đường đi gói tin thực tế, lập báo cáo phân tích sau sự cố (post-mortem) và tổng hợp bảng chi phí tiêu hao trong quá trình thực nghiệm. |
-| **Giai đoạn 12** | **Dọn Dẹp Hạ Tầng Triệt Để (Cleanup)** | Thực hiện quy trình hủy tài nguyên theo thứ tự phụ thuộc ngược (Reverse Cleanup Dependency Order); dùng công cụ kiểm kê tự động xác nhận tài nguyên tính phí đã trở về đúng mức **$0.00**. |
+| **Giai đoạn 12** | **Dọn Dẹp Hạ Tầng (Cleanup)** | Reverse teardown theo ownership; kiểm kê storage/backups/logs/secrets/KMS còn giữ và đối soát billing có độ trễ, không bảo đảm hóa đơn $0. |
 
 ---
 
@@ -174,11 +176,11 @@ Tất cả tiêu chí đánh giá bắt buộc phải có **bằng chứng chạ
 
 1. **Kiểm tra luồng Đông - Tây:** Ứng dụng `frontend` (tại Edge) gọi thành công tới `order-service` (tại Core) qua cổng `443` thông qua điểm cuối GWLBe và máy chủ Suricata.
 2. **Khả năng ngăn chặn của Suricata:** Gói tin thử nghiệm gửi tới cổng trái phép hoặc mang chữ ký tấn công giả lập bị Suricata drop ngay lập tức và xuất hiện cảnh báo trong `eve.json`.
-3. **Hiệu quả phân đoạn mạng:** Máy chủ thử nghiệm tại phân vùng Dev không thể kết nối tới bất kỳ địa chỉ IP nào của phân vùng Prod nhờ cơ chế định tuyến TGW Blackhole.
+3. **Mở rộng tùy chọn ngoài MVP:** Dev blackhole cần VPC/attachment thứ năm và test riêng; không yêu cầu tạo thêm trong MVP bốn VPC, không ghi PASS khi chưa triển khai.
 4. **Kiểm soát tên miền ra ngoài:** Các Pod trong cụm Core EKS truy cập thành công các tên miền nằm trong danh sách cho phép (ví dụ `quay.io`, `github.com`) thông qua AWS Network Firewall.
 5. **Chặn lưu lượng ra ngoài trái phép:** Kết nối tới các địa chỉ IP hoặc tên miền không nằm trong danh mục bị AWS Network Firewall chặn đứng và ghi nhận trong nhật ký `DROP`/`ALERT`.
 6. **Xác nhận định tuyến đối xứng:** Bằng chứng bắt gói tin (`tcpdump`) trên máy chủ Suricata chứng minh toàn bộ gói tin yêu cầu và phản hồi đều đi qua cùng một máy chủ trong cùng một AZ (`ap-southeast-1a` hoặc `ap-southeast-1b`).
-7. **Khả năng tự phục hồi của cụm tường lửa:** Tắt hoặc cô lập 1 máy chủ Suricata, Gateway Load Balancer tự động loại bỏ mục tiêu lỗi ra khỏi nhóm trong vài giây, các kết nối mạng duy trì liên tục qua máy chủ còn lại.
+7. **Khả năng phục hồi của cụm tường lửa:** Stop một appliance, đo health transition và kết nối mới qua target healthy còn lại với cross-zone; ghi ảnh hưởng phiên cũ theo no_rebalance, không cam kết liên tục hoặc vài giây.
 8. **Kiểm chứng khả năng tiếp cận mạng:** Sử dụng công cụ AWS VPC Reachability Analyzer phân tích thành công đường dẫn kết nối và phát hiện chính xác khi cố tình tạo lỗi cấu hình Route hoặc NACL.
 9. **An toàn chuỗi cung ứng phần mềm:** 100% container images triển khai trên cụm EKS được ghim trực tiếp bằng mã băm cố định `@sha256:...`, không dùng tag nổi `:latest`, tuyệt đối không lưu static credential của AWS trong mã nguồn.
 

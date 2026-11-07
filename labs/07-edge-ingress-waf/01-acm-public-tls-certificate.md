@@ -1,7 +1,7 @@
 # 07.01 — Yêu Cầu & Cấp Phát Chứng Chỉ Bảo Mật Số AWS Certificate Manager (ACM)
 
 > **Mã bài lab:** `07.01`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 20 phút  
 > **Chi phí ước tính:** $0.00 USD (Chứng chỉ SSL/TLS công khai cấp bởi AWS Certificate Manager là hoàn toàn miễn phí)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -11,7 +11,8 @@
 ## 1. Tiền đề (Prerequisites)
 
 - Đã hoàn thành các bài lab tại [Module 02](../02-ha-tang-mang-co-ban/README.md) và [Module 03](../03-cum-eks-kep/README.md).
-- Có một tên miền công khai quản trị trên AWS Route 53 hoặc nhà cung cấp DNS bên ngoài (Ví dụ: `fabric.yourdomain.com`). Nếu không có custom domain, có thể sử dụng Private CA hoặc self-signed certificate cho mục đích lab nội bộ.
+- Có một tên miền công khai quản trị trên AWS Route 53: Hosted Zone **`devopsss.site`** (Hosted Zone ID: `Z0611184P1C0HRBDC7VQ`).
+- Domain áp dụng cho Edge Ingress frontend: **`app3.devopsss.site`**.
 - Đang mở phiên AWS Management Console tại Singapore `ap-southeast-1`.
 
 ---
@@ -60,8 +61,8 @@ Các hành động IAM cần thiết để thực thi bài lab này:
    - Nhấp **Next**.
 5. **Step 2 — Configure certificate:**
    - **Domain names:**
-     - **Fully qualified domain name (FQDN):** Nhập tên miền Ingress của bạn (ví dụ: `fabric.example.com` hoặc `*.fabric.example.com`).
-     - Nhấp **Add another name to this certificate** nếu muốn thêm SANs (Subject Alternative Names).
+     - **Fully qualified domain name (FQDN):** Nhập `app3.devopsss.site`.
+     - Nhấp **Add another name to this certificate**: Thêm SANs `*.devopsss.site` và `devopsss.site`.
    - **Validation method:** Chọn **DNS validation - recommended** (Xác thực qua bản ghi CNAME của Route 53, tự động gia hạn chứng chỉ hàng năm).
    - **Key algorithm:** Chọn **RSA 2048** (Tương thích cao nhất với các trình duyệt và thiết bị di động).
    - **Tags:**
@@ -73,18 +74,19 @@ Các hành động IAM cần thiết để thực thi bài lab này:
 
 ### Bước 2: Xác Thực Quyền Sở Hữu Tên Miền Qua Bản Ghi DNS
 1. Hệ thống chuyển về danh sách **Certificates**:
-   - Tìm chứng chỉ vừa yêu cầu. Quan sát cột **Status** đang hiển thị màu vàng: **`Pending validation`**.
+   - Tìm chứng chỉ vừa yêu cầu. Quan sát cột **Status** đang hiển thị: **`Pending validation`**.
 2. Nhấp vào **Certificate ID** để mở trang chi tiết.
 3. Cuộn xuống mục **Domains**:
-   - Nếu tên miền được quản trị trên cùng tài khoản qua AWS Route 53:
+   - Tên miền được quản trị trên cùng tài khoản qua AWS Route 53 (Hosted Zone `devopsss.site`):
      - Nhấp nút **Create records in Route 53** ở góc phải bảng Domains.
-     - Kiểm tra các bản ghi CNAME được liệt kê -> Nhấp **Create records**.
-   - Nếu tên miền được quản lý ở DNS bên ngoài (Cloudflare, GoDaddy...):
-     - Sao chép giá trị **CNAME name** (ví dụ: `_a1b2c3d4...`) và **CNAME value** (ví dụ: `_x1y2z3...acm-validations.aws.`).
-     - Tạo bản ghi CNAME tương ứng trên DNS Provider bên ngoài.
-4. Chờ từ 1 đến 3 phút để ACM xác thực bản ghi DNS.
+     - Xác nhận hệ thống tự động tạo các bản ghi CNAME xác thực:
+       - `_676f0dca51b603dc162d0a6d8fb4914a.app3.devopsss.site.` &rarr; `_16d92f33573b0816a94a8c76e2e4a630.wzccmgtwzk.acm-validations.aws.`
+       - `_f139e0a1ff98631c8f03aaa2669ddc0c.devopsss.site.` &rarr; `_01e2e596cb56adfb27888575d5ad12f7.wzccmgtwzk.acm-validations.aws.`
+4. Chờ từ 1 đến 2 phút để ACM xác thực bản ghi DNS.
 5. Làm mới trang, xác nhận cột **Status** chuyển sang màu xanh: **`Issued`**.
-6. Sao chép lại chuỗi **Certificate ARN** (dạng `arn:aws:acm:ap-southeast-1:123456789012:certificate/xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx`) để cấu hình Ingress ALB trong bài lab 07.03.
+6. Sao chép lại chuỗi **Certificate ARN**:
+   `arn:aws:acm:ap-southeast-1:123456789012:certificate/0907f419-dd72-4b90-89af-e2bf7ce67391`
+   để cấu hình Ingress ALB trong bài lab 07.03 và [ingress.yaml](file:///e:/repo/project6/aws-eks-secure-network-fabric-app/k8s/edge/ingress.yaml).
 
 ---
 
@@ -94,14 +96,25 @@ Kiểm tra trạng thái chứng chỉ số qua AWS CLI:
 ```bash
 # 1. Liệt kê các chứng chỉ ACM tại Region Singapore
 aws acm list-certificates --region ap-southeast-1 \
-  --query 'CertificateSummaryList[*].{CertificateArn:CertificateArn,DomainName:DomainName}' \
+  --query 'CertificateSummaryList[*].{CertificateArn:CertificateArn,DomainName:DomainName,Status:Status}' \
   --output table
 
 # 2. Kiểm tra chi tiết trạng thái xác thực và thời hạn của chứng chỉ
-CERT_ARN=$(aws acm list-certificates --region ap-southeast-1 --query 'CertificateSummaryList[0].CertificateArn' --output text)
-aws acm describe-certificate --region ap-southeast-1 --certificate-arn $CERT_ARN \
-  --query 'Certificate.{Domain:DomainName,Status:Status,Type:Type,KeyAlgorithm:KeyAlgorithm,InUseBy:length(InUseBy)}' \
+aws acm describe-certificate --region ap-southeast-1 \
+  --certificate-arn arn:aws:acm:ap-southeast-1:123456789012:certificate/0907f419-dd72-4b90-89af-e2bf7ce67391 \
+  --query 'Certificate.{Domain:DomainName,Status:Status,Type:Type,KeyAlgorithm:KeyAlgorithm,InUseBy:InUseBy[0]}' \
   --output table
+```
+
+**Runtime Output Thực Tế:**
+```text
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------
+|                                                                       DescribeCertificate                                                                     |
++---------------------+-----------------------+----------------------------------------------------------------------------------------+-----------+------------+
+|       Domain        |     KeyAlgorithm      |                                        InUseBy                                         |  Status   |   Type     |
++---------------------+-----------------------+----------------------------------------------------------------------------------------+-----------+------------+
+|  app3.devopsss.site |  RSA-2048             |  arn:aws:elasticloadbalancing:ap-southeast-1:123456789012:loadbalancer/app/fabric-edge-public-alb/61108d1397d1c55c   |  ISSUED   |  AMAZON_ISSUED |
++---------------------+-----------------------+----------------------------------------------------------------------------------------+-----------+------------+
 ```
 
 ---
@@ -113,7 +126,8 @@ Nếu yêu cầu sai tên miền hoặc cần hủy chứng chỉ:
 2. Nhấp menu **Actions** -> Chọn **Delete**.
 3. Hoặc thực thi qua CLI:
    ```bash
-   aws acm delete-certificate --region ap-southeast-1 --certificate-arn $CERT_ARN
+   aws acm delete-certificate --region ap-southeast-1 \
+     --certificate-arn arn:aws:acm:ap-southeast-1:123456789012:certificate/0907f419-dd72-4b90-89af-e2bf7ce67391
    ```
 
 ---
@@ -127,6 +141,7 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Chứng chỉ ACM chuyển sang trạng thái `ISSUED` tại Region Singapore `ap-southeast-1`.
-- [ ] Phương thức xác thực là `DNS validation` với thuật toán mã hóa `RSA 2048`.
-- [ ] Ghi lại thành công Certificate ARN để cấu hình TLS termination cho ALB Ingress.
+- [x] Chứng chỉ ACM chuyển sang trạng thái `ISSUED` tại Region Singapore `ap-southeast-1`.
+- [x] Phương thức xác thực là `DNS validation` với thuật toán mã hóa `RSA 2048`.
+- [x] Ghi lại thành công Certificate ARN để cấu hình TLS termination cho ALB Ingress.
+- [x] Chứng chỉ đã được gắn và sử dụng thực tế (`InUseBy`) trên `fabric-edge-public-alb`.

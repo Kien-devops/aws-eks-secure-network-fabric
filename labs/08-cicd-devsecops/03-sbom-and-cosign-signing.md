@@ -1,7 +1,7 @@
 # 08.03 — Tạo Hóa Đơn Phần Mềm (SBOM) & Ký Số Ảnh Container Bằng Cosign
 
 > **Mã bài lab:** `08.03`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `DRAFT`  
 > **Thời gian dự kiến:** 40 phút  
 > **Chi phí ước tính:** ~$1.00 USD / tháng cho AWS KMS Asymmetric Key  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -50,7 +50,7 @@ Các hành động IAM cần thiết để tạo khóa ký KMS và đẩy chữ 
 ## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
 
 - **Chi phí:** Khóa KMS Asymmetric Key tính phí $1.00 USD/tháng. Phí ký số Cosign theo số lượng request KMS (~$0.03/10,000 requests).
-- **Cảnh báo Chuỗi Cung Ứng Phần Mềm (SLSA Level 3):** Trong kiến trúc Zero Trust, các cụm EKS có thể cấu hình Kyverno hoặc OPA Gatekeeper để từ chối khởi chạy bất kỳ Pod nào mà image chưa có chữ ký số hợp lệ từ AWS KMS của tổ chức. Bắt buộc phải ký số cả image digest và đính kèm SBOM (Attestation) trước khi tạo Pull Request cập nhật manifest.
+- **Giới hạn supply chain:** Chữ ký và SBOM không đủ đạt SLSA Level 3; cần provenance và build isolation được đánh giá riêng. Kyverno/Gatekeeper admission chưa được triển khai: chữ ký hiện là gate xác minh trước promotion, chưa phải bằng chứng cluster tự chặn unsigned images.
 
 ---
 
@@ -63,7 +63,7 @@ Các hành động IAM cần thiết để tạo khóa ký KMS và đẩy chữ 
 4. **Step 1 — Configure key:**
    - Key type: Chọn **Asymmetric**.
    - Key usage: Chọn **Sign and verify**.
-   - Key spec: Chọn **RSA_2048** (hoặc `ECC_NIST_P256`).
+   - Key spec: chọn **ECC_NIST_P256**, usage SIGN_VERIFY; ghim Cosign version hỗ trợ AWS KMS.
    - Regionality: Chọn **Single-Region key**.
    - Nhấp **Next**.
 5. **Step 2 — Add labels:**
@@ -92,6 +92,7 @@ Kiểm tra cấu trúc file: Xác nhận chứa đầy đủ thông tin về cá
 ---
 
 ### Bước 3: Đăng Nhập & Đẩy Ảnh Lên Amazon ECR Bằng Digest
+Trước login: ECR → Private repositories → Create repository → `fabric-order-service` → tag immutability **Immutable** → encryption AES-256 hoặc CMK được phép → Create. Lặp cho 5 services. Tag release phải duy nhất (ưu tiên commit SHA); ví dụ `v1.0.0` chỉ dùng lần đầu, không ghi đè artifact đã scan.
 1. Đăng nhập Docker CLI vào ECR Singapore (thay `123456789012` bằng Account ID thực tế):
    ```bash
    aws ecr get-login-password --region ap-southeast-1 | docker login --username AWS --password-stdin 123456789012.dkr.ecr.ap-southeast-1.amazonaws.com
@@ -118,10 +119,12 @@ Kiểm tra cấu trúc file: Xác nhận chứa đầy đủ thông tin về cá
    
    cosign sign --key awskms:///$KMS_KEY_ARN $IMAGE_URI
    ```
-2. Đính kèm hóa đơn phần mềm (SBOM Attestation) vào ECR:
+2. Sinh lại SBOM từ **đúng digest đã push**, đối chiếu scan cùng digest: `trivy image --format cyclonedx --output sbom-order-service.json "$IMAGE_URI"`. Sau đó đính kèm SBOM Attestation vào ECR:
    ```bash
    cosign attest --predicate sbom-order-service.json --type cyclonedx --key awskms:///$KMS_KEY_ARN $IMAGE_URI
    ```
+
+Trước attest, sinh SBOM từ **đúng digest đã push**: `trivy image --format cyclonedx --output sbom-order-service.json "$IMAGE_URI"`; đối chiếu report scan cùng digest. Cosign artifacts/referrers hiển thị tùy version, không bắt buộc tag `.sig/.att`; kết quả verify là nguồn xác nhận.
 
 ---
 
@@ -142,6 +145,7 @@ Xác minh tính hợp lệ của chữ ký số bằng Cosign:
 ```bash
 # Xác thực chữ ký số bằng Public Key từ AWS KMS
 cosign verify --key awskms:///$KMS_KEY_ARN $IMAGE_URI
+cosign verify-attestation --type cyclonedx --key awskms:///$KMS_KEY_ARN $IMAGE_URI
 ```
 **Kết quả kỳ vọng:**
 `Verification for 123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/fabric-order-service@sha256:... -- OK!`
@@ -151,11 +155,9 @@ cosign verify --key awskms:///$KMS_KEY_ARN $IMAGE_URI
 
 ## 6. Kế Hoạch Khôi Phục / Rollback Plan
 
-Lên lịch xóa khóa KMS Signing nếu cấu hình sai:
-```bash
-KEY_ID=$(aws kms describe-key --region ap-southeast-1 --key-id alias/fabric-cosign-signing-key --query 'KeyMetadata.KeyId' --output text)
-aws kms schedule-key-deletion --region ap-southeast-1 --key-id $KEY_ID --pending-window-in-days 7
-```
+Nếu ký/attest sai digest: dừng promotion, kiểm tra lại digest, scan/SBOM rồi ký lại artifact đúng. Git revert về digest đã verify khi cần rollback triển khai. Không xóa khóa để “hoàn tác chữ ký”: có thể làm mất khả năng verify các releases cũ.
+
+Nếu key spec sai và khóa chỉ mới tạo riêng cho phiên lab, tạo khóa đúng, giữ khóa cũ cho các artifacts còn cần kiểm tra. Chỉ lên lịch xóa trong cleanup được phép sau khi kiểm kê toàn bộ consumers; KMS → Customer managed keys → chọn đúng key ID → Key actions → Schedule key deletion → chọn recovery window, ghi ngày/owner. Khóa dùng chung hoặc đang ký releases không được xóa.
 
 ---
 

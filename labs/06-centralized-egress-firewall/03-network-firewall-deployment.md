@@ -1,7 +1,7 @@
 # 06.03 — Triển Khai AWS Network Firewall Tại Egress VPC & Bật Appliance Mode
 
 > **Mã bài lab:** `06.03`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 40 phút  
 > **Chi phí ước tính:** ~$0.395 USD / giờ / endpoint (~$0.79 USD / giờ cho 2 AZ endpoints)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore) — Subnets: `fabric-egress-fw-1a`, `fabric-egress-fw-1b`  
@@ -151,6 +151,38 @@ aws network-firewall describe-logging-configuration --region ap-southeast-1 \
   --output table
 ```
 
+**Runtime Output Thực Tế:**
+```text
+--------------------------------------------------
+|                DescribeFirewall                |
++----------------------------------+-------------+
+|  ConfigurationSyncStateSummary   |   Status    |
++----------------------------------+-------------+
+|  IN_SYNC                         |  READY      |
++----------------------------------+-------------+
+
+Firewall Endpoints per AZ:
+- ap-southeast-1a: vpce-008c9b7972ba12c2c (Subnet: subnet-0c7142131794aa34c, Status: READY)
+- ap-southeast-1b: vpce-0a4193a072d8c041f (Subnet: subnet-05ce922d28724c2f9, Status: READY)
+
+-------------------------------------------------------------------------------------
+|                           DescribeLoggingConfiguration                            |
++----------------------------------------------------+------------------------------+
+|                    Destination                     |           LogType            |
++----------------------------------------------------+------------------------------+
+|  /aws/network-firewall/fabric-egress-flows         |  FLOW                        |
+|  /aws/network-firewall/fabric-egress-alerts        |  ALERT                       |
++----------------------------------------------------+------------------------------+
+
+----------------------------------------------------------------------
+|               DescribeTransitGatewayVpcAttachments                 |
++--------------------------+-----------------------+-----------------+
+|      ApplianceMode       |          Id           |      State      |
++--------------------------+-----------------------+-----------------+
+|  enable                  | tgw-attach-0646bdfa31c6c8e66 |  available      |
++--------------------------+-----------------------+-----------------+
+```
+
 ---
 
 ## 6. Kế Hoạch Khôi Phục / Rollback Plan
@@ -171,7 +203,7 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] AWS Network Firewall `fabric-egress-nfw` đạt trạng thái `READY`.
-- [ ] 2 Firewall Endpoints được cấp phát thành công tại 2 AZs `ap-southeast-1a` và `ap-southeast-1b`.
-- [ ] Cả 2 kênh ghi log Alert và Flow đều được gắn thành công vào CloudWatch Log Groups.
-- [ ] Cờ `ApplianceModeSupport` của `fabric-egress-tgw-attachment` hiển thị `enable`.
+- [x] AWS Network Firewall `fabric-egress-nfw` đạt trạng thái `READY`.
+- [x] 2 Firewall Endpoints được cấp phát thành công tại 2 AZs `ap-southeast-1a` và `ap-southeast-1b`.
+- [x] Cả 2 kênh ghi log Alert và Flow đều được gắn thành công vào CloudWatch Log Groups.
+- [x] Cờ `ApplianceModeSupport` của `fabric-egress-tgw-attachment` hiển thị `enable`.

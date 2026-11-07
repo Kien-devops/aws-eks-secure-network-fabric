@@ -1,0 +1,53 @@
+{
+  "SchemaVersion": 2,
+  "ArtifactName": "fabric-edge-frontend:local",
+  "ArtifactType": "container_image",
+  "Metadata": {
+    "OS": {
+      "Family": "alpine",
+      "Name": "3.20.3"
+    },
+    "ImageID": "sha256:aa90588851dca4af1ca6a3c0af72525ab9a3c5ad091f391ec7d4672e63020c07",
+    "DiffIDs": [
+      "sha256:63ca1fbb43ae5034640e5e6e6e0e607784560db2fa1e32f4999a94523793b82a",
+      "sha256:4f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a"
+    ],
+    "RepoTags": [
+      "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/fabric-edge-frontend:latest",
+      "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/fabric-edge-frontend:2aa5ddb705eaac4294702d33e7167dfc29e0158c"
+    ],
+    "RepoDigests": [
+      "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/fabric-edge-frontend@sha256:aa90588851dca4af1ca6a3c0af72525ab9a3c5ad091f391ec7d4672e63020c07"
+    ],
+    "ImageConfig": {
+      "architecture": "amd64",
+      "created": "2026-11-08T03:42:04.334Z",
+      "os": "linux",
+      "config": {
+        "User": "10001:10001",
+        "ExposedPorts": {
+          "8080/tcp": {}
+        },
+        "Entrypoint": [
+          "/app/edge-frontend"
+        ]
+      }
+    }
+  },
+  "Results": [
+    {
+      "Target": "fabric-edge-frontend:local (alpine 3.20.3)",
+      "Class": "os-pkgs",
+      "Type": "alpine",
+      "Vulnerabilities": []
+    }
+  ],
+  "GateEvaluation": {
+    "Policy": "Zero Critical or High Vulnerabilities",
+    "CriticalCount": 0,
+    "HighCount": 0,
+    "Status": "PASSED",
+    "EvaluatedAt": "2026-11-08T03:42:15Z"
+  }
+}
+

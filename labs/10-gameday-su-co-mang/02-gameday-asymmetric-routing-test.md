@@ -1,7 +1,7 @@
 # 10.02 — GameDay Kịch Bản 2: Lỗi Định Tuyến Bất Đối Xứng (Asymmetric Routing Failure)
 
 > **Mã bài lab:** `10.02`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `DRAFT`  
 > **Thời gian dự kiến:** 45 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -58,7 +58,7 @@ Các hành động IAM cần thiết để sửa đổi thuộc tính Appliance 
    - Xác nhận giá trị hiện tại là **`enable`**.
 5. Kiểm tra kết nối bình thường từ Edge Pod:
    ```bash
-   kubectl exec -it deploy/frontend -n default -- curl -kIv https://order.internal.fabric/health
+   kubectl exec deploy/frontend -n fabric-apps --context fabric-edge -- curl --fail --cacert /etc/fabric-ca/ca.crt -Iv https://core.fabric.internal/health
    ```
    *Kết quả:* Thành công 100% với mã phản hồi HTTP 200.
 
@@ -80,13 +80,13 @@ Các hành động IAM cần thiết để sửa đổi thuộc tính Appliance 
 1. **Gửi lưu lượng kiểm thử liên tục:**
    Thực hiện gửi một chuỗi 40 HTTP requests liên tiếp từ Edge Pod sang Core Backend:
    ```bash
-   kubectl exec -it deploy/frontend -n default -- bash -c '
+   kubectl exec deploy/frontend -n fabric-apps --context fabric-edge -- sh -c '
    for i in $(seq 1 40); do
-     curl -m 2 -s -o /dev/null -w "%{http_code}\n" https://order.internal.fabric/health || echo "TIMEOUT"
+     curl --cacert /etc/fabric-ca/ca.crt -m 2 -s -o /dev/null -w "%{http_code}\n" https://core.fabric.internal/health || echo "TIMEOUT"
      sleep 0.1
    done | sort | uniq -c'
    ```
-   - **Hiện tượng thực tế:** Khoảng **40% - 60% số requests bị TIMEOUT** (mã lỗi `000` hoặc treo kết nối), chỉ có khoảng 50% số requests thành công (`200 OK`).
+   - Đo tỷ lệ thành công/timeout thực tế. Phải chọn nguồn Edge AZ-a và Core target AZ-b, ghi AZ và 5-tuple để tăng khả năng tái hiện. Tắt appliance mode không bảo đảm timeout hoặc tỷ lệ 50%; nếu không tái hiện, ghi **NOT_REPRODUCED**, không đổi số liệu.
 2. **Quan sát trực tiếp trên máy chủ Suricata:**
    Kết nối SSM Session Manager vào `fabric-suricata-1a` và `fabric-suricata-1b`, chạy bắt gói tin:
    ```bash
@@ -113,9 +113,9 @@ Các hành động IAM cần thiết để sửa đổi thuộc tính Appliance 
 ### Bước 5: Kiểm Chứng Phục Hồi Hoàn Toàn (Verification)
 1. Chạy lại bài kiểm thử 40 requests từ Edge Pod:
    ```bash
-   kubectl exec -it deploy/frontend -n default -- bash -c '
+   kubectl exec deploy/frontend -n fabric-apps --context fabric-edge -- sh -c '
    for i in $(seq 1 40); do
-     curl -m 2 -s -o /dev/null -w "%{http_code}\n" https://order.internal.fabric/health || echo "TIMEOUT"
+     curl --cacert /etc/fabric-ca/ca.crt -m 2 -s -o /dev/null -w "%{http_code}\n" https://core.fabric.internal/health || echo "TIMEOUT"
      sleep 0.1
    done | sort | uniq -c'
    ```
@@ -175,7 +175,7 @@ aws ec2 modify-transit-gateway-vpc-attachment \
 
 ## 7. Đường Dẫn Bằng Chứng (Expected Evidence Path)
 
-- `evidence/10-gameday/gameday-02-asymmetric-routing-drops.json`: Thống kê tỷ lệ drop 50% khi tắt Appliance Mode.
+- `evidence/10-gameday/gameday-02-asymmetric-routing-drops.json`: Tỷ lệ lỗi thực, placement, flow captures và kết luận REPRODUCED/NOT_REPRODUCED.
 - `evidence/10-gameday/gameday-02-suricata-out-of-state-logs.txt`: Trích xuất log Suricata ghi nhận gói tin bị hủy do mất đồng bộ trạng thái.
 - `evidence/10-gameday/gameday-02-appliance-mode-verified.json`: Cấu hình attachment hiển thị `ApplianceModeSupport: enable`.
 
@@ -183,7 +183,7 @@ aws ec2 modify-transit-gateway-vpc-attachment \
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Thực hiện thành công việc tắt Appliance Mode và ghi nhận được hiện tượng packet drop ngắt quãng (~50%).
+- [ ] Ghi kết quả thật sau tắt Appliance Mode; nếu không tái hiện ghi NOT_REPRODUCED, không ép tỷ lệ lỗi. Đã bật lại và kiểm tra phục hồi.
 - [ ] Chứng minh được gói tin `SYN` và `SYN-ACK` bị phân tách sang 2 AZ khác nhau thông qua Suricata / tcpdump log.
 - [ ] Bật lại Appliance Mode thành công trên AWS Console.
 - [ ] Tỷ lệ request thành công phục hồi về 100% (40/40 HTTP 200).

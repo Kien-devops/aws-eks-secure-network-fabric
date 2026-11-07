@@ -1,7 +1,7 @@
 # 11.02 — Kiểm Toán Vệ Sinh Dữ Liệu & Khử Trùng Thông Tin Nhạy Cảm (Sanitization Audit)
 
 > **Mã bài lab:** `11.02`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `DRAFT`  
 > **Thời gian dự kiến:** 30 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -52,7 +52,7 @@ Bài lab này là quy trình kiểm toán tĩnh (Static Security Audit) trên c�
 ### Bước 1: Tra Cứu AWS Account ID Thực Tế Trên Console
 1. Đăng nhập vào **AWS Management Console**.
 2. Tại góc trên cùng bên phải màn hình, nhấp vào tên tài khoản người dùng của bạn.
-3. Menu dropdown mở ra: Ghi lại dãy 12 chữ số **Account ID** thực tế (Ví dụ: `987654321098`).
+3. Menu dropdown mở ra: Ghi lại dãy 12 chữ số **Account ID** thực tế (Ví dụ: `123456789012`).
 4. Đây là chuỗi định danh nhạy cảm bắt buộc phải được quét sạch và thay thế trong toàn bộ các tệp bằng chứng trước khi xuất bản.
 
 ---

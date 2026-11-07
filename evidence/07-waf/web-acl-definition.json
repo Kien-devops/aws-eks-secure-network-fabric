@@ -1,0 +1,19 @@
+{
+  "WebACL": {
+    "Name": "fabric-edge-web-acl",
+    "Id": "a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56",
+    "ARN": "arn:aws:wafv2:ap-southeast-1:123456789012:regional/webacl/fabric-edge-web-acl/a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56",
+    "DefaultAction": {
+      "Allow": {}
+    },
+    "Description": "L7 Web Application Firewall protecting public Ingress ALB in Singapore",
+    "Capacity": 927,
+    "VisibilityConfig": {
+      "SampledRequestsEnabled": true,
+      "CloudWatchMetricsEnabled": true,
+      "MetricName": "fabric-edge-web-acl"
+    },
+    "LockToken": "39a49b1b-d3bd-4191-b7c2-d3921437585f"
+  }
+}
+

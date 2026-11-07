@@ -13,8 +13,8 @@
 
 | Phân Loại STRIDE | Nguy Cơ Tiềm Ẩn | Biện Pháp Kiểm Soát & Khắc Phục Trong Thiết Kế |
 |---|---|---|
-| **Spoofing (Giả mạo danh tính)** | Giả mạo IP từ VPC này sang VPC khác | Bật Reverse Path Filtering (rp_filter) trên Suricata; NACL stateless chặn IP spoofed. |
-| **Tampering (Can thiệp gói tin)** | Can thiệp hoặc sửa đổi dữ liệu khi truyền giữa Edge và Core | Bắt buộc mTLS hoặc TLS 1.3 nội bộ giữa Frontend và Backend; mã hóa đường truyền TGW. |
+| **Spoofing (Giả mạo danh tính)** | Giả mạo IP từ VPC này sang VPC khác | SG/NACL giới hạn nguồn; tắt rp_filter trên tunnel interface theo tunnel handler để không drop transit hợp lệ. |
+| **Tampering (Can thiệp gói tin)** | Can thiệp hoặc sửa đổi dữ liệu khi truyền giữa Edge và Core | Bắt buộc mTLS hoặc TLS 1.3 nội bộ giữa Frontend và Backend; không coi TGW appliance mode là cơ chế TLS hoặc chứng nhận đã inspect. |
 | **Repudiation (Chối bỏ trách nhiệm)** | Tấn công không để lại dấu vết trong mạng nội bộ | Bật VPC Flow Logs cấp độ `ALL`, TGW Flow Logs, và lưu trữ Suricata `eve.json` tập trung. |
 | **Information Disclosure (Lộ lọt thông tin)** | Dữ liệu nhạy cảm rò rỉ ra Internet qua outbound channels | Chặn toàn bộ direct Internet access; buộc qua AWS Network Firewall lọc domain SNI allowlist. |
 | **Denial of Service (Từ chối dịch vụ)** | Tấn công SYN Flood hoặc DDoS từ Internet vào hệ thống | Tích hợp AWS Shield Standard + AWS WAF v2 Rate Limiting tại tầng Edge ALB Ingress. |

@@ -23,7 +23,7 @@ Module này cung cấp tài liệu hướng dẫn thực hành chi tiết từng
                                    |
                          [ Transit Gateway (TGW) ]
                           /                     \
-                         /  (All E-W / N-S via)  \
+                         /  (East-West via)  \
                         v                         v
 +-------------------------------------------------------------------------+
 | VPC Inspection — 10.70.0.0/16 [ap-southeast-1a / ap-southeast-1b]       |
@@ -32,7 +32,7 @@ Module này cung cấp tài liệu hướng dẫn thực hành chi tiết từng
 | - Firewall Subnets: Suricata EC2 (GENEVE 6081) (10.70.10.0/24, 11.0/24) |
 +-------------------------------------------------------------------------+
                         \                         ^
-                         \  (Inspected 0.0.0.0/0) / (Inspected Return)
+                         \  (East-West only) / (Inspected Return)
                           v                      /
                          [ Transit Gateway (TGW) ]
                                    |
@@ -44,7 +44,7 @@ Module này cung cấp tài liệu hướng dẫn thực hành chi tiết từng
 | - TGW Subnets: Attachment ENIs (10.50.250.0/28, 10.50.250.16/28)        |
 +-------------------------------------------------------------------------+
                                    |
-                     (0.0.0.0/0 via Inspection)
+                     (0.0.0.0/0 via Egress)
                                    v
 +-------------------------------------------------------------------------+
 | VPC Centralized Egress — 10.80.0.0/16 [ap-southeast-1a / 1b]           |

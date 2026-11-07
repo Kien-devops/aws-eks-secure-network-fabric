@@ -1,7 +1,7 @@
 # 08.01 — Tự Động Hóa Kiểm Thử Terraform & Quét An Ninh Hạ Tầng Với Checkov
 
 > **Mã bài lab:** `08.01`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `DRAFT`  
 > **Thời gian dự kiến:** 30 phút  
 > **Chi phí ước tính:** $0.00 USD (Chạy cục bộ hoặc trong GitHub Actions / AWS CodePipeline)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -12,6 +12,8 @@
 
 - Đã cài đặt Terraform CLI v1.5+ và Python 3.9+ trên máy trạm.
 - Mã nguồn IaC của dự án đã sẵn sàng trong thư mục `terraform/`.
+
+> **Gate artifact:** repo hiện chưa có `terraform/`; bài chưa chạy được. Hoàn thiện IaC và mapping tài nguyên live/import plan trong nhiệm vụ riêng. Không chạy apply/import trong bài kiểm tra tĩnh; validate thư mục rỗng không chứng minh hạ tầng an toàn.
 - Đã cài đặt công cụ quét tĩnh an ninh `checkov`.
 
 ---

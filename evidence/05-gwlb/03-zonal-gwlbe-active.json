@@ -1,0 +1,42 @@
+{
+  "timestamp": "2026-11-08T02:24:50+07:00",
+  "region": "ap-southeast-1",
+  "module": "05-gwlb-suricata-ids-ips",
+  "lab": "05.03-gwlb-endpoints-creation",
+  "endpoint_service": {
+    "name": "fabric-gwlb-endpoint-service",
+    "service_id": "vpce-svc-07e921c9775e0e4ce",
+    "service_name": "com.amazonaws.vpce.ap-southeast-1.vpce-svc-07e921c9775e0e4ce",
+    "service_type": "GatewayLoadBalancer",
+    "state": "Available",
+    "acceptance_required": false,
+    "availability_zones": ["ap-southeast-1a", "ap-southeast-1b"]
+  },
+  "endpoints": [
+    {
+      "name": "fabric-gwlbe-1a",
+      "endpoint_id": "vpce-0f16354ca5bb55c14",
+      "type": "GatewayLoadBalancer",
+      "state": "available",
+      "vpc_id": "vpc-0c94a30a1a915fc0f",
+      "subnet_id": "subnet-0aebf9d83c8118058",
+      "subnet_name": "fabric-insp-gwlbe-1a",
+      "cidr_block": "10.70.1.0/28",
+      "availability_zone": "ap-southeast-1a",
+      "network_interface_id": "eni-04d59ed0e5d4d4468"
+    },
+    {
+      "name": "fabric-gwlbe-1b",
+      "endpoint_id": "vpce-0b48242bff7b44479",
+      "type": "GatewayLoadBalancer",
+      "state": "available",
+      "vpc_id": "vpc-0c94a30a1a915fc0f",
+      "subnet_id": "subnet-0a1a561fe99bcc9fd",
+      "subnet_name": "fabric-insp-gwlbe-1b",
+      "cidr_block": "10.70.1.16/28",
+      "availability_zone": "ap-southeast-1b",
+      "network_interface_id": "eni-08fbcbaf8e6b0228e"
+    }
+  ]
+}
+

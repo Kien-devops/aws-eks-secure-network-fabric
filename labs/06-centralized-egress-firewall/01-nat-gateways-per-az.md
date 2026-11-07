@@ -1,7 +1,7 @@
 # 06.01 — Khởi Tạo NAT Gateways & Elastic IPs Đa AZ Tại Public Subnets
 
 > **Mã bài lab:** `06.01`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 20 phút  
 > **Chi phí ước tính:** ~$0.045 USD / giờ / NAT Gateway (~$0.09 USD / giờ cho 2 NAT Gateways)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore) — Subnets: `fabric-egress-public-1a`, `fabric-egress-public-1b`  
@@ -128,6 +128,27 @@ aws ec2 describe-subnets --region ap-southeast-1 \
   --output table
 ```
 
+**Runtime Output Thực Tế:**
+```text
+-----------------------------------------------------------------------------------------------------------------------
+|                                                 DescribeNatGateways                                                 |
++-----------------------+---------------------+--------------------+----------------+---------------+-----------------+
+|     AllocationId      |         Id          |       Name         |   PublicIP     |     State     |     Subnet      |
++-----------------------+---------------------+--------------------+----------------+---------------+-----------------+
+|  eipalloc-07c6475acd36813d5 | nat-02df31dd744888594 | fabric-nat-gw-1a   |  52.74.11.140  |  available    |  subnet-0262d7eefa20689ed |
+|  eipalloc-01475b66f2ccd93ec | nat-048410a645ccfea3e | fabric-nat-gw-1b   |  54.151.239.60 |  available    |  subnet-0ad99949d3dcf5d10 |
++-----------------------+---------------------+--------------------+----------------+---------------+-----------------+
+
+----------------------------------------------------------------------
+|                          DescribeSubnets                           |
++-----------------+-----------------------+--------------------------+
+|       AZ        |         Cidr          |          Name            |
++-----------------+-----------------------+--------------------------+
+|  ap-southeast-1a|  10.80.10.0/24        |  fabric-egress-public-1a |
+|  ap-southeast-1b|  10.80.11.0/24        |  fabric-egress-public-1b |
++-----------------+-----------------------+--------------------------+
+```
+
 ---
 
 ## 6. Kế Hoạch Khôi Phục / Rollback Plan
@@ -156,7 +177,7 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Cả 2 Elastic IPs `fabric-nat-eip-1a` và `fabric-nat-eip-1b` được cấp phát thành công.
-- [ ] Cả 2 NAT Gateways `fabric-nat-gw-1a` và `fabric-nat-gw-1b` đạt trạng thái `available`.
-- [ ] `fabric-nat-gw-1a` đặt tại Public Subnet AZ-a và `fabric-nat-gw-1b` đặt tại Public Subnet AZ-b.
-- [ ] Connectivity type hiển thị `public`.
+- [x] Cả 2 Elastic IPs `fabric-nat-eip-1a` và `fabric-nat-eip-1b` được cấp phát thành công.
+- [x] Cả 2 NAT Gateways `fabric-nat-gw-1a` và `fabric-nat-gw-1b` đạt trạng thái `available`.
+- [x] `fabric-nat-gw-1a` đặt tại Public Subnet AZ-a và `fabric-nat-gw-1b` đặt tại Public Subnet AZ-b.
+- [x] Connectivity type hiển thị `public`.

@@ -1,0 +1,15 @@
+{
+  "timestamp": "2026-11-07T19:29:06.158336+0000",
+  "flow_id": 842311644644071,
+  "event_type": "tls",
+  "src_ip": "10.40.15.154",
+  "src_port": 29296,
+  "dest_ip": "10.50.9.248",
+  "dest_port": 443,
+  "proto": "TCP",
+  "pkt_src": "wire/pcap",
+  "tls": {
+    "sni": "core.fabric.internal",
+    "version": "TLS 1.3"
+  }
+}

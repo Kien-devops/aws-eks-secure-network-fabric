@@ -1,7 +1,7 @@
 # 09.02 — Thu Thập & Đẩy Nhật Ký Suricata EVE Logs (eve.json) Về CloudWatch
 
 > **Mã bài lab:** `09.02`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 40 phút  
 > **Chi phí ước tính:** ~$0.10 USD (Ingestion log data)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -64,7 +64,7 @@ Quyền IAM cần cấp cho IAM Role gán vào máy chủ ảo Suricata EC2 (`fa
 ### Bước 1: Gắn Policy Quản Trị Vào IAM Role Của Máy Chủ Suricata
 1. Mở **AWS IAM Console** tại Singapore (`ap-southeast-1`).
 2. Tại menu bên trái, nhấp chọn **Roles**.
-3. Tại ô tìm kiếm, gõ `fabric-suricata-instance-role` và nhấp vào tên Role.
+3. EC2 → Instance → Security → IAM role: lấy đúng role trong `fabric-ssm-instance-profile` đã gán ở 05.01; mở role đó trong IAM, không giả định tên `fabric-suricata-instance-role` đã tồn tại.
 4. Tại tab **Permissions**, nhấp vào nút **Add permissions** -> Chọn **Attach policies**.
 5. Trong ô tìm kiếm policy, nhập `CloudWatchAgentServerPolicy`.
 6. Tích chọn checkbox cạnh policy `CloudWatchAgentServerPolicy`.
@@ -87,6 +87,8 @@ Quyền IAM cần cấp cho IAM Role gán vào máy chủ ảo Suricata EC2 (`fa
 ---
 
 ### Bước 3: Tải Và Cài Đặt Amazon CloudWatch Unified Agent
+OS chuẩn của 05.01 là Ubuntu 24.04 amd64. Kiểm tra `/etc/os-release` trước khi dùng `.deb`; nếu appliance thực tế là AL2023, dừng và chọn package RPM đúng OS thay vì chạy dpkg.
+Private appliance cần S3 gateway endpoint cho package bucket cùng region hoặc package đã có trong AMI ở 05.01; bật private DNS cho Logs interface endpoint và kiểm tra IAM/endpoint policy. Nếu chưa có đường tải, dừng; không tự mở management Internet hoặc thêm default route qua inspection.
 Chạy các lệnh sau trực tiếp trong cửa sổ Session Manager của `fabric-suricata-1a`:
 
 1. Tải gói cài đặt CloudWatch Agent dành cho Ubuntu/Debian x86_64 tại Region Singapore:
@@ -232,7 +234,7 @@ Khi cần dừng thu thập hoặc gỡ bỏ CloudWatch Agent:
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Policy `CloudWatchAgentServerPolicy` được gắn thành công vào role EC2.
-- [ ] Dịch vụ `amazon-cloudwatch-agent` hoạt động ổn định (`active (running)`) trên cả 2 node Suricata.
-- [ ] Log Group `/aws/suricata/fabric-inspection-eve` xuất hiện 2 stream tương ứng với 2 Instance ID.
-- [ ] Các sự kiện trong stream là cấu trúc JSON hợp lệ chứa đầy đủ thông tin L3/L4/L7 từ Suricata engine.
+- [x] Policy `CloudWatchAgentServerPolicy` được gắn thành công vào role EC2 (`fabric-ssm-role`).
+- [x] Dịch vụ `amazon-cloudwatch-agent` hoạt động ổn định (`active (running)`) trên cả 2 node Suricata.
+- [x] Log Group `/aws/suricata/fabric-inspection-eve` xuất hiện đầy đủ 4 streams tương ứng với 2 Instance ID (`-eve` và `-daemon`).
+- [x] Các sự kiện trong stream là cấu trúc JSON hợp lệ chứa đầy đủ thông tin L3/L4/L7 từ Suricata engine.

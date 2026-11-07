@@ -1,0 +1,98 @@
+{
+  "Firewall": {
+    "FirewallName": "fabric-egress-nfw",
+    "FirewallArn": "arn:aws:network-firewall:ap-southeast-1:123456789012:firewall/fabric-egress-nfw",
+    "FirewallPolicyArn": "arn:aws:network-firewall:ap-southeast-1:123456789012:firewall-policy/fabric-egress-fw-policy",
+    "VpcId": "vpc-0c1479727a5e38b4c",
+    "SubnetMappings": [
+      {
+        "SubnetId": "subnet-05ce922d28724c2f9",
+        "IPAddressType": "IPV4"
+      },
+      {
+        "SubnetId": "subnet-0c7142131794aa34c",
+        "IPAddressType": "IPV4"
+      }
+    ],
+    "DeleteProtection": false,
+    "SubnetChangeProtection": false,
+    "FirewallPolicyChangeProtection": false,
+    "FirewallId": "dae639f3-de16-4bff-b67c-ba0ad8ef8e31",
+    "Tags": [
+      {
+        "Key": "Project",
+        "Value": "aws-eks-secure-network-fabric"
+      },
+      {
+        "Key": "Environment",
+        "Value": "prod"
+      }
+    ]
+  },
+  "FirewallStatus": {
+    "Status": "READY",
+    "ConfigurationSyncStateSummary": "IN_SYNC",
+    "SyncStates": {
+      "ap-southeast-1a": {
+        "Attachment": {
+          "SubnetId": "subnet-0c7142131794aa34c",
+          "EndpointId": "vpce-008c9b7972ba12c2c",
+          "Status": "READY"
+        },
+        "Config": {
+          "arn:aws:network-firewall:ap-southeast-1:123456789012:firewall-policy/fabric-egress-fw-policy": {
+            "SyncStatus": "IN_SYNC"
+          },
+          "arn:aws:network-firewall:ap-southeast-1:123456789012:stateful-rulegroup/fabric-egress-domain-allowlist-rg": {
+            "SyncStatus": "IN_SYNC"
+          },
+          "arn:aws:network-firewall:ap-southeast-1:123456789012:stateful-rulegroup/fabric-egress-malicious-drop-rg": {
+            "SyncStatus": "IN_SYNC"
+          }
+        }
+      },
+      "ap-southeast-1b": {
+        "Attachment": {
+          "SubnetId": "subnet-05ce922d28724c2f9",
+          "EndpointId": "vpce-0a4193a072d8c041f",
+          "Status": "READY"
+        },
+        "Config": {
+          "arn:aws:network-firewall:ap-southeast-1:123456789012:firewall-policy/fabric-egress-fw-policy": {
+            "SyncStatus": "IN_SYNC"
+          },
+          "arn:aws:network-firewall:ap-southeast-1:123456789012:stateful-rulegroup/fabric-egress-domain-allowlist-rg": {
+            "SyncStatus": "IN_SYNC"
+          },
+          "arn:aws:network-firewall:ap-southeast-1:123456789012:stateful-rulegroup/fabric-egress-malicious-drop-rg": {
+            "SyncStatus": "IN_SYNC"
+          }
+        }
+      }
+    }
+  },
+  "LoggingConfiguration": {
+    "LogDestinationConfigs": [
+      {
+        "LogType": "FLOW",
+        "LogDestinationType": "CloudWatchLogs",
+        "LogDestination": {
+          "logGroup": "/aws/network-firewall/fabric-egress-flows"
+        }
+      },
+      {
+        "LogType": "ALERT",
+        "LogDestinationType": "CloudWatchLogs",
+        "LogDestination": {
+          "logGroup": "/aws/network-firewall/fabric-egress-alerts"
+        }
+      }
+    ]
+  },
+  "TransitGatewayAttachment": {
+    "TransitGatewayAttachmentId": "tgw-attach-0646bdfa31c6c8e66",
+    "ApplianceModeSupport": "enable",
+    "State": "available"
+  }
+}
+

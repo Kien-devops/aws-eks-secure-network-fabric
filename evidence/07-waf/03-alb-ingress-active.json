@@ -1,0 +1,59 @@
+{
+  "LoadBalancer": {
+    "LoadBalancerName": "fabric-edge-public-alb",
+    "LoadBalancerArn": "arn:aws:elasticloadbalancing:ap-southeast-1:123456789012:loadbalancer/app/fabric-edge-public-alb/61108d1397d1c55c",
+    "DNSName": "fabric-edge-public-alb-524689972.ap-southeast-1.elb.amazonaws.com",
+    "Scheme": "internet-facing",
+    "VpcId": "vpc-0468b18dddd1d4d2d",
+    "State": {
+      "Code": "active"
+    },
+    "Type": "application",
+    "AvailabilityZones": [
+      {
+        "ZoneName": "ap-southeast-1a",
+        "SubnetId": "subnet-04dfffbdc3e5e0c93"
+      },
+      {
+        "ZoneName": "ap-southeast-1b",
+        "SubnetId": "subnet-0a9017b8109df0c48"
+      }
+    ]
+  },
+  "KubernetesIngress": {
+    "Name": "edge-frontend-ingress",
+    "Namespace": "fabric-apps",
+    "Host": "app3.devopsss.site",
+    "IngressClass": "alb",
+    "Status": "Configured"
+  },
+  "WebACLAssociation": {
+    "WebACLName": "fabric-edge-web-acl",
+    "WebACLArn": "arn:aws:wafv2:ap-southeast-1:123456789012:regional/webacl/fabric-edge-web-acl/a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56",
+    "ResourceArn": "arn:aws:elasticloadbalancing:ap-southeast-1:123456789012:loadbalancer/app/fabric-edge-public-alb/61108d1397d1c55c"
+  },
+  "TargetGroup": {
+    "Name": "k8s-fabricap-frontend-f666cba12c",
+    "TargetGroupArn": "arn:aws:elasticloadbalancing:ap-southeast-1:123456789012:targetgroup/k8s-fabricap-frontend-f666cba12c/8bbb45ce26a7bfcf",
+    "Targets": [
+      {
+        "Id": "10.40.9.110",
+        "Port": 8080,
+        "AvailabilityZone": "ap-southeast-1a",
+        "State": "healthy"
+      },
+      {
+        "Id": "10.40.15.20",
+        "Port": 8080,
+        "AvailabilityZone": "ap-southeast-1b",
+        "State": "healthy"
+      }
+    ]
+  },
+  "ACM": {
+    "CertificateArn": "arn:aws:acm:ap-southeast-1:123456789012:certificate/0907f419-dd72-4b90-89af-e2bf7ce67391",
+    "DomainName": "app3.devopsss.site",
+    "Status": "ISSUED"
+  }
+}
+

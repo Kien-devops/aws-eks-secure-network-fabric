@@ -1,0 +1,14 @@
+----------------------------------------------------------------------------------
+|                                DescribeLogGroups                               |
++---------------------------------------------+------------------+---------------+
+|                LogGroupName                 | RetentionInDays  |  StoredBytes  |
++---------------------------------------------+------------------+---------------+
+|  /aws/network-firewall/fabric-egress-alerts |  7               |  0            |
+|  /aws/network-firewall/fabric-egress-flows  |  7               |  0            |
+|  /aws/suricata/fabric-inspection-eve        |  7               |  0            |
+|  /aws/tgw/fabric-tgw-flow                   |  7               |  0            |
+|  /aws/vpc/fabric-core-flow                  |  7               |  0            |
+|  /aws/vpc/fabric-edge-flow                  |  7               |  0            |
+|  /aws/vpc/fabric-egress-flow                |  7               |  0            |
+|  /aws/vpc/fabric-inspection-flow            |  7               |  0            |
++---------------------------------------------+------------------+---------------+

@@ -1,7 +1,7 @@
 # 06.02 — Khởi Tạo Rule Groups Cho AWS Network Firewall (Domain Filtering)
 
 > **Mã bài lab:** `06.02`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 30 phút  
 > **Chi phí ước tính:** $0.00 USD (Rule groups tính kèm theo chi phí Firewall Endpoint khi deploy)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -77,7 +77,8 @@ Mở **VPC Console** tại Singapore `ap-southeast-1`:
    - **Target types:**
      - Đánh dấu tích vào: [x] **HTTP_HOST** (Lọc header Host của HTTP).
      - Đánh dấu tích vào: [x] **TLS_SNI** (Lọc trường Server Name Indication trong TLS Client Hello).
-   - **Action:** Chọn **Allow** (Cho phép các domain này, các domain còn lại sẽ bị chặn khi policy chuyển sang deny default).
+   - **Action:** Chọn **Allow**. MVP dùng **Default action order** ở cả rule group/policy; Allow domain list sinh quy tắc deny protocol không khớp. Không đổi sang Strict order mà giữ nguyên kỳ vọng.
+   - **Source IP CIDR ranges / HOME_NET:** mở cấu hình nguồn của domain list, chọn các CIDR `10.40.0.0/16`, `10.50.0.0/16`, `10.80.0.0/16`. Nếu UI không có trường này, sau Create dùng API `DescribeRuleGroup` lấy UpdateToken và RuleGroup, thêm `RuleVariables.IPSets.HOME_NET.Definition` với ba CIDR rồi `UpdateRuleGroup`, giữ nguyên toàn bộ rule hiện có. Không để mặc định chỉ Egress VPC: traffic Spoke sẽ không được kiểm tra đúng.
 6. **Tags:** Key: `Project` | Value: `aws-eks-secure-network-fabric`.
 7. Nhấp nút cam **Create rule group**.
 
@@ -99,6 +100,10 @@ Tại trang **Network Firewall rule groups** -> Nhấp lại **Create rule group
 4. **Tags:** Key: `Project` | Value: `aws-eks-secure-network-fabric`.
 5. Nhấp nút cam **Create rule group**.
 
+6. Với group Suricata, cũng cấu hình `HOME_NET` gồm ba CIDR trên; `EXTERNAL_NET` phải loại các mạng HOME_NET. Trước khi gắn policy, mở **Rule group details** và đối chiếu rule variables bằng `describe-rule-group`. Không chỉ xem tên group.
+
+> Domain allowlist không phải deny-all mọi protocol. Bài này kiểm soát HTTP Host/TLS SNI; chặn riêng TCP 21/23/25 bằng group bên dưới. QUIC/UDP, DoH, ECH và dịch vụ dùng CDN cần threat model riêng; không tuyên bố chống exfiltration toàn diện. `.amazonaws.com` rất rộng: ưu tiên endpoints, thu hẹp domain theo traffic thực tế và ghi ngoại lệ. AWS API qua PrivateLink không đi qua egress firewall.
+
 ---
 
 ### Bước 3: Khởi Tạo Firewall Policy (`fabric-egress-fw-policy`)
@@ -114,7 +119,7 @@ Tại menu điều hướng bên trái VPC Console -> Nhóm **Network Firewall**
    - **Actions for fragmented packets:** Chọn **Forward to stateful rule groups**.
    - Nhấp **Next**.
 4. **Step 3 — Stateful rule groups:**
-   - **Stateful rule order:** Chọn **Default action order** (hoặc Strict order).
+   - **Stateful rule order:** chọn duy nhất **Default action order**, khớp rule groups. Pass được xét trước Drop; một flow đã pass không đảm bảo các payload tiếp theo bị group drop đọc lại. Không dùng mô hình này làm bằng chứng ngăn mọi payload trên domain đã allow.
    - Nhấp **Add rule groups** -> Chọn **Add existing stateful rule groups**:
      - Tích chọn: `fabric-egress-domain-allowlist-rg`.
      - Tích chọn: `fabric-egress-malicious-drop-rg`.
@@ -140,14 +145,34 @@ aws network-firewall describe-firewall-policy --region ap-southeast-1 \
 # 2. Liệt kê các Stateful Rule Groups được gắn trong Policy
 aws network-firewall describe-firewall-policy --region ap-southeast-1 \
   --firewall-policy-name fabric-egress-fw-policy \
-  --query 'FirewallPolicyResponse.FirewallPolicy.StatefulRuleGroupReferences[*].{ResourceArn:ResourceArn,Priority:Priority}' \
+  --query 'FirewallPolicy.StatefulRuleGroupReferences[*].{ResourceArn:ResourceArn,Priority:Priority}' \
   --output table
 
 # 3. Kiểm tra chi tiết Rule Group Domain Allowlist
 aws network-firewall describe-rule-group --region ap-southeast-1 \
   --rule-group-name fabric-egress-domain-allowlist-rg --type STATEFUL \
-  --query 'RuleGroupResponse.RuleGroup.RulesSource.RulesSourceList.{TargetTypes:TargetTypes,Targets:Targets}' \
+  --query 'RuleGroup.{Domains:RulesSource.RulesSourceList,Variables:RuleVariables,Options:StatefulRuleOptions}' \
   --output table
+```
+
+**Runtime Output Thực Tế:**
+```text
+-------------------------------------------------------------------------------------------------------------------------------------------
+|                                                         DescribeFirewallPolicy                                                          |
++----------------------------------------------------------------------------------+-------------------------+----------------------------+
+|                                       Arn                                        |          Name           |          Status            |
++----------------------------------------------------------------------------------+-------------------------+----------------------------+
+|  arn:aws:network-firewall:ap-southeast-1:123456789012:firewall-policy/fabric-egress-fw-policy | fabric-egress-fw-policy |  ACTIVE                    |
++----------------------------------------------------------------------------------+-------------------------+----------------------------+
+
+-------------------------------------------------------------------------------------------------------------------------------------------
+|                                                         DescribeFirewallPolicy                                                          |
++-----------------------------------------------------------------------------------------------------------------------------------------+
+|                                                               ResourceArn                                                               |
++-----------------------------------------------------------------------------------------------------------------------------------------+
+|  arn:aws:network-firewall:ap-southeast-1:123456789012:stateful-rulegroup/fabric-egress-domain-allowlist-rg                             |
+|  arn:aws:network-firewall:ap-southeast-1:123456789012:stateful-rulegroup/fabric-egress-malicious-drop-rg                                |
++-----------------------------------------------------------------------------------------------------------------------------------------+
 ```
 
 ---
@@ -172,7 +197,7 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Firewall Policy `fabric-egress-fw-policy` ở trạng thái `ACTIVE`.
-- [ ] Stateful Domain Rule Group cấu hình đúng hành vi `Allow` cho danh sách FQDN (.amazonaws.com, .docker.io, .quay.io, .github.com).
-- [ ] Stateful Suricata Rule Group chứa đúng các quy tắc drop port 21, 23, 25 và payload độc hại.
-- [ ] Stateless default action chuyển tiếp toàn bộ gói tin sang Stateful rule groups.
+- [x] Firewall Policy `fabric-egress-fw-policy` ở trạng thái `ACTIVE`.
+- [x] Stateful Domain Rule Group cấu hình đúng hành vi `Allow` cho danh sách FQDN (.amazonaws.com, .docker.io, .quay.io, .github.com).
+- [x] Stateful Suricata Rule Group chứa đúng các quy tắc drop port 21, 23, 25 và payload độc hại.
+- [x] Stateless default action chuyển tiếp toàn bộ gói tin sang Stateful rule groups.

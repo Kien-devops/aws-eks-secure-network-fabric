@@ -1,7 +1,7 @@
 # 12.01 — Quy Trình Hủy Tài Nguyên Theo Thứ Tự Phụ Thuộc Ngược (Reverse Teardown)
 
 > **Mã bài lab:** `12.01`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `DRAFT`  
 > **Thời gian dự kiến:** 60 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -20,6 +20,7 @@
 ## 2. Quyền IAM Yêu Cầu (Required IAM Permissions)
 
 Các hành động IAM cần thiết để hủy toàn bộ tài nguyên theo thứ tự phụ thuộc ngược:
+Danh sách dưới là các delete actions chính, chưa phải policy đầy đủ cho mọi thao tác Console. Cần quyền Describe/List, Kubernetes RBAC, WAF disassociate, protection updates, ElastiCache `DeleteReplicationGroup`, Route 53, EBS/snapshots, logs/ECR/S3/secrets/IAM/KMS theo đúng tài nguyên được phép ở inventory. Không gắn policy rộng này vào workload; dùng role cleanup có kiểm soát và chỉ trong cửa sổ được phép.
 ```json
 {
   "Version": "2012-10-17",
@@ -96,31 +97,32 @@ Các hành động IAM cần thiết để hủy toàn bộ tài nguyên theo th
 ---
 
 ### Tầng 1: Xóa Lớp Ingress & An Ninh Biên L7
-1. **Xóa Application Load Balancer:**
-   - Mở **EC2 Console** tại Singapore (`ap-southeast-1`) -> **Load Balancers**.
-   - Chọn ALB Ingress công khai (`fabric-edge-alb` hoặc ALB do K8s Ingress Controller tạo).
-   - Nhấp **Actions** -> Chọn **Delete load balancer** -> Xác nhận xóa.
-   - Chờ 1 phút để AWS giải phóng các ENI công khai.
+1. **Dừng reconcile rồi xóa ALB/NLB qua Kubernetes khi controllers còn chạy:**
+   - Kiểm kê tài nguyên theo IDs/tags của dự án; không xóa chỉ vì trùng prefix. Lưu manifests, dữ liệu và snapshot cần giữ; xác nhận quyền hủy môi trường.
+   - Mở Argo CD của **từng cluster** → Applications → App details → Sync policy → tắt automated sync, prune và selfHeal. Dừng pipeline promotion. Xóa Ingress/Service khỏi desired manifests hoặc ngừng quản lý app; nếu xóa Application, đọc kỹ lựa chọn cascade và finalizer.
+   - EKS Console → cluster → Resources → namespace `fabric-apps`: xác định Ingress Edge và LoadBalancer Service Core. Nếu Console không hỗ trợ Delete, dùng `kubectl delete ingress <tên-thật> -n fabric-apps --context fabric-edge` và `kubectl delete service <tên-thật> -n fabric-apps --context fabric-core` từ máy quản trị.
+   - Giữ AWS Load Balancer Controller, nodes và IAM associations hoạt động đến khi ALB/NLB, target groups và ENIs do controller tạo đã biến mất trong EC2 Console. Không xóa finalizer để bỏ qua lỗi; xem controller logs/events, IAM và deletion protection khi kẹt.
 2. **Xóa Web ACL AWS WAF v2:**
    - Mở **AWS WAF & Shield Console** -> **Web ACLs**.
    - Chọn `fabric-edge-web-acl` -> Nhấp **Delete** -> Nhập `delete` để xác nhận.
 3. **Xóa Chứng Chỉ ACM:**
-   - Mở **AWS Certificate Manager** -> Chọn chứng chỉ `*.fabric.internal` hoặc public cert -> Nhấp **Delete**.
+   - Mở **AWS Certificate Manager** → chọn đúng public certificate dùng tại 07.01 → kiểm tra không còn association và không dùng chung → Delete. Không tìm public ACM certificate cho private `.internal`.
+4. **Storage và DNS trước khi xóa cluster:**
+   - Dừng workload/migration writers, lưu dữ liệu cần giữ. EKS → Resources → PVC/PV: ghi reclaim policy; xóa PVC do lab tạo khi EBS CSI còn chạy, kiểm tra volume đã xóa hoặc ghi rõ volume retained cần xử lý tại 12.02.
+   - Route 53 → Hosted zones → `fabric.internal`: xóa records của lab rồi zone nếu do lab sở hữu và không dùng chung; không xóa public zone dùng chung. Xóa đúng public app record của 07.01. Ghi IDs/tên DNS đã xử lý.
 
 ---
 
 ### Tầng 2: Xóa Cụm EKS Kép & Managed Node Groups
 1. Mở **Amazon EKS Console** tại Singapore (`ap-southeast-1`) -> Chọn **Clusters**.
 2. **Xóa Node Groups trước:**
-   - Nhấp vào cụm `fabric-edge-cluster` -> Tab **Compute**.
-   - Tại bảng *Node groups*, chọn `fabric-edge-ng` -> Nhấp nút **Delete**.
-   - Nhập tên `fabric-edge-ng` để xác nhận.
-   - Nhấp vào cụm `fabric-core-cluster` -> Tab **Compute** -> Chọn `fabric-core-ng` -> Nhấp **Delete**.
+   - Nhấp vào cụm `fabric-edge-eks` → Compute → chọn `fabric-edge-ng-1` → Delete → nhập đúng tên xác nhận.
+   - Lặp với `fabric-core-eks` và `fabric-core-ng-1`. Đối chiếu inventory nếu tên đã thay đổi; không chọn node group khác.
    - *Thời gian chờ:* Khoảng 3 - 5 phút để CloudFormation hủy Auto Scaling Groups và các máy chủ EC2 worker nodes.
 3. **Xóa EKS Clusters:**
    - Sau khi các Node Groups chuyển sang trạng thái biến mất (Deleted):
-   - Chọn `fabric-edge-cluster` -> Nhấp **Delete cluster** -> Xác nhận.
-   - Chọn `fabric-core-cluster` -> Nhấp **Delete cluster** -> Xác nhận.
+   - Chọn `fabric-edge-eks` → Delete cluster → xác nhận.
+   - Chọn `fabric-core-eks` → Delete cluster → xác nhận.
    - *Thời gian chờ:* Khoảng 5 - 8 phút để hủy Control Planes.
 
 ---
@@ -128,15 +130,14 @@ Các hành động IAM cần thiết để hủy toàn bộ tài nguyên theo th
 ### Tầng 3: Xóa Cơ Sở Dữ Liệu, Bộ Nhớ Đệm & Hàng Đợi
 1. **Xóa Aurora Serverless v2:**
    - Mở **Amazon RDS Console** -> **Databases**.
-   - Chọn cluster `fabric-core-db`.
-   - Nhấp menu **Actions** -> Chọn **Delete**.
-   - Bỏ chọn checkbox *Create final snapshot* và bỏ chọn *Retain automated backups*.
+   - Mở cluster `fabric-core-db`; tắt deletion protection nếu được phép hủy. Xóa **reader instances trước, writer instance sau**, chờ instances biến mất rồi mới xóa cluster.
+   - Actions → Delete; chọn final snapshot/retained backups theo quyết định lưu dữ liệu đã xác nhận. Snapshot còn giữ tiếp tục tính phí; ghi ID/expiry vào 12.02. Chỉ bỏ backup khi đã chấp nhận mất dữ liệu.
    - Đánh dấu chọn ô *I acknowledge that upon deleting this cluster...*.
    - Nhập chuỗi `delete me` -> Nhấp **Delete**.
-2. **Xóa ElastiCache Serverless / Redis:**
-   - Mở **Amazon ElastiCache Console** -> Chọn cụm `fabric-core-redis` -> Nhấp **Delete** -> Bỏ chọn backup -> Xác nhận.
+2. **Xóa ElastiCache replication group:**
+   - ElastiCache → Redis OSS caches → chọn replication group `fabric-core-redis` theo 04.01 → Delete. Quyết định final backup trước khi xác nhận; không dùng quy trình Serverless cho replication group provisioned.
 3. **Xóa Hàng Đợi SQS:**
-   - Mở **Amazon SQS Console** -> Chọn hàng đợi `fabric-order-events` -> Nhấp **Delete** -> Xác nhận.
+   - SQS → chọn `fabric-order-events` và DLQ đã ghi ở 04.01 → kiểm tra messages cần giữ → Delete → xác nhận từng queue.
 
 ---
 
@@ -145,15 +146,16 @@ Các hành động IAM cần thiết để hủy toàn bộ tài nguyên theo th
    - Mở **VPC Console** -> **AWS Network Firewall** -> **Firewalls**.
    - Chọn `fabric-egress-nfw` -> Nhấp **Delete** -> Nhập tên firewall để xác nhận.
    - *Lưu ý:* Quá trình xóa Firewall Endpoints mất khoảng 3 - 5 phút.
-   - Sau khi Firewall đã xóa xong: Mở **Firewall policies** -> Xóa policy `fabric-egress-nfw-policy` -> Mở **Rule groups** -> Xóa các rule groups `fabric-*`.
+   - Nếu bật delete protection, tắt sau khi xác nhận hủy. Chờ endpoint xóa xong → Firewall policies → xóa `fabric-egress-fw-policy` → Rule groups → xóa đúng groups ghi trong inventory, kiểm tra không dùng chung.
 2. **Xóa Gateway Load Balancer Endpoints (GWLBe) & VPC Endpoints:**
    - Mở **VPC Console** -> **Endpoints**.
    - Chọn toàn bộ các VPC Endpoints có tên prefix `fabric-` (`fabric-gwlbe-1a`, `fabric-gwlbe-1b`, S3 Endpoint, ECR Endpoints).
    - Nhấp **Actions** -> Chọn **Delete VPC endpoints** -> Xác nhận xóa.
-3. **Xóa Gateway Load Balancer & Core Internal NLB:**
+3. **Xóa Endpoint Service và Gateway Load Balancer:**
+   - VPC → Endpoint services → chọn service gắn `fabric-gwlb` → xác nhận không còn endpoint connections → Delete. Không xóa service dùng chung.
    - Mở **EC2 Console** -> **Load Balancers**.
-   - Chọn `fabric-gwlb` và `fabric-core-internal-nlb` -> Nhấp **Actions** -> Chọn **Delete load balancer**.
-   - Mở **Target Groups** -> Chọn `fabric-suricata-tg` và `fabric-core-internal-tg` -> Nhấp **Delete**.
+   - Chọn `fabric-gwlb` → Actions → Delete load balancer. Core NLB phải đã được controller xóa ở Tầng 1; nếu còn, điều tra ownership trước khi xóa tay.
+   - Target Groups → xóa group GWLB đã ghi ở 05.02 sau khi LB biến mất; kiểm tra không còn target groups của lab.
 4. **Hủy Máy Chủ Suricata EC2:**
    - Mở **EC2 Console** -> **Instances**.
    - Chọn cả 2 máy chủ: `fabric-suricata-1a` và `fabric-suricata-1b`.
@@ -202,7 +204,8 @@ Các hành động IAM cần thiết để hủy toàn bộ tài nguyên theo th
      - `fabric-core-vpc`
      - `fabric-inspection-vpc`
      - `fabric-egress-vpc`
-5. Xác nhận danh sách VPC Console tại Singapore chỉ còn lại duy nhất Default VPC ban đầu của tài khoản.
+5. Xác nhận **4 VPC IDs của dự án** không còn; giữ nguyên mọi VPC ngoài dự án. Nếu DependencyViolation, xem ENI owner/service, xóa tài nguyên chủ quản; không force-delete ENI do AWS quản lý.
+6. Hoàn tất inventory tồn dư ở 12.02: CloudWatch logs, snapshots/EBS, ECR, S3, Secrets Manager, IAM roles/policies, KMS, budgets. Chỉ xóa tài nguyên riêng của lab sau khi lưu evidence; KMS pending deletion và secrets recovery window phải ghi ngày kết thúc, không ghi CLEAN ngay.
 
 ---
 
@@ -226,6 +229,7 @@ aws elbv2 describe-load-balancers --region ap-southeast-1 \
 
 # Kiểm tra NAT Gateways đang chạy
 aws ec2 describe-nat-gateways --region ap-southeast-1 \
+  --filter "Name=tag:Project,Values=aws-eks-secure-network-fabric" \
   --query 'NatGateways[?State!=`deleted`].NatGatewayId' --output text
 ```
 
@@ -236,7 +240,7 @@ aws ec2 describe-nat-gateways --region ap-southeast-1 \
 ## 6. Kế Hoạch Khôi Phục / Rollback Plan
 
 Quy trình Teardown là bước hủy vĩnh viễn môi trường. Nếu người dùng cần tái thiết lập lại toàn bộ hạ tầng dự án từ đầu:
-- Chạy lại các pipeline Terraform tự động theo thứ tự xuôi: Module 00 -> Module 02 -> Module 03 -> Module 04 -> Module 05 -> Module 06 -> Module 07.
+- Không có rollback tức thì sau xóa. Khôi phục dữ liệu cần snapshot/backup đã giữ và khóa KMS còn dùng được. Dựng lại theo dependency trong `labs/README.md`; repo hiện chưa có Terraform/pipeline để giả định chạy tự động.
 
 ---
 
@@ -251,4 +255,4 @@ Quy trình Teardown là bước hủy vĩnh viễn môi trường. Nếu ngườ
 - [ ] Hoàn thành hủy toàn bộ 6 tầng theo đúng thứ tự phụ thuộc ngược.
 - [ ] Không gặp bất kỳ lỗi `DependencyViolation` hoặc kẹt ENI nào trong suốt quá trình xóa.
 - [ ] 2 cụm EKS, Aurora DB, Network Firewall, 2 NAT GWs và các Elastic IPs được xóa sạch.
-- [ ] 4 VPCs dự án được xóa thành công, chỉ còn lại default VPC.
+- [ ] 4 VPC IDs dự án đã xóa; tài nguyên ngoài phạm vi giữ nguyên; phần retained/pending được ghi rõ tại 12.02.

@@ -1,0 +1,99 @@
+{
+  "FirewallPolicyResponse": {
+    "FirewallPolicyName": "fabric-egress-fw-policy",
+    "FirewallPolicyArn": "arn:aws:network-firewall:ap-southeast-1:123456789012:firewall-policy/fabric-egress-fw-policy",
+    "FirewallPolicyId": "5107f86c-c453-450a-bf15-94325a0bb819",
+    "Description": "Centralized Egress Firewall Policy for Fabric VPCs in Singapore",
+    "FirewallPolicyStatus": "ACTIVE",
+    "Tags": [
+      {
+        "Key": "Project",
+        "Value": "aws-eks-secure-network-fabric"
+      }
+    ],
+    "ConsumedStatelessRuleCapacity": 0,
+    "ConsumedStatefulRuleCapacity": 200,
+    "ConsumedStatefulDomainCapacity": 0,
+    "NumberOfAssociations": 0,
+    "EncryptionConfiguration": {
+      "KeyId": "AWS_OWNED_KMS_KEY",
+      "Type": "AWS_OWNED_KMS_KEY"
+    },
+    "LastModifiedTime": "2026-11-08T02:38:04.628000+07:00"
+  },
+  "FirewallPolicy": {
+    "StatelessDefaultActions": [
+      "aws:forward_to_sfe"
+    ],
+    "StatelessFragmentDefaultActions": [
+      "aws:forward_to_sfe"
+    ],
+    "StatefulRuleGroupReferences": [
+      {
+        "ResourceArn": "arn:aws:network-firewall:ap-southeast-1:123456789012:stateful-rulegroup/fabric-egress-domain-allowlist-rg"
+      },
+      {
+        "ResourceArn": "arn:aws:network-firewall:ap-southeast-1:123456789012:stateful-rulegroup/fabric-egress-malicious-drop-rg"
+      }
+    ]
+  },
+  "RuleGroups": {
+    "fabric-egress-domain-allowlist-rg": {
+      "RuleGroupArn": "arn:aws:network-firewall:ap-southeast-1:123456789012:stateful-rulegroup/fabric-egress-domain-allowlist-rg",
+      "RuleGroupId": "8214d8ac-a5a7-4c83-ab42-04a6ba70d883",
+      "RuleGroupStatus": "ACTIVE",
+      "Capacity": 100,
+      "ConsumedCapacity": 15,
+      "RuleVariables": {
+        "IPSets": {
+          "HOME_NET": {
+            "Definition": [
+              "10.40.0.0/16",
+              "10.50.0.0/16",
+              "10.80.0.0/16"
+            ]
+          }
+        }
+      },
+      "RulesSource": {
+        "RulesSourceList": {
+          "Targets": [
+            ".amazonaws.com",
+            ".docker.io",
+            ".quay.io",
+            ".github.com",
+            ".registry-1.docker.io",
+            ".k8s.io"
+          ],
+          "TargetTypes": [
+            "HTTP_HOST",
+            "TLS_SNI"
+          ],
+          "GeneratedRulesType": "ALLOWLIST"
+        }
+      }
+    },
+    "fabric-egress-malicious-drop-rg": {
+      "RuleGroupArn": "arn:aws:network-firewall:ap-southeast-1:123456789012:stateful-rulegroup/fabric-egress-malicious-drop-rg",
+      "RuleGroupId": "99feacca-83ae-48a9-b604-11df15ad5d3d",
+      "RuleGroupStatus": "ACTIVE",
+      "Capacity": 100,
+      "ConsumedCapacity": 2,
+      "RuleVariables": {
+        "IPSets": {
+          "HOME_NET": {
+            "Definition": [
+              "10.40.0.0/16",
+              "10.50.0.0/16",
+              "10.80.0.0/16"
+            ]
+          }
+        }
+      },
+      "RulesSource": {
+        "RulesString": "drop tcp $HOME_NET any -> $EXTERNAL_NET [21,23,25] (msg:\"FABRIC DROP Insecure Outbound Port Blocked\"; sid:1000001; rev:1;)\ndrop tcp $HOME_NET any -> $EXTERNAL_NET any (content:\"MALICIOUS_C2_EXFILTRATION\"; nocase; msg:\"FABRIC DROP Data Exfiltration Signature Detected\"; sid:1000002; rev:1;)"
+      }
+    }
+  }
+}
+

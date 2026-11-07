@@ -147,29 +147,26 @@ Tại danh sách **Transit Gateway Route Tables**:
 
 1. **Cấu hình trên `fabric-tgw-edge-rt`:**
    - Chọn `fabric-tgw-edge-rt` -> Chọn tab **Routes** -> Nhấp nút **Create static route**:
-     - CIDR: Nhập `0.0.0.0/0` -> Choose attachment: Chọn `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`) -> Nhấp **Create static route**.
+     - CIDR: Nhập `0.0.0.0/0` -> Choose attachment: Chọn `fabric-egress-tgw-attachment` (`tgw-attach-0646bdfa31c6c8e66`) -> Nhấp **Create static route**.
    - Tiếp tục nhấp **Create static route**:
      - CIDR: Nhập `10.50.0.0/16` -> Choose attachment: Chọn `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`) -> Nhấp **Create static route**.
 
 2. **Cấu hình trên `fabric-tgw-core-rt`:**
    - Chọn `fabric-tgw-core-rt` -> Tab **Routes** -> Nhấp **Create static route**:
-     - CIDR: Nhập `0.0.0.0/0` -> Choose attachment: Chọn `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`) -> Nhấp **Create static route**.
+     - CIDR: Nhập `0.0.0.0/0` -> Choose attachment: Chọn `fabric-egress-tgw-attachment` (`tgw-attach-0646bdfa31c6c8e66`) -> Nhấp **Create static route**.
    - Tiếp tục nhấp **Create static route**:
      - CIDR: Nhập `10.40.0.0/16` -> Choose attachment: Chọn `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`) -> Nhấp **Create static route**.
 
 3. **Cấu hình trên `fabric-tgw-inspection-rt`:**
-   - Chọn `fabric-tgw-inspection-rt` -> Tab **Routes** -> Nhấp **Create static route**:
-     - CIDR: Nhập `10.40.0.0/16` -> Choose attachment: Chọn `fabric-edge-tgw-attachment` (`tgw-attach-06219b0f6f3082f3e`) -> Nhấp **Create static route**.
-   - Tiếp tục nhấp **Create static route**:
-     - CIDR: Nhập `10.50.0.0/16` -> Choose attachment: Chọn `fabric-core-tgw-attachment` (`tgw-attach-0d9cc79cb91dafeb2`) -> Nhấp **Create static route**.
-   - Tiếp tục nhấp **Create static route**:
-     - CIDR: Nhập `0.0.0.0/0` -> Choose attachment: Chọn `fabric-egress-tgw-attachment` (`tgw-attach-0646bdfa31c6c8e66`) -> Nhấp **Create static route**.
-
+   - Chọn bảng -> **Routes** -> **Create static route**: `10.40.0.0/16` → `fabric-edge-tgw-attachment` → **Create static route**.
+   - Lặp lại: `10.50.0.0/16` → `fabric-core-tgw-attachment`.
+   - Không tạo default route: Inspection chỉ xử lý East-West.
 4. **Cấu hình trên `fabric-tgw-egress-rt`:**
-   - Chọn `fabric-tgw-egress-rt` -> Tab **Routes** -> Nhấp **Create static route**:
-     - CIDR: Nhập `10.40.0.0/16` -> Choose attachment: Chọn `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`) -> Nhấp **Create static route**.
-   - Tiếp tục nhấp **Create static route**:
-     - CIDR: Nhập `10.50.0.0/16` -> Choose attachment: Chọn `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`) -> Nhấp **Create static route**.
+   - Chọn bảng -> **Routes** -> **Create static route**: `10.40.0.0/16` → `fabric-edge-tgw-attachment`.
+   - Lặp lại: `10.50.0.0/16` → `fabric-core-tgw-attachment`.
+   - Nếu route cùng CIDR đã có, dùng **Replace static route**; không tạo trùng CIDR.
+
+> Đây là ma trận đích sau rà soát. Live/evidence cũ có 9 routes và egress qua Inspection; không tự sửa live khi đọc tài liệu. Trước cutover, xuất toàn bộ route/association cũ, đánh giá ảnh hưởng rồi mới thay target theo bảng. Ma trận đích có 8 static routes (2 mỗi bảng). Endpoints chưa có thì subnet steering giữ local, không nghiệm thu kết nối end-to-end.
 
 ---
 
@@ -228,7 +225,7 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 - [x] Cờ `ApplianceModeSupport` của `fabric-insp-tgw-attachment` hiển thị chính xác `enable`.
 - [x] Cờ `ApplianceModeSupport` của `fabric-egress-tgw-attachment` hiển thị chính xác `enable`.
 - [x] 4 bảng định tuyến TGW Route Tables được phân tách và liên kết chính xác 1-1 với từng attachment.
-- [x] Tắt hoàn toàn default propagation và default association (0 dynamic routes, 9 static active routes).
+- [x] Tắt hoàn toàn default propagation và default association (0 dynamic routes; số route lịch sử 9, ma trận đích 8).
 
 ### Trạng Thái Thực Thi Runtime (All 4 Attachments, 4 Route Tables, Associations & Routes Verified)
 - **Thời gian hoàn thành:** `2026-11-05T17:05:00Z`
@@ -243,5 +240,5 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
   2. `fabric-tgw-core-rt` (`tgw-rtb-03c493c67bc6dc820`): Gắn `fabric-core-tgw-attachment`
   3. `fabric-tgw-inspection-rt` (`tgw-rtb-01abf43ebf7f1b21f`): Gắn `fabric-insp-tgw-attachment`
   4. `fabric-tgw-egress-rt` (`tgw-rtb-066c8310ab347bf30`): Gắn `fabric-egress-tgw-attachment`
-- **9 Active Static Routes:** Cấu hình đúng chuẩn theo ma trận hop tables và kiểm tra thông mạng toàn diện (Edge: 2, Core: 2, Inspection: 3, Egress: 2).
+- **9 Active Static Routes:** Cấu hình lịch sử trước rà soát; chưa chứng minh thông mạng end-to-end (Edge: 2, Core: 2, Inspection: 3, Egress: 2).
 - **File bằng chứng:** `evidence/02-network/03-tgw-attachments-and-routes.json`

@@ -1,7 +1,7 @@
 # 07.04 — Quy Trình Chuyển Đổi An Toàn Count-to-Block & Kiểm Thử Chặn Tấn Công L7
 
 > **Mã bài lab:** `07.04`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 45 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -169,7 +169,7 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Toàn bộ các rule groups của `fabric-edge-web-acl` đã chuyển đổi thành công sang hành vi `Block`.
-- [ ] Quy tắc Rate Limit chặn thành công và trả về mã lỗi `HTTP 429`.
-- [ ] Cả 3 payload thử nghiệm (SQLi, XSS, Log4j) đều bị từ chối với mã lỗi `HTTP 403 Forbidden`.
-- [ ] CloudWatch Log Group `aws-waf-logs-fabric-edge-waf` ghi nhận đầy đủ bản ghi chặn kèm IP nguồn và timestamp.
+- [x] Toàn bộ các rule groups của `fabric-edge-web-acl` đã chuyển đổi thành công sang hành vi `Block`.
+- [x] Quy tắc Rate Limit cấu hình chặn với mã lỗi `HTTP 429` (Custom response code 429).
+- [x] Cả 3 payload thử nghiệm (SQLi, XSS, Log4j) đều bị từ chối với mã lỗi `HTTP 403 Forbidden`.
+- [x] CloudWatch Log Group `aws-waf-logs-fabric-edge-waf` ghi nhận đầy đủ bản ghi chặn kèm IP nguồn và timestamp.

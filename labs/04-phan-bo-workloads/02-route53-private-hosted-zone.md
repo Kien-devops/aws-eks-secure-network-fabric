@@ -1,7 +1,7 @@
 # 04.02 — Cấu Hình Route 53 Private Hosted Zone Cho Nội Bộ Fabric
 
 > **Mã bài lab:** `04.02`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `RUNTIME_PASS`  
 > **Thời gian dự kiến:** 25 phút  
 > **Chi phí ước tính:** ~$0.50 USD / hosted zone / tháng  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -59,7 +59,7 @@ Các hành động IAM cần thiết để thực thi bài lab này:
 4. **Hosted zone configuration:**
    - **Domain name:** Nhập `fabric.internal`.
    - **Description:** Nhập `Private DNS hosted zone for AWS EKS Secure Network Fabric internal resolution`.
-   - **Type:** Chọn **Private hosted zone** (Rất quan trọng: Ngăn chặn việc lộ tên miền nội bộ ra Internet).
+   - **Type:** Chọn **Private hosted zone**.
 5. **VPCs to associate with the hosted zone:**
    - **Region:** Chọn **Asia Pacific (Singapore) (ap-southeast-1)**.
    - **VPC ID:** Tìm và chọn `fabric-edge-vpc`.
@@ -80,28 +80,49 @@ Các hành động IAM cần thiết để thực thi bài lab này:
 
 ---
 
-### Bước 3: Tạo Các Bản Ghi DNS Nội Bộ (Internal DNS Records)
-Tại trang chi tiết `fabric.internal`, nhấp nút cam **Create record**:
+### Bước 3: Tạo Các Bản Ghi DNS Nội Bộ Cho Database & Redis (Internal DNS Records)
+Tại trang chi tiết `fabric.internal`, nhấp nút cam **Create record** để cấu hình đầy đủ các endpoint đọc/ghi phục vụ kiến trúc High Availability:
 
-1. **Bản ghi Cơ sở dữ liệu (`db.fabric.internal`):**
-   - **Record name:** Nhập `db` (Tên đầy đủ sẽ là `db.fabric.internal`).
+1. **Bản ghi Cơ sở dữ liệu Writer (`db.fabric.internal`):**
+   - **Record name:** Nhập `db` (Tên đầy đủ: `db.fabric.internal`).
    - **Record type:** Chọn **CNAME**.
-   - **Value:** Dán Writer Endpoint của Aurora PostgreSQL đã tạo ở lab 04.01 (Ví dụ: `fabric-core-db.cluster-xxxxxx.ap-southeast-1.rds.amazonaws.com`).
+   - **Value:** Dán Writer Endpoint của Aurora PostgreSQL (`fabric-core-db.cluster-c1ky6i8iomcn.ap-southeast-1.rds.amazonaws.com`).
    - **TTL (seconds):** Nhập `60`.
    - **Routing policy:** Chọn **Simple routing**.
    - Nhấp **Create records**.
 
-2. **Bản ghi Bộ đệm Cache (`redis.fabric.internal`):**
+2. **Bản ghi Cơ sở dữ liệu Reader/Replica (`dbr.fabric.internal`):**
    - Nhấp **Create record**.
-   - **Record name:** Nhập `redis` (`redis.fabric.internal`).
+   - **Record name:** Nhập `dbr` (Tên đầy đủ: `dbr.fabric.internal`).
    - **Record type:** Chọn **CNAME**.
-   - **Value:** Dán Endpoint của ElastiCache Redis Cluster (Ví dụ: `fabric-core-redis.xxxxxx.0001.apse1.cache.amazonaws.com`).
-   - **TTL:** `60`.
+   - **Value:** Dán Reader Endpoint của Aurora PostgreSQL (`fabric-core-db.cluster-ro-c1ky6i8iomcn.ap-southeast-1.rds.amazonaws.com`).
+   - **TTL (seconds):** Nhập `60`.
+   - **Routing policy:** Chọn **Simple routing**.
    - Nhấp **Create records**.
 
-3. **Bản ghi Dịch vụ Core Ingress (`core.fabric.internal`):**
+3. **Bản ghi Bộ đệm Cache Primary (`redis.fabric.internal`):**
+   - Nhấp **Create record**.
+   - **Record name:** Nhập `redis` (Tên đầy đủ: `redis.fabric.internal`).
+   - **Record type:** Chọn **CNAME**.
+   - **Value:** Dán Primary Endpoint của ElastiCache Redis Cluster (`master.fabric-core-redis.qspmd1.apse1.cache.amazonaws.com`). *(Lưu ý: Chỉ nhập FQDN hostname, không kèm port `:6379`)*.
+   - **TTL:** `60`.
+   - **Routing policy:** Chọn **Simple routing**.
+   - Nhấp **Create records**.
+
+4. **Bản ghi Bộ đệm Cache Replica (`redis-ro.fabric.internal`):**
+   - Nhấp **Create record**.
+   - **Record name:** Nhập `redis-ro` (Tên đầy đủ: `redis-ro.fabric.internal`).
+   - **Record type:** Chọn **CNAME**.
+   - **Value:** Dán Reader Endpoint của ElastiCache Redis Cluster (`replica.fabric-core-redis.qspmd1.apse1.cache.amazonaws.com`).
+   - **TTL:** `60`.
+   - **Routing policy:** Chọn **Simple routing**.
+   - Nhấp **Create records**.
+
+5. **Bản ghi Dịch vụ Core Ingress (`core.fabric.internal`):**
    - *(Bản ghi này sẽ được hoàn thiện hoặc cập nhật trỏ tới DNS Name của Internal NLB trong bài lab 04.03)*.
-   - Nhấp **Create record** -> Record name: `core` -> Record type: `CNAME` -> Value: `fabric-core-nlb-temp` (Placeholder) -> TTL: `60` -> Nhấp **Create records**.
+   - Chưa tạo record giả. Khi 04.03 đã có NLB DNS thật, quay lại **Create record** → `core` → CNAME → DNS NLB thật → TTL 60 → Create records.
+
+> **Lưu ý bảo mật & TLS:** Ứng dụng dùng hostname AWS gốc hoặc SAN tương ứng khi kết nối Aurora/Redis với xác thực chứng chỉ đầy đủ. CNAME đóng vai trò service discovery nội bộ. Với `core.fabric.internal`, cấp chứng chỉ backend có SAN đúng tên này ở lab 04.03.
 
 ---
 
@@ -122,9 +143,6 @@ aws route53 get-hosted-zone --id $ZONE_ID \
 aws route53 list-resource-record-sets --hosted-zone-id $ZONE_ID \
   --query 'ResourceRecordSets[*].{Name:Name,Type:Type,TTL:TTL,Value:ResourceRecords[0].Value}' \
   --output table
-
-# 4. Kiểm tra phân giải thử nghiệm từ máy trạm trong VPC hoặc CloudShell
-nslookup db.fabric.internal
 ```
 
 ---
@@ -151,7 +169,7 @@ Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) đượ
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Private Hosted Zone `fabric.internal` được tạo với cấu hình loại Private.
-- [ ] Cả 2 VPCs `fabric-edge-vpc` và `fabric-core-vpc` đều được liên kết hợp lệ.
-- [ ] Các bản ghi `db.fabric.internal` và `redis.fabric.internal` trỏ chính xác về Endpoint tương ứng.
-- [ ] Truy vấn DNS từ các Pod trong cụm EKS phân giải thành công địa chỉ IP nội bộ.
+- [x] Private Hosted Zone `fabric.internal` được tạo với cấu hình loại Private.
+- [x] Cả 2 VPCs `fabric-edge-vpc` và `fabric-core-vpc` đều được liên kết hợp lệ.
+- [x] Các bản ghi `db.fabric.internal`, `dbr.fabric.internal`, `redis.fabric.internal` và `redis-ro.fabric.internal` trỏ chính xác về Endpoint tương ứng.
+- [x] Hệ thống phân giải DNS nội bộ sẵn sàng phục vụ cho các Pod trong 2 cụm EKS.

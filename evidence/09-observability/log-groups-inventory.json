@@ -1,0 +1,101 @@
+{
+    "value":  [
+                  {
+                      "logGroupName":  "/aws/network-firewall/fabric-egress-alerts",
+                      "creationTime":  1794080373618,
+                      "retentionInDays":  7,
+                      "metricFilterCount":  0,
+                      "arn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/network-firewall/fabric-egress-alerts:*",
+                      "storedBytes":  0,
+                      "logGroupClass":  "STANDARD",
+                      "logGroupArn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/network-firewall/fabric-egress-alerts",
+                      "deletionProtectionEnabled":  false,
+                      "bearerTokenAuthenticationEnabled":  false
+                  },
+                  {
+                      "logGroupName":  "/aws/network-firewall/fabric-egress-flows",
+                      "creationTime":  1794080381050,
+                      "retentionInDays":  7,
+                      "metricFilterCount":  0,
+                      "arn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/network-firewall/fabric-egress-flows:*",
+                      "storedBytes":  0,
+                      "logGroupClass":  "STANDARD",
+                      "logGroupArn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/network-firewall/fabric-egress-flows",
+                      "deletionProtectionEnabled":  false,
+                      "bearerTokenAuthenticationEnabled":  false
+                  },
+                  {
+                      "logGroupName":  "/aws/suricata/fabric-inspection-eve",
+                      "creationTime":  1794082437509,
+                      "retentionInDays":  7,
+                      "metricFilterCount":  0,
+                      "arn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/suricata/fabric-inspection-eve:*",
+                      "storedBytes":  0,
+                      "logGroupClass":  "STANDARD",
+                      "logGroupArn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/suricata/fabric-inspection-eve",
+                      "deletionProtectionEnabled":  false,
+                      "bearerTokenAuthenticationEnabled":  false
+                  },
+                  {
+                      "logGroupName":  "/aws/tgw/fabric-tgw-flow",
+                      "creationTime":  1794082416805,
+                      "retentionInDays":  7,
+                      "metricFilterCount":  0,
+                      "arn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/tgw/fabric-tgw-flow:*",
+                      "storedBytes":  0,
+                      "logGroupClass":  "STANDARD",
+                      "logGroupArn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/tgw/fabric-tgw-flow",
+                      "deletionProtectionEnabled":  false,
+                      "bearerTokenAuthenticationEnabled":  false
+                  },
+                  {
+                      "logGroupName":  "/aws/vpc/fabric-core-flow",
+                      "creationTime":  1794082395790,
+                      "retentionInDays":  7,
+                      "metricFilterCount":  0,
+                      "arn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/vpc/fabric-core-flow:*",
+                      "storedBytes":  0,
+                      "logGroupClass":  "STANDARD",
+                      "logGroupArn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/vpc/fabric-core-flow",
+                      "deletionProtectionEnabled":  false,
+                      "bearerTokenAuthenticationEnabled":  false
+                  },
+                  {
+                      "logGroupName":  "/aws/vpc/fabric-edge-flow",
+                      "creationTime":  1794082388898,
+                      "retentionInDays":  7,
+                      "metricFilterCount":  0,
+                      "arn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/vpc/fabric-edge-flow:*",
+                      "storedBytes":  0,
+                      "logGroupClass":  "STANDARD",
+                      "logGroupArn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/vpc/fabric-edge-flow",
+                      "deletionProtectionEnabled":  false,
+                      "bearerTokenAuthenticationEnabled":  false
+                  },
+                  {
+                      "logGroupName":  "/aws/vpc/fabric-egress-flow",
+                      "creationTime":  1794082409925,
+                      "retentionInDays":  7,
+                      "metricFilterCount":  0,
+                      "arn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/vpc/fabric-egress-flow:*",
+                      "storedBytes":  0,
+                      "logGroupClass":  "STANDARD",
+                      "logGroupArn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/vpc/fabric-egress-flow",
+                      "deletionProtectionEnabled":  false,
+                      "bearerTokenAuthenticationEnabled":  false
+                  },
+                  {
+                      "logGroupName":  "/aws/vpc/fabric-inspection-flow",
+                      "creationTime":  1794082402790,
+                      "retentionInDays":  7,
+                      "metricFilterCount":  0,
+                      "arn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/vpc/fabric-inspection-flow:*",
+                      "storedBytes":  0,
+                      "logGroupClass":  "STANDARD",
+                      "logGroupArn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/vpc/fabric-inspection-flow",
+                      "deletionProtectionEnabled":  false,
+                      "bearerTokenAuthenticationEnabled":  false
+                  }
+              ],
+    "Count":  8
+}

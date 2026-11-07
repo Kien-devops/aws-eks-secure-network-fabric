@@ -1,7 +1,7 @@
 # 11.01 — Thu Thập Bằng Chứng Kỹ Thuật Runtime Kèm Dấu Thời Gian (Timestamp)
 
 > **Mã bài lab:** `11.01`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `DRAFT`  
 > **Thời gian dự kiến:** 40 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  

@@ -1,7 +1,7 @@
 # 11.03 — Mẫu Báo Cáo Phân Tích Sự Cố Sau Diễn Tập (Incident Post-Mortem Report)
 
 > **Mã bài lab:** `11.03`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `DRAFT`  
 > **Thời gian dự kiến:** 35 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  

@@ -48,7 +48,7 @@ Các hành động IAM cần thiết để thực thi bài lab này:
 
 - **Chi phí:** 4 EC2 instances `t3.medium` (2 nodes cho Edge cluster, 2 nodes cho Core cluster) tiêu tốn ~$4.00 USD/ngày. Cần chú ý theo dõi ngân sách $50.00 USD.
 - **Cảnh báo Node Subnet Placement:** Các worker nodes **CHỈ ĐƯỢC PHÉP ĐẶT TRONG PRIVATE NODE SUBNETS** (`fabric-edge-nodes-1a/b` và `fabric-core-nodes-1a/b`). Tuyệt đối không chọn Public subnets, Data subnets hoặc TGW subnets.
-- **Cảnh báo AMI Type:** Khuyến nghị sử dụng **Amazon Linux 2023 (AL2023_x86_64_STANDARD)** là chuẩn AMI tối ưu hóa mới nhất của AWS cho EKS 1.31, hỗ trợ cgroups v2 và container runtime `containerd`.
+- **AMI Type:** Chọn **Amazon Linux 2023 (AL2023_x86_64_STANDARD)** tương thích EKS 1.37 và instance amd64; kiểm tra release/add-ons trước khi tạo hoặc nâng cấp. Không dùng AMI version cũ chỉ vì có trong ví dụ.
 
 ---
 
@@ -140,6 +140,15 @@ Quay lại trang chi tiết cụm `fabric-core-eks` -> Tab **Compute** -> Nhấp
 5. Đợi cho đến khi cả 2 Node Groups (`fabric-edge-ng-1` và `fabric-core-ng-1`) hiển thị trạng thái xanh **`Active`**.
 
 ---
+
+### Bước bổ sung: Nghỉ lab và tiếp tục
+
+1. Trước khi nghỉ, lưu scaling hiện tại của từng node group vào evidence phiên chạy, kiểm tra không còn tác vụ ghi dữ liệu.
+2. EKS → Cluster → Compute → Node group → Edit scaling configuration. Chỉ khi đã cho phép dừng workload: Minimum 0, Desired 0; giữ Maximum → Save.
+3. Trước bài 03.05, vào cùng màn hình, phục hồi Desired 2 và Minimum phù hợp phiên lab trên mỗi cluster; chờ EC2 khởi tạo.
+4. Resources → Nodes: kiểm tra node Ready ở hai AZ; Add-ons: CoreDNS/EBS CSI Active; Workloads → kube-system: các pod Running/Ready. Nếu thiếu capacity Spot, xem node group Health trước khi chọn phương án capacity khác.
+5. Scale 0 không dừng phí EKS control plane, endpoints hoặc TGW. Không biến kết quả nghỉ lab thành bằng chứng lỗi triển khai lịch sử.
+
 
 ## 5. Lệnh Kiểm Tra / CLI Verification (Zero Fake Data)
 

@@ -1,0 +1,48 @@
+{
+  "timestamp": "2026-11-08T02:33:55+07:00",
+  "region": "ap-southeast-1",
+  "module": "06-centralized-egress-firewall",
+  "lab": "06.01-nat-gateways-per-az",
+  "vpc_id": "vpc-0c1479727a5e38b4c",
+  "elastic_ips": [
+    {
+      "name": "fabric-nat-eip-1a",
+      "allocation_id": "eipalloc-07c6475acd36813d5",
+      "public_ip": "52.74.11.140",
+      "availability_zone": "ap-southeast-1a"
+    },
+    {
+      "name": "fabric-nat-eip-1b",
+      "allocation_id": "eipalloc-01475b66f2ccd93ec",
+      "public_ip": "54.151.239.60",
+      "availability_zone": "ap-southeast-1b"
+    }
+  ],
+  "nat_gateways": [
+    {
+      "name": "fabric-nat-gw-1a",
+      "nat_gateway_id": "nat-02df31dd744888594",
+      "state": "available",
+      "connectivity_type": "public",
+      "subnet_id": "subnet-0262d7eefa20689ed",
+      "subnet_name": "fabric-egress-public-1a",
+      "cidr_block": "10.80.10.0/24",
+      "availability_zone": "ap-southeast-1a",
+      "public_ip": "52.74.11.140",
+      "allocation_id": "eipalloc-07c6475acd36813d5"
+    },
+    {
+      "name": "fabric-nat-gw-1b",
+      "nat_gateway_id": "nat-048410a645ccfea3e",
+      "state": "available",
+      "connectivity_type": "public",
+      "subnet_id": "subnet-0ad99949d3dcf5d10",
+      "subnet_name": "fabric-egress-public-1b",
+      "cidr_block": "10.80.11.0/24",
+      "availability_zone": "ap-southeast-1b",
+      "public_ip": "54.151.239.60",
+      "allocation_id": "eipalloc-01475b66f2ccd93ec"
+    }
+  ]
+}
+

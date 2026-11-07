@@ -150,12 +150,12 @@ Nhằm bảo đảm tính đối xứng và không đi chéo Vùng sẵn sàng (
    - **Name:** Nhập `fabric-insp-tgw-rt-1a` (`rtb-0b04448561b80d486`) | **VPC:** Chọn `fabric-inspection-vpc`.
    - Nhấp **Create route table**.
    - Tab **Subnet associations**: Gán với `fabric-insp-tgw-1a` (`subnet-0e260eae20eea3ccb`).
-   - *(Lưu ý: Tuyến `0.0.0.0/0` trỏ tới `GWLBE-1a` sẽ được kích hoạt trong Module 05 khi GWLB Endpoint hoàn tất triển khai)*.
+   - Module 05 chỉ thêm `10.40.0.0/16` và `10.50.0.0/16` → GWLBe AZ-a; không default qua GWLB. Chưa có endpoint thì giữ fail-closed.
 2. **Tạo `fabric-insp-tgw-rt-1b` (Dành cho TGW ENI tại AZ-b):**
    - **Name:** Nhập `fabric-insp-tgw-rt-1b` (`rtb-026ce1b95a394d8c1`) | **VPC:** Chọn `fabric-inspection-vpc`.
    - Nhấp **Create route table**.
    - Tab **Subnet associations**: Gán với `fabric-insp-tgw-1b` (`subnet-0a1481ce7d8302538`).
-   - *(Lưu ý: Tuyến `0.0.0.0/0` trỏ tới `GWLBE-1b` sẽ được kích hoạt trong Module 05)*.
+   - Module 05 chỉ thêm hai Spoke CIDRs → GWLBe AZ-b; không default qua GWLB.
 3. **Tạo `fabric-insp-gwlbe-rt` (Bảng định tuyến cho GWLB Endpoints):**
    - **Name:** Nhập `fabric-insp-gwlbe-rt` (`rtb-0378f50d79f1ed01f`) | **VPC:** Chọn `fabric-inspection-vpc`.
    - Nhấp **Create route table**.
@@ -164,8 +164,8 @@ Nhằm bảo đảm tính đối xứng và không đi chéo Vùng sẵn sàng (
      - Tuyến 1: `10.70.0.0/16` -> Target: `local` (Mặc định).
      - Nhấp **Add route**: Destination: `10.40.0.0/16` -> Target: Chọn **Transit Gateway** -> Chọn `fabric-tgw`.
      - Nhấp **Add route**: Destination: `10.50.0.0/16` -> Target: Chọn **Transit Gateway** -> Chọn `fabric-tgw`.
-     - Nhấp **Add route**: Destination: `0.0.0.0/0` -> Target: Chọn **Transit Gateway** -> Chọn `fabric-tgw`.
-     - *(Lý do: Sau khi gói tin được giải mã và kiểm duyệt qua GWLB/Suricata, GWLB Endpoint sẽ chuyển tiếp gói tin quay trở lại TGW để tới Spoke đích hoặc Egress VPC)*.
+     - Không thêm default route tại bảng GWLBe theo MVP hiện tại. Default trong evidence cũ là trạng thái lịch sử, không cần cho luồng East-West.
+     - Sau giải đóng gói GENEVE và inspection, trả về Spoke đích; Internet egress đi trực tiếp Egress VPC, không qua bảng này.
      - Nhấp **Save changes**.
 4. **Tạo `fabric-insp-fw-rt` (Dành cho Subnet chứa máy chủ Suricata EC2):**
    - **Name:** Nhập `fabric-insp-fw-rt` (`rtb-00b06850e681ef0e6`) | **VPC:** Chọn `fabric-inspection-vpc`.
@@ -221,15 +221,14 @@ Tương tự Inspection VPC, các TGW Attachment subnets tại Egress VPC đư�
 | `fabric-core-data-rt` | `10.40.0.0/16` | `fabric-tgw` | **Module 02** | Phản hồi lưu lượng riêng tư tới Edge VPC (nếu có truy vấn DB trực tiếp) |
 | `fabric-insp-gwlbe-rt` | `10.40.0.0/16` | `fabric-tgw` | **Module 02** | Đẩy gói tin đã qua kiểm tra Suricata về Edge VPC qua TGW |
 | `fabric-insp-gwlbe-rt` | `10.50.0.0/16` | `fabric-tgw` | **Module 02** | Đẩy gói tin đã qua kiểm tra Suricata về Core VPC qua TGW |
-| `fabric-insp-gwlbe-rt` | `0.0.0.0/0` | `fabric-tgw` | **Module 02** | Đẩy gói tin outbound đã kiểm tra sang Egress VPC qua TGW |
 | `fabric-egress-public-rt` | `0.0.0.0/0` | `fabric-egress-igw` | **Module 02** | Đẩy lưu lượng từ NAT Gateway ra Internet |
 | `fabric-egress-public-rt` | `10.40.0.0/16` | `fabric-tgw` | **Module 02** | Đường về từ NAT Gateway trả về Edge VPC qua TGW |
 | `fabric-egress-public-rt` | `10.50.0.0/16` | `fabric-tgw` | **Module 02** | Đường về từ NAT Gateway trả về Core VPC qua TGW |
-| `fabric-insp-tgw-rt-1a` | `0.0.0.0/0` | GWLB Endpoint 1a (`vpce-*`) | *Module 05* | Bắt buộc lưu lượng TGW tại AZ-a đi vào GWLB Endpoint AZ-a |
-| `fabric-insp-tgw-rt-1b` | `0.0.0.0/0` | GWLB Endpoint 1b (`vpce-*`) | *Module 05* | Bắt buộc lưu lượng TGW tại AZ-b đi vào GWLB Endpoint AZ-b |
+| `fabric-insp-tgw-rt-1a` | `10.40.0.0/16`, `10.50.0.0/16` | GWLB Endpoint 1a (`vpce-*`) | *Module 05* | Chỉ East-West tới GWLBe AZ-a |
+| `fabric-insp-tgw-rt-1b` | `10.40.0.0/16`, `10.50.0.0/16` | GWLB Endpoint 1b (`vpce-*`) | *Module 05* | Chỉ East-West tới GWLBe AZ-b |
 | `fabric-egress-tgw-rt-1a` | `0.0.0.0/0` | Network Firewall Endpoint 1a (`vpce-*`) | *Module 06* | Bắt buộc lưu lượng từ TGW tại AZ-a đi vào NFW Endpoint AZ-a kiểm tra an ninh |
 | `fabric-egress-tgw-rt-1b` | `0.0.0.0/0` | Network Firewall Endpoint 1b (`vpce-*`) | *Module 06* | Bắt buộc lưu lượng từ TGW tại AZ-b đi vào NFW Endpoint AZ-b kiểm tra an ninh |
-| `fabric-egress-fw-rt` | `0.0.0.0/0` | NAT Gateway 1a/1b (`nat-*`) | *Module 06* | Chuyển tiếp lưu lượng sau kiểm tra an ninh ra NAT Gateway theo từng AZ |
+| `fabric-egress-fw-rt-1a/b` | `0.0.0.0/0` | NAT Gateway **cùng AZ** (`nat-*`) | *Module 06* | Hai bảng riêng, mỗi bảng một default route tới NAT cùng AZ |
 | `fabric-egress-fw-rt` | `10.40.0.0/16`, `10.50.0.0/16` | `fabric-tgw` | *Module 06* | Trả lưu lượng phản hồi từ NFW về Spoke VPC qua TGW |
 | `fabric-egress-public-rt` (Phase 06) | `10.40.0.0/16`, `10.50.0.0/16` | Network Firewall Endpoint (`vpce-*`) | *Module 06* | Lưu lượng phản hồi từ NAT Gateway bắt buộc qua NFW Endpoint trước khi về TGW |
 

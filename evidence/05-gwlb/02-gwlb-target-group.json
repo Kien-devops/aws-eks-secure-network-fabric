@@ -1,0 +1,69 @@
+{
+  "timestamp": "2026-11-08T02:20:50+07:00",
+  "region": "ap-southeast-1",
+  "module": "05-gwlb-suricata-ids-ips",
+  "lab": "05.02-gateway-load-balancer-and-target-group",
+  "gateway_load_balancer": {
+    "name": "fabric-gwlb",
+    "arn": "arn:aws:elasticloadbalancing:ap-southeast-1:123456789012:loadbalancer/gwy/fabric-gwlb/cd2eb9cff7c7d7fd",
+    "state": "active",
+    "type": "gateway",
+    "vpc_id": "vpc-0c94a30a1a915fc0f",
+    "subnets": [
+      {
+        "zone": "ap-southeast-1a",
+        "subnet_id": "subnet-0b743a1b6492b62ce",
+        "eni_id": "eni-0d2c86ef4964a813d",
+        "ip": "10.70.10.237"
+      },
+      {
+        "zone": "ap-southeast-1b",
+        "subnet_id": "subnet-00621165b37f9a04e",
+        "eni_id": "eni-094d063909f51f005",
+        "ip": "10.70.11.98"
+      }
+    ],
+    "attributes": {
+      "load_balancing.cross_zone.enabled": "false",
+      "deletion_protection.enabled": "false"
+    }
+  },
+  "target_group": {
+    "name": "fabric-suricata-tg",
+    "arn": "arn:aws:elasticloadbalancing:ap-southeast-1:123456789012:targetgroup/fabric-suricata-tg/001c164dc0b0afa208",
+    "protocol": "GENEVE",
+    "port": 6081,
+    "target_type": "instance",
+    "vpc_id": "vpc-0c94a30a1a915fc0f",
+    "health_check": {
+      "protocol": "TCP",
+      "port": "80",
+      "interval_seconds": 10,
+      "timeout_seconds": 5,
+      "healthy_threshold": 5,
+      "unhealthy_threshold": 2
+    },
+    "attributes": {
+      "target_failover.on_unhealthy": "no_rebalance",
+      "target_failover.on_deregistration": "no_rebalance",
+      "stickiness.type": "source_ip_dest_ip_proto"
+    }
+  },
+  "targets_health": [
+    {
+      "instance_id": "i-089127472b112deff",
+      "name": "fabric-suricata-1a",
+      "zone": "ap-southeast-1a",
+      "port": 6081,
+      "state": "healthy"
+    },
+    {
+      "instance_id": "i-091e84ae2b923eea2",
+      "name": "fabric-suricata-1b",
+      "zone": "ap-southeast-1b",
+      "port": 6081,
+      "state": "healthy"
+    }
+  ]
+}
+

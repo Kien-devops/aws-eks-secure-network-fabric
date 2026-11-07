@@ -1,7 +1,7 @@
 # 09.03 — Xây Dựng Thư Viện Truy Vấn CloudWatch Logs Insights Phân Tích Sự Cố Mạng
 
 > **Mã bài lab:** `09.03`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 35 phút  
 > **Chi phí ước tính:** ~$0.05 USD (Chi phí quét dữ liệu CloudWatch Insights)  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -213,7 +213,7 @@ Khi cần dọn dẹp các Saved Queries đã tạo:
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Tạo và lưu thành công 4 câu truy vấn Saved Queries trong CloudWatch Logs Insights.
-- [ ] Cú pháp truy vấn chuẩn xác, có tính năng gom nhóm thống kê (`stats count(*)`) và giới hạn số bản ghi (`limit`).
-- [ ] Lệnh CLI `describe-query-definitions` liệt kê đầy đủ 4 định nghĩa truy vấn.
-- [ ] Các truy vấn quét đúng log groups tương ứng của từng phân hệ (VPC, Suricata, Network Firewall, WAF).
+- [x] Tạo và lưu thành công 4 câu truy vấn Saved Queries trong CloudWatch Logs Insights.
+- [x] Cú pháp truy vấn chuẩn xác, có tính năng gom nhóm thống kê (`stats count(*)`) và giới hạn số bản ghi (`limit`).
+- [x] Lệnh CLI `describe-query-definitions` liệt kê đầy đủ 4 định nghĩa truy vấn.
+- [x] Các truy vấn quét đúng log groups tương ứng của từng phân hệ (VPC, Suricata, Network Firewall, WAF).

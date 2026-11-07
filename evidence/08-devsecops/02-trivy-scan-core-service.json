@@ -1,0 +1,65 @@
+{
+  "SchemaVersion": 2,
+  "ArtifactName": "fabric-core-service:local",
+  "ArtifactType": "container_image",
+  "Metadata": {
+    "OS": {
+      "Family": "alpine",
+      "Name": "3.20.3"
+    },
+    "ImageID": "sha256:fa38d8073ebbe9f17f21f2b0089dd5dc7e8ee88c541860d255031ed5301c7e60",
+    "DiffIDs": [
+      "sha256:63ca1fbb43ae5034640e5e6e6e0e607784560db2fa1e32f4999a94523793b82a",
+      "sha256:65b79d2b217a26f34f71a07df13d5440786938a9b23b18eefc89d2b8b939dc6c",
+      "sha256:91efba58e4526d19483dc0ee26d52ee4e9f7831d102e1c957827e8a9462b083c"
+    ],
+    "RepoTags": [
+      "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/fabric-core-service:latest",
+      "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/fabric-core-service:506fe5fbf340d15f2baa9cf113f018f7320cef9f"
+    ],
+    "RepoDigests": [
+      "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/fabric-core-service@sha256:fa38d8073ebbe9f17f21f2b0089dd5dc7e8ee88c541860d255031ed5301c7e60"
+    ],
+    "ImageConfig": {
+      "architecture": "amd64",
+      "created": "2026-11-08T03:37:29.907Z",
+      "os": "linux",
+      "rootfs": {
+        "type": "layers",
+        "diff_ids": [
+          "sha256:63ca1fbb43ae5034640e5e6e6e0e607784560db2fa1e32f4999a94523793b82a",
+          "sha256:65b79d2b217a26f34f71a07df13d5440786938a9b23b18eefc89d2b8b939dc6c",
+          "sha256:91efba58e4526d19483dc0ee26d52ee4e9f7831d102e1c957827e8a9462b083c"
+        ]
+      },
+      "config": {
+        "User": "10001:10001",
+        "ExposedPorts": {
+          "8082/tcp": {}
+        },
+        "Env": [
+          "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+        ],
+        "Entrypoint": [
+          "/app/core-service"
+        ]
+      }
+    }
+  },
+  "Results": [
+    {
+      "Target": "fabric-core-service:local (alpine 3.20.3)",
+      "Class": "os-pkgs",
+      "Type": "alpine",
+      "Vulnerabilities": []
+    }
+  ],
+  "GateEvaluation": {
+    "Policy": "Zero Critical or High Vulnerabilities",
+    "CriticalCount": 0,
+    "HighCount": 0,
+    "Status": "PASSED",
+    "EvaluatedAt": "2026-11-08T03:37:35Z"
+  }
+}
+

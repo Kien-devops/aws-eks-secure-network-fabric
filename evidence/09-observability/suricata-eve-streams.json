@@ -1,0 +1,44 @@
+{
+    "logStreams":  [
+                       {
+                           "logStreamName":  "i-091e84ae2b923eea2-daemon",
+                           "creationTime":  1794082707395,
+                           "firstEventTimestamp":  1794082702375,
+                           "lastEventTimestamp":  1794082702375,
+                           "lastIngestionTime":  1794082707580,
+                           "uploadSequenceToken":  "49039859692453405136405813977006526397405171237327447368",
+                           "arn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/suricata/fabric-inspection-eve:log-stream:i-091e84ae2b923eea2-daemon",
+                           "storedBytes":  0
+                       },
+                       {
+                           "logStreamName":  "i-089127472b112deff-daemon",
+                           "creationTime":  1794082707351,
+                           "firstEventTimestamp":  1794082702326,
+                           "lastEventTimestamp":  1794082702326,
+                           "lastIngestionTime":  1794082707466,
+                           "uploadSequenceToken":  "49039859692453404984873822457526117856986958056257463592",
+                           "arn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/suricata/fabric-inspection-eve:log-stream:i-089127472b112deff-daemon",
+                           "storedBytes":  0
+                       },
+                       {
+                           "logStreamName":  "i-091e84ae2b923eea2-eve",
+                           "creationTime":  1794082702438,
+                           "firstEventTimestamp":  1794078813393,
+                           "lastEventTimestamp":  1794079829445,
+                           "lastIngestionTime":  1794082702598,
+                           "uploadSequenceToken":  "49039859692453398514191938976555648963623793719329662394",
+                           "arn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/suricata/fabric-inspection-eve:log-stream:i-091e84ae2b923eea2-eve",
+                           "storedBytes":  0
+                       },
+                       {
+                           "logStreamName":  "i-089127472b112deff-eve",
+                           "creationTime":  1794082702395,
+                           "firstEventTimestamp":  1794078806187,
+                           "lastEventTimestamp":  1794079822239,
+                           "lastIngestionTime":  1794082702534,
+                           "uploadSequenceToken":  "49039859692453398429121347246321033450646179865120712042",
+                           "arn":  "arn:aws:logs:ap-southeast-1:123456789012:log-group:/aws/suricata/fabric-inspection-eve:log-stream:i-089127472b112deff-eve",
+                           "storedBytes":  0
+                       }
+                   ]
+}

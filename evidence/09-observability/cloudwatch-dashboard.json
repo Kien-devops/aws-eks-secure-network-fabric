@@ -1,0 +1,351 @@
+{
+    "widgets":  [
+                    {
+                        "width":  24,
+                        "properties":  {
+                                           "markdown":  "# AWS EKS Secure Network Fabric — Security \u0026 Observability Dashboard\n**Target Region:** \u0007p-southeast-1 (Singapore) | **Architecture:** Multi-VPC Inspection \u0026 Dual EKS Clusters | **Status:** Production Active"
+                                       },
+                        "y":  0,
+                        "type":  "text",
+                        "x":  0,
+                        "height":  2
+                    },
+                    {
+                        "width":  12,
+                        "properties":  {
+                                           "stacked":  false,
+                                           "region":  "ap-southeast-1",
+                                           "metrics":  [
+                                                           [
+                                                               "AWS/WAFV2",
+                                                               "BlockedRequests",
+                                                               "WebACL",
+                                                               "fabric-edge-web-acl",
+                                                               "Region",
+                                                               "ap-southeast-1",
+                                                               "Rule",
+                                                               "ALL",
+                                                               {
+                                                                   "stat":  "Sum",
+                                                                   "color":  "#d13212"
+                                                               }
+                                                           ],
+                                                           [
+                                                               "AWS/WAFV2",
+                                                               "AllowedRequests",
+                                                               "WebACL",
+                                                               "fabric-edge-web-acl",
+                                                               "Region",
+                                                               "ap-southeast-1",
+                                                               "Rule",
+                                                               "ALL",
+                                                               {
+                                                                   "stat":  "Sum",
+                                                                   "color":  "#1b8a1c"
+                                                               }
+                                                           ],
+                                                           [
+                                                               "AWS/WAFV2",
+                                                               "CountedRequests",
+                                                               "WebACL",
+                                                               "fabric-edge-web-acl",
+                                                               "Region",
+                                                               "ap-southeast-1",
+                                                               "Rule",
+                                                               "ALL",
+                                                               {
+                                                                   "stat":  "Sum",
+                                                                   "color":  "#ff9900"
+                                                               }
+                                                           ]
+                                                       ],
+                                           "period":  60,
+                                           "title":  "AWS WAF: Blocked vs Allowed vs Counted Requests",
+                                           "view":  "timeSeries"
+                                       },
+                        "y":  2,
+                        "type":  "metric",
+                        "x":  0,
+                        "height":  6
+                    },
+                    {
+                        "width":  12,
+                        "properties":  {
+                                           "region":  "ap-southeast-1",
+                                           "title":  "WAF Top Blocked IPs \u0026 Matched Rules (Logs Insights)",
+                                           "query":  "SOURCE \u0027aws-waf-logs-fabric-edge-waf\u0027 | fields @timestamp, httpRequest.clientIp, action, terminatingRuleId, httpRequest.uri | filter @message like /BLOCK/ | limit 20",
+                                           "view":  "table"
+                                       },
+                        "y":  2,
+                        "type":  "log",
+                        "x":  12,
+                        "height":  6
+                    },
+                    {
+                        "width":  12,
+                        "properties":  {
+                                           "region":  "ap-southeast-1",
+                                           "title":  "Edge Public ALB: Target Response Time \u0026 Request Count",
+                                           "view":  "timeSeries",
+                                           "metrics":  [
+                                                           [
+                                                               "AWS/ApplicationELB",
+                                                               "RequestCount",
+                                                               "LoadBalancer",
+                                                               "app/fabric-edge-public-alb/61108d1397d1c55c",
+                                                               {
+                                                                   "color":  "#1f77b4",
+                                                                   "yAxis":  "left",
+                                                                   "stat":  "Sum"
+                                                               }
+                                                           ],
+                                                           [
+                                                               "AWS/ApplicationELB",
+                                                               "TargetResponseTime",
+                                                               "LoadBalancer",
+                                                               "app/fabric-edge-public-alb/61108d1397d1c55c",
+                                                               {
+                                                                   "color":  "#ff7f0e",
+                                                                   "yAxis":  "right",
+                                                                   "stat":  "Average"
+                                                               }
+                                                           ]
+                                                       ],
+                                           "period":  60
+                                       },
+                        "y":  8,
+                        "type":  "metric",
+                        "x":  0,
+                        "height":  6
+                    },
+                    {
+                        "width":  12,
+                        "properties":  {
+                                           "stacked":  true,
+                                           "region":  "ap-southeast-1",
+                                           "metrics":  [
+                                                           [
+                                                               "AWS/ApplicationELB",
+                                                               "HTTPCode_Target_2XX_Count",
+                                                               "LoadBalancer",
+                                                               "app/fabric-edge-public-alb/61108d1397d1c55c",
+                                                               {
+                                                                   "stat":  "Sum",
+                                                                   "color":  "#2ca02c"
+                                                               }
+                                                           ],
+                                                           [
+                                                               "AWS/ApplicationELB",
+                                                               "HTTPCode_Target_4XX_Count",
+                                                               "LoadBalancer",
+                                                               "app/fabric-edge-public-alb/61108d1397d1c55c",
+                                                               {
+                                                                   "stat":  "Sum",
+                                                                   "color":  "#ffbb78"
+                                                               }
+                                                           ],
+                                                           [
+                                                               "AWS/ApplicationELB",
+                                                               "HTTPCode_Target_5XX_Count",
+                                                               "LoadBalancer",
+                                                               "app/fabric-edge-public-alb/61108d1397d1c55c",
+                                                               {
+                                                                   "stat":  "Sum",
+                                                                   "color":  "#d62728"
+                                                               }
+                                                           ],
+                                                           [
+                                                               "AWS/ApplicationELB",
+                                                               "HTTPCode_ELB_4XX_Count",
+                                                               "LoadBalancer",
+                                                               "app/fabric-edge-public-alb/61108d1397d1c55c",
+                                                               {
+                                                                   "stat":  "Sum",
+                                                                   "color":  "#e377c2"
+                                                               }
+                                                           ],
+                                                           [
+                                                               "AWS/ApplicationELB",
+                                                               "HTTPCode_ELB_5XX_Count",
+                                                               "LoadBalancer",
+                                                               "app/fabric-edge-public-alb/61108d1397d1c55c",
+                                                               {
+                                                                   "stat":  "Sum",
+                                                                   "color":  "#8c564b"
+                                                               }
+                                                           ]
+                                                       ],
+                                           "period":  60,
+                                           "title":  "Edge Public ALB: HTTP Status Codes",
+                                           "view":  "timeSeries"
+                                       },
+                        "y":  8,
+                        "type":  "metric",
+                        "x":  12,
+                        "height":  6
+                    },
+                    {
+                        "width":  12,
+                        "properties":  {
+                                           "region":  "ap-southeast-1",
+                                           "title":  "Suricata Inspection: Inter-Cluster TLS \u0026 Flow Telemetry",
+                                           "query":  "SOURCE \u0027/aws/suricata/fabric-inspection-eve\u0027 | fields @timestamp, src_ip, src_port, dest_ip, dest_port, proto, event_type, tls.sni | filter event_type != \u0027stats\u0027 | sort @timestamp desc | limit 25",
+                                           "view":  "table"
+                                       },
+                        "y":  14,
+                        "type":  "log",
+                        "x":  0,
+                        "height":  6
+                    },
+                    {
+                        "width":  12,
+                        "properties":  {
+                                           "region":  "ap-southeast-1",
+                                           "title":  "Inspection GWLB: Active Flows \u0026 Packet Counters",
+                                           "view":  "timeSeries",
+                                           "metrics":  [
+                                                           [
+                                                               "AWS/GatewayELB",
+                                                               "ActiveFlowCount",
+                                                               "LoadBalancer",
+                                                               "gwy/fabric-gwlb/cd2eb9cff7c7d7fd",
+                                                               {
+                                                                   "color":  "#1f77b4",
+                                                                   "yAxis":  "left",
+                                                                   "stat":  "Average"
+                                                               }
+                                                           ],
+                                                           [
+                                                               "AWS/GatewayELB",
+                                                               "PacketsIn",
+                                                               "LoadBalancer",
+                                                               "gwy/fabric-gwlb/cd2eb9cff7c7d7fd",
+                                                               {
+                                                                   "color":  "#2ca02c",
+                                                                   "yAxis":  "right",
+                                                                   "stat":  "Sum"
+                                                               }
+                                                           ],
+                                                           [
+                                                               "AWS/GatewayELB",
+                                                               "PacketsOut",
+                                                               "LoadBalancer",
+                                                               "gwy/fabric-gwlb/cd2eb9cff7c7d7fd",
+                                                               {
+                                                                   "color":  "#9467bd",
+                                                                   "yAxis":  "right",
+                                                                   "stat":  "Sum"
+                                                               }
+                                                           ]
+                                                       ],
+                                           "period":  60
+                                       },
+                        "y":  14,
+                        "type":  "metric",
+                        "x":  12,
+                        "height":  6
+                    },
+                    {
+                        "width":  12,
+                        "properties":  {
+                                           "region":  "ap-southeast-1",
+                                           "title":  "Centralized NAT Gateways: Active Connections \u0026 Bytes Out",
+                                           "view":  "timeSeries",
+                                           "metrics":  [
+                                                           [
+                                                               "AWS/NATGateway",
+                                                               "ActiveConnectionCount",
+                                                               "NatGatewayId",
+                                                               "nat-02df31dd744888594",
+                                                               {
+                                                                   "stat":  "Average",
+                                                                   "label":  "NAT-1a Connections"
+                                                               }
+                                                           ],
+                                                           [
+                                                               "AWS/NATGateway",
+                                                               "ActiveConnectionCount",
+                                                               "NatGatewayId",
+                                                               "nat-048410a645ccfea3e",
+                                                               {
+                                                                   "stat":  "Average",
+                                                                   "label":  "NAT-1b Connections"
+                                                               }
+                                                           ],
+                                                           [
+                                                               "AWS/NATGateway",
+                                                               "BytesOutToDestination",
+                                                               "NatGatewayId",
+                                                               "nat-02df31dd744888594",
+                                                               {
+                                                                   "label":  "NAT-1a BytesOut",
+                                                                   "yAxis":  "right",
+                                                                   "stat":  "Sum"
+                                                               }
+                                                           ],
+                                                           [
+                                                               "AWS/NATGateway",
+                                                               "BytesOutToDestination",
+                                                               "NatGatewayId",
+                                                               "nat-048410a645ccfea3e",
+                                                               {
+                                                                   "label":  "NAT-1b BytesOut",
+                                                                   "yAxis":  "right",
+                                                                   "stat":  "Sum"
+                                                               }
+                                                           ]
+                                                       ],
+                                           "period":  60
+                                       },
+                        "y":  20,
+                        "type":  "metric",
+                        "x":  0,
+                        "height":  6
+                    },
+                    {
+                        "width":  12,
+                        "properties":  {
+                                           "region":  "ap-southeast-1",
+                                           "title":  "Core Internal NLB: Active Flows \u0026 Target Resets",
+                                           "view":  "timeSeries",
+                                           "metrics":  [
+                                                           [
+                                                               "AWS/NetworkELB",
+                                                               "ActiveFlowCount",
+                                                               "LoadBalancer",
+                                                               "net/fabric-core-internal-nlb/9d3c5071961df516",
+                                                               {
+                                                                   "stat":  "Average",
+                                                                   "color":  "#1f77b4"
+                                                               }
+                                                           ],
+                                                           [
+                                                               "AWS/NetworkELB",
+                                                               "TCP_Target_Reset_Count",
+                                                               "LoadBalancer",
+                                                               "net/fabric-core-internal-nlb/9d3c5071961df516",
+                                                               {
+                                                                   "stat":  "Sum",
+                                                                   "color":  "#d62728"
+                                                               }
+                                                           ],
+                                                           [
+                                                               "AWS/NetworkELB",
+                                                               "TCP_Client_Reset_Count",
+                                                               "LoadBalancer",
+                                                               "net/fabric-core-internal-nlb/9d3c5071961df516",
+                                                               {
+                                                                   "stat":  "Sum",
+                                                                   "color":  "#ff7f0e"
+                                                               }
+                                                           ]
+                                                       ],
+                                           "period":  60
+                                       },
+                        "y":  20,
+                        "type":  "metric",
+                        "x":  12,
+                        "height":  6
+                    }
+                ]
+}

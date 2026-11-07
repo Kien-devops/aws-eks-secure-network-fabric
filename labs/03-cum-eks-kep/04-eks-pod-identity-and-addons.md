@@ -82,7 +82,7 @@ EKS Pod Identity yêu cầu Trust Relationship cấp phép cho `pods.eks.amazona
    ```
 3. Nhấp **Next**.
 4. **Tạo Role 1 — AWS Load Balancer Controller (`fabric-aws-lb-controller-role`):**
-   - Đính kèm AWS Managed Policy: `AWSLoadBalancerControllerIAMPolicy` (hoặc tạo inline policy với quyền ELBv2, WAFv2).
+   - Tạo customer-managed policy từ `iam_policy.json` của đúng release AWS Load Balancer Controller đã ghim; tài liệu upstream: https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/deploy/installation/. Trong IAM → Policies → Create policy → JSON, dán policy upstream đã review → Next → đặt tên `AWSLoadBalancerControllerIAMPolicy` → Create policy; quay lại role và attach. Đây không phải AWS-managed policy.
    - Đặt tên role: `fabric-aws-lb-controller-role`.
    - Nhấp **Create role**.
 
@@ -116,9 +116,7 @@ Tại tab **Add-ons** của từng cụm (`fabric-edge-eks` và `fabric-core-eks
    - Tại mục **Configuration values**, dán cấu hình JSON để kích hoạt tính năng NetworkPolicy tích hợp:
      ```json
      {
-       "env": {
-         "ENABLE_NETWORK_POLICY": "true"
-       }
+       "enableNetworkPolicy": "true"
      }
      ```
    - Nhấp **Next** -> Nhấp **Create**.
@@ -153,6 +151,14 @@ Tại tab **Add-ons** của từng cụm (`fabric-edge-eks` và `fabric-core-eks
    - Nhấp **Create**.
 
 ---
+
+### Bước 5: Hoàn thiện associations trên cả hai cluster
+
+1. EKS → `fabric-core-eks` → Access → Pod Identity associations → Create: role `fabric-aws-lb-controller-role`, namespace `kube-system`, service account `aws-load-balancer-controller` → Create.
+2. EKS → `fabric-edge-eks` → Access → Create association: role `fabric-ebs-csi-driver-role`, namespace `kube-system`, service account `ebs-csi-controller-sa` → Create, nếu chưa có.
+3. Kiểm tra mỗi cluster có hai associations. Association không tự tạo ServiceAccount/Deployment; controller được cài ở 04.03/07.03. Không ghi association mới vào báo cáo lịch sử bên dưới.
+4. Add-ons → VPC CNI → Edit → Advanced configuration → giữ `{"enableNetworkPolicy":"true"}`; kiểm tra schema phiên bản hỗ trợ trước Save. Không sửa DaemonSet thủ công vì managed add-on có thể ghi đè.
+
 
 ## 5. Lệnh Kiểm Tra / CLI Verification (Zero Fake Data)
 

@@ -1,7 +1,7 @@
 # 10.03 — GameDay Kịch Bản 3: Tắt Cưỡng Bức Máy Chủ Tường Lửa (Suricata Appliance Failover)
 
 > **Mã bài lab:** `10.03`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
+> **Trạng thái:** `DRAFT`  
 > **Thời gian dự kiến:** 45 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -46,7 +46,7 @@ Các hành động IAM cần thiết để thực hiện dừng máy chủ EC2 v
 ## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
 
 - **Chi phí:** Thao tác dừng và khởi động lại máy chủ EC2 kiểm thử không làm tăng chi phí ($0.00 USD).
-- **Cơ chế Health Check Failover:** Gateway Load Balancer sử dụng kiểm tra sức khỏe TCP port 80 (hoặc HTTP/GENEVE health check) với chu kỳ mặc định: Interval = 5 giây, Healthy threshold = 3, Unhealthy threshold = 3. Khi một node bị sự cố, GWLB cần khoảng 10 - 15 giây để xác định target `unhealthy` và tự động điều phối lại các luồng gói tin mới sang node còn lại.
+- **Cơ chế:** dùng đúng HTTP port 80, interval 10s, thresholds 2, timeout 5s ở 05.02; bật GWLB cross-zone. Ghi target failover attributes. Mặc định phiên cũ không rebalance; đo kết nối mới riêng. Không cam kết MTTR từ health interval.
 
 ---
 
@@ -59,8 +59,8 @@ Các hành động IAM cần thiết để thực hiện dừng máy chủ EC2 v
 4. Nhấp vào tên Target Group: `fabric-suricata-tg`.
 5. Chọn tab **Targets**:
    - Xác nhận có 2 targets đang đăng ký:
-     - `fabric-suricata-1a` (`10.30.20.10`): Health status = **`healthy`**
-     - `fabric-suricata-1b` (`10.30.20.20`): Health status = **`healthy`**
+     - `fabric-suricata-1a`: IP thật thuộc `10.70.10.0/24`, healthy.
+     - `fabric-suricata-1b`: IP thật thuộc `10.70.11.0/24`, healthy.
 
 ---
 
@@ -68,10 +68,10 @@ Các hành động IAM cần thiết để thực hiện dừng máy chủ EC2 v
 Từ máy trạm quản trị hoặc từ một Pod trong Edge EKS, chạy vòng lặp gửi HTTP requests liên tục (tần suất ~5 requests/giây) để quan sát tỷ lệ mất gói:
 
 ```bash
-kubectl exec -it deploy/frontend -n default -- bash -c '
+kubectl exec deploy/frontend -n fabric-apps --context fabric-edge -- sh -c '
 while true; do
   ts=$(date +"%H:%M:%S")
-  code=$(curl -m 2 -s -o /dev/null -w "%{http_code}" https://order.internal.fabric/health || echo "ERR")
+  code=$(curl --cacert /etc/fabric-ca/ca.crt -m 2 -s -o /dev/null -w "%{http_code}" https://core.fabric.internal/health || echo "ERR")
   echo "[$ts] HTTP Status: $code"
   sleep 0.2
 done'
@@ -93,17 +93,16 @@ done'
 ### Bước 4: Quan Sát Quá Trình GWLB Phát Hiện & Chuyển Vùng Dự Phòng (Failover Analysis)
 1. Quay lại trang **EC2 Console** -> **Target Groups** -> Chọn `fabric-suricata-tg` -> Tab **Targets**.
 2. Nhấp nút biểu tượng làm mới (Refresh) liên tục mỗi 2 giây:
-   - Trong khoảng 10 giây đầu: Trạng thái của node 1a vẫn hiển thị `healthy` hoặc chuyển sang `unused`.
-   - Đến giây thứ 12 - 15: Trạng thái của `fabric-suricata-1a` chính thức chuyển sang màu đỏ: **`unhealthy`** (Lý do: *Target.FailedHealthChecks*).
+   - Ghi timestamp từng lần đổi trạng thái target; không giả định mốc 10 giây hay trạng thái `unused`. Dùng kết nối mới để đo failover, phiên cũ đo riêng.
+   - Ghi thời điểm đầu quan sát unhealthy và reason thực tế; không dự đoán cố định giây thứ 12–15.
 3. **Ghi lại mốc thời gian phát hiện của GWLB:** **$T_{detect}$**.
 4. **Quan sát terminal gửi lưu lượng:**
    - Trong khoảng cửa sổ 10 - 15 giây khi node 1a vừa sập, một số requests thuộc luồng cũ đi qua AZ-a sẽ nhận mã `ERR` (gián đoạn tạm thời).
-   - Ngay sau khi GWLB đánh dấu node 1a là `unhealthy`, toàn bộ lưu lượng mới được chuyển hướng 100% sang `fabric-suricata-1b` tại AZ-b.
+   - Với cross-zone enabled, kiểm tra **kết nối mới** chuyển sang 1b bằng capture/EVE. Phiên TCP đã tồn tại có thể đứt; không coi GWLB đồng bộ state Suricata.
    - Luồng log trên terminal lập tức phục hồi và trả về đều đặn `HTTP Status: 200`.
 5. **Ghi lại mốc thời gian phục hồi hoàn toàn:** **$T_{recover}$**.
 6. **Tính toán chỉ số phục hồi:**
-   - Thời gian phát hiện (Detection Time): $T_{detect} - T_{fault} \approx 12 - 15$ giây.
-   - Thời gian phục hồi dịch vụ (MTTR): $T_{recover} - T_{fault} \approx 15 - 20$ giây.
+   - Detection Time = $T_{detect} - T_{fault}$; MTTR = $T_{recover} - T_{fault}$. Điền số đo và số mẫu sau thử, không điền trước.
 
 ---
 
@@ -161,6 +160,8 @@ SURICATA_1A_ID=$(aws ec2 describe-instances \
 aws ec2 start-instances --region ap-southeast-1 --instance-ids "$SURICATA_1A_ID"
 ```
 
+Chờ EC2 status checks và SSM Online. Session Manager → kiểm tra `sudo systemctl status fabric-suricata gwlb-handler`, NFQUEUE/routing hooks. Nếu đã dừng service, khởi động lại **cả hai** bằng `sudo systemctl restart fabric-suricata gwlb-handler`; chờ target healthy rồi chạy controls. Không coi StartInstances thành công là traffic đã phục hồi.
+
 ---
 
 ## 7. Đường Dẫn Bằng Chứng (Expected Evidence Path)
@@ -174,6 +175,6 @@ aws ec2 start-instances --region ap-southeast-1 --instance-ids "$SURICATA_1A_ID"
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
 - [ ] Thực hiện tắt máy chủ `fabric-suricata-1a` thành công và ghi nhận chính xác mốc $T_{fault}$.
-- [ ] GWLB phát hiện và chuyển trạng thái node sang `unhealthy` trong vòng 15 giây.
-- [ ] Lưu lượng ứng dụng tự động chuyển hướng sang node `1b` và tự phục hồi (MTTR < 25 giây).
+- [ ] Đo thời gian unhealthy, ghi health config và cross-zone attributes.
+- [ ] Kết nối mới phục hồi qua node 1b; báo MTTR thực, số lỗi và ảnh hưởng phiên cũ, không ép dưới 25 giây.
 - [ ] Khởi động lại node `1a` thành công; GWLB tự động khôi phục trạng thái `healthy` cho cả 2 targets.

@@ -1,257 +1,118 @@
-# 12.02 — Kiểm Kê Tồn Dư Tự Động & Chứng Minh Hóa Đơn Chi Phí Về Đúng $0.00
+# 12.02 — Kiểm Kê Tồn Dư Và Đối Soát Chi Phí Sau Cleanup
 
 > **Mã bài lab:** `12.02`  
-> **Trạng thái:** `READY FOR IMPLEMENTATION`  
-> **Thời gian dự kiến:** 30 phút  
-> **Chi phí ước tính:** $0.00 USD  
-> **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
-
----
+> **Trạng thái:** `DRAFT`  
+> **Thời gian dự kiến:** 45 phút, đối soát billing bổ sung khi dữ liệu cập nhật  
+> **Chi phí ước tính:** phụ thuộc tài nguyên retained và truy vấn billing/logs  
+> **Vùng áp dụng:** `ap-southeast-1` (Singapore)
 
 ## 1. Tiền đề (Prerequisites)
 
-- Đã thực thi hoàn tất quy trình hủy tài nguyên 6 tầng theo thứ tự phụ thuộc ngược tại [Lab 12.01](01-reverse-dependency-teardown.md).
-- Có quyền đọc (Read-only / Describe) toàn diện trên mọi dịch vụ AWS tại Region Singapore (`ap-southeast-1`).
-- Đang mở phiên AWS Management Console.
-
----
+- Hoàn tất [12.01](01-reverse-dependency-teardown.md), lưu inventory IDs, tags, tài nguyên dùng chung, snapshots và dữ liệu cần giữ.
+- Có quyền đọc các dịch vụ cần kiểm kê, quyền Cost Explorer và Billing phù hợp. AccessDenied là **chưa kiểm tra được**, không phải số lượng 0.
+- Đây là kiểm tra chỉ đọc. Không xóa tài nguyên ngoài dự án để đạt số 0 toàn tài khoản.
 
 ## 2. Quyền IAM Yêu Cầu (Required IAM Permissions)
 
-Các quyền IAM kiểm tra trạng thái tồn dư tài nguyên (Read-Only Audit):
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "ec2:DescribeInstances",
-        "ec2:DescribeVpcs",
-        "ec2:DescribeSubnets",
-        "ec2:DescribeNatGateways",
-        "ec2:DescribeAddresses",
-        "ec2:DescribeNetworkInterfaces",
-        "ec2:DescribeTransitGateways",
-        "ec2:DescribeTransitGatewayVpcAttachments",
-        "ec2:DescribeVpcEndpoints",
-        "elasticloadbalancing:DescribeLoadBalancers",
-        "elasticloadbalancing:DescribeTargetGroups",
-        "eks:ListClusters",
-        "rds:DescribeDBClusters",
-        "elasticache:DescribeServerlessCaches",
-        "elasticache:DescribeCacheClusters",
-        "network-firewall:ListFirewalls",
-        "wafv2:ListWebACLs"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
-
----
+Role audit cần EC2/VPC Describe, ELB Describe, EKS List/Describe, RDS Describe (instances/clusters/snapshots), ElastiCache Describe (replication groups/snapshots), Network Firewall List/Describe, WAF List/Get, SQS List/GetQueueAttributes, Route 53 List/Get, Logs Describe, ECR Describe/List, S3 List/GetBucketLocation, Secrets Manager List/Describe, KMS List/Describe, IAM List/Get và `ce:GetCostAndUsage`. Giới hạn resource/account khi API hỗ trợ; SCP, permission boundary và billing access vẫn áp dụng. Không cấp quyền xóa cho role kiểm kê.
 
 ## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
 
-- **Chi phí:** $0.00 USD.
-- **Rủi Ro Chi Phí Ẩn (Orphaned Billable Resources):**
-  - Trong điện toán đám mây AWS, có những tài nguyên tính phí âm thầm hàng giờ ngay cả khi không có lưu lượng, tiêu biểu:
-    - **Elastic IP không gắn vào máy chủ:** Tính phí ~$0.005/giờ.
-    - **NAT Gateway ở trạng thái available:** Tính phí ~$0.059/giờ.
-    - **TGW VPC Attachment còn tồn tại:** Tính phí $0.05/giờ/attachment.
-    - **Network Firewall Endpoint:** Tính phí $0.065/giờ/endpoint.
-    - **EKS Cluster chưa xóa:** Tính phí $0.10/giờ/cluster.
-  - Bài lab này cung cấp bằng chứng pháp lý và kỹ thuật đảm bảo **100% tài nguyên tính phí theo giờ đã biến mất**, đưa chi phí duy trì về chính xác **$0.00 USD/giờ**.
-
----
+- Xóa VPC không xóa snapshots, EBS retained, logs, ECR images, S3, Secrets Manager hoặc khóa KMS. EC2 stopped vẫn có thể tốn EBS; EKS node count 0 vẫn tốn control plane.
+- NAT, Network Firewall, interface endpoints, public IPv4, TGW attachments và hosted zones có thể tiếp tục tính phí khi không có traffic. Tra giá Singapore hiện hành trên trang pricing từng dịch vụ; không dùng đơn giá cố định để kết luận hóa đơn.
+- Billing có độ trễ; chi phí tháng đã phát sinh không trở về $0 sau cleanup. Không chứng nhận chi phí tương lai chính xác $0 từ một lần kiểm kê.
 
 ## 4. Các Bước Thực Hiện Chi Tiết Trên Console (Console Walkthrough)
 
-### Bước 1: Rà Soát Dịch Vụ Amazon EC2 & Mạng
-1. Mở **EC2 Console** tại Region Singapore (`ap-southeast-1`).
-2. **Kiểm tra Instances:**
-   - Menu **Instances** -> Kiểm tra bộ lọc `Instance state = running`.
-   - Xác nhận: **Không có máy chủ ảo nào đang chạy** liên quan đến `fabric-`.
-3. **Kiểm tra Elastic IPs:**
-   - Menu **Elastic IPs** -> Xác nhận: Danh sách hoàn toàn rỗng (`No Elastic IPs found`).
-4. **Kiểm tra Load Balancers:**
-   - Menu **Load Balancers** -> Xác nhận: Không còn bất kỳ Load Balancer nào (`fabric-edge-alb`, `fabric-core-internal-nlb`, `fabric-gwlb`).
-5. **Kiểm tra Network Interfaces (ENI):**
-   - Menu **Network Interfaces** -> Lọc theo từ khóa `fabric-`.
-   - Xác nhận: Không còn ENI nào bị kẹt.
+### Bước 1: Chốt Phạm Vi Kiểm Kê
 
----
+1. Đăng nhập Console → kiểm tra account/role → chọn Singapore.
+2. Mở inventory trước cleanup; lập bảng gồm service, resource ID, region, ownership, trạng thái mong đợi, trạng thái thực tế, timestamp và evidence.
+3. Dùng `Project=aws-eks-secure-network-fabric` để tìm ứng viên, đối chiếu IDs. Tag thiếu hoặc tên trùng phải kiểm tra ownership; tag-only không đủ chứng minh sạch.
+4. Với dịch vụ global như IAM/Route 53, kiểm tra đúng resource của dự án; không giới hạn bằng bộ lọc region rồi bỏ sót.
 
-### Bước 2: Rà Soát Dịch Vụ Amazon VPC
-1. Mở **VPC Console** tại Singapore (`ap-southeast-1`).
-2. **Kiểm tra Your VPCs:**
-   - Xác nhận: Chỉ có duy nhất Default VPC của tài khoản. 4 VPCs dự án đã biến mất.
-3. **Kiểm tra NAT Gateways:**
-   - Menu **NAT gateways** -> Lọc trạng thái `available`.
-   - Xác nhận: 0 NAT Gateways ở trạng thái available (chỉ có thể hiển thị trạng thái `deleted`).
-4. **Kiểm tra Transit Gateways:**
-   - Menu **Transit gateways** -> Xác nhận: 0 TGW ở trạng thái available.
-5. **Kiểm tra Endpoints:**
-   - Menu **Endpoints** -> Xác nhận: Không còn VPC Endpoints hoặc GWLB Endpoints nào.
+### Bước 2: EC2, Storage Và Load Balancers
 
----
+1. EC2 → Instances → bỏ bộ lọc chỉ running → kiểm tra mọi instance ID của lab. `terminated` chấp nhận; stopped/stopping vẫn cần xử lý hoặc ghi retained.
+2. EC2 → Volumes → lọc VPC/node/instance inventory và tags; kiểm tra volume detached, reclaim Retain, volume từ appliance. Ghi size, encryption key, lý do giữ và ngày xử lý.
+3. EC2 → Snapshots → Owned by me → tìm snapshots dự án; kiểm tra cả AMIs tự tạo và snapshots gắn AMI. Snapshot giữ lại phải có owner/expiry/cost estimate.
+4. Elastic IPs → đối chiếu allocation IDs NAT/appliance; không còn public IPv4 allocations của lab ngoài phần được duyệt giữ.
+5. Load Balancers/Target Groups → đối chiếu ALB, NLB, GWLB và groups controller tạo. Không còn LB không đồng nghĩa target groups đã sạch.
+6. Network Interfaces → lọc **từng VPC ID** và subnet ID trước cleanup, xem Description/Requester managed/owner. ENI chưa xóa: ghi service chủ quản và trạng thái; không tự detach/delete managed ENI.
 
-### Bước 3: Rà Soát Amazon EKS, CSDL & Tường Lửa
-1. **Amazon EKS:**
-   - Mở **EKS Console** -> **Clusters** -> Xác nhận: Danh sách hiển thị `0 clusters`.
-2. **Amazon RDS:**
-   - Mở **RDS Console** -> **Databases** -> Xác nhận: Không còn cụm Aurora DB `fabric-core-db`.
-3. **AWS Network Firewall:**
-   - Mở **VPC Console** -> **AWS Network Firewall** -> **Firewalls** -> Xác nhận: `0 firewalls`.
-4. **AWS WAF v2:**
-   - Mở **WAF & Shield Console** -> **Web ACLs** -> Chọn Region Singapore -> Xác nhận: `0 Web ACLs`.
+### Bước 3: VPC Và Các Dịch Vụ Mạng
 
----
+1. VPC → Your VPCs → tìm 4 IDs Edge/Core/Inspection/Egress. Không yêu cầu toàn tài khoản chỉ còn Default VPC.
+2. NAT gateways → kiểm tra IDs inventory ở mọi trạng thái; pending/deleting chưa phải hoàn tất. Chờ deleted và kiểm tra EIPs riêng.
+3. Transit gateways, attachments, route tables → xác nhận đúng IDs đã xóa, không còn pending/deleting hoặc attachments dùng chung bị xóa nhầm.
+4. Endpoints → kiểm tra interface/gateway/GWLB endpoints theo VPC IDs; Endpoint services → kiểm tra service GWLB đã xóa.
+5. Network Firewall → Firewalls, policies, rule groups → đối chiếu inventory. Xác nhận firewall endpoints đã được dịch vụ giải phóng.
+6. WAF → Regional Singapore → kiểm tra Web ACL của lab; ACM → certificate của app → kiểm tra association/ownership trước kết luận.
+7. Route 53 → Hosted zones → kiểm tra private zone `fabric.internal`, public app records, resolver endpoints/rules nếu từng tạo. Hosted zone dùng chung giữ nguyên và ghi phạm vi ngoại lệ.
 
-### Bước 4: Chạy Kịch Bản Kiểm Kê Tự Động 10 Hạng Mục (Zero-Residual Harvester)
-Thực thi script quét tự động toàn bộ 10 phân hệ tài nguyên qua AWS CLI:
+### Bước 4: EKS, Database, Cache Và Messaging
 
-```bash
-#!/bin/bash
-set -euo pipefail
+1. EKS → Clusters → không còn `fabric-edge-eks`, `fabric-core-eks`; đối chiếu node instances/ASGs/volumes ở Bước 2, không chỉ nhìn cluster count.
+2. RDS → Databases → kiểm tra cả Aurora cluster và writer/readers. Snapshots/Automated backups → ghi mọi bản sao còn giữ, ngày hết hạn và khóa KMS cần giữ để restore.
+3. ElastiCache → Redis OSS caches → kiểm tra replication group `fabric-core-redis`; Backups → đối chiếu snapshots. Không chỉ kiểm tra Serverless caches.
+4. SQS → kiểm tra `fabric-order-events` và DLQ theo queue URLs inventory; không còn message dữ liệu cần lưu bị bỏ sót.
 
-REGION="ap-southeast-1"
-echo "======================================================================"
-echo "    KIỂM TOÁN TỒN DƯ TÀI NGUYÊN (ZERO RESIDUAL VERIFICATION)         "
-echo "    Region: $REGION | Thời gian: $(date -u +"%Y-%m-%dT%H:%M:%SZ")   "
-echo "======================================================================"
+### Bước 5: Tài Nguyên Ngoài VPC Và Quyền Truy Cập
 
-TOTAL_LEAKS=0
+1. CloudWatch → Log groups → kiểm tra VPC/TGW/NFW/EVE/EKS/WAF groups, retained bytes và retention. Lưu evidence trước khi quyết định xóa; giữ logs đồng nghĩa còn phí storage có thể phát sinh.
+2. ECR → Private repositories → kiểm tra images, signatures, attestations của 5 services; S3 → buckets dự án → kiểm tra versions, delete markers, multipart uploads và replication nếu có. Không xóa bucket evidence khi chưa có bản lưu được duyệt.
+3. Secrets Manager → Secrets → bật hiển thị scheduled deletion; ghi tên, ngày xóa và recovery window. Không in secret value vào evidence.
+4. KMS → Customer managed keys → ghi key IDs và state. Pending deletion chưa là deleted; không lên lịch xóa khóa còn dùng cho backup/evidence hoặc ngoài dự án.
+5. IAM → Roles/Policies/Identity providers → đối chiếu Pod Identity roles, EC2 profile, CI OIDC roles/provider. Ghi dependencies; chỉ xử lý tài nguyên riêng lab theo 12.01, không xóa provider dùng chung.
+6. Billing → Budgets → kiểm tra budget/action/notification riêng của lab; giữ budget dùng chung của tài khoản. Kiểm tra dashboard/alarm/rules đã tạo nếu có.
 
-check_service() {
-  local name="$1"
-  local count="$2"
-  if [ "$count" -eq 0 ]; then
-    printf "%-35s : %-15s [%s]\n" "$name" "0 tồn dư" "PASSED ✅"
-  else
-    printf "%-35s : %-15s [%s]\n" "$name" "$count TỒN DƯ!" "FAILED ❌"
-    TOTAL_LEAKS=$((TOTAL_LEAKS + count))
-  fi
-}
+### Bước 6: Đối Soát Billing
 
-# 1. EKS Clusters
-EKS_COUNT=$(aws eks list-clusters --region "$REGION" --query 'length(clusters[?contains(@, `fabric`)])' --output text)
-check_service "Amazon EKS Clusters" "$EKS_COUNT"
+1. Billing and Cost Management → Cost Explorer → chọn khoảng ngày gồm trước và sau cleanup → Granularity **Daily** → Group by Service/Region.
+2. Nếu cost allocation tag dự án đã được kích hoạt, lọc đúng tag; tag không hồi tố đầy đủ và tài nguyên thiếu tag cần đối chiếu usage/resource IDs. Không quy toàn bộ hóa đơn account cho lab.
+3. Ghi timestamp cleanup, timestamp báo cáo, currency, estimated/final và ngày usage mới nhất. So sánh usage sau cleanup khi dữ liệu đã cập nhật; chưa có dữ liệu thì ghi **PENDING_BILLING**.
+4. Phí storage retained, snapshots hoặc KMS phải được giải thích riêng. Khi còn phí chưa rõ, mở Bills → Service → Region → Usage type; truy ngược inventory, không tự xóa tài nguyên khác để giảm số liệu.
 
-# 2. EC2 Instances (running)
-EC2_COUNT=$(aws ec2 describe-instances --region "$REGION" --filters "Name=tag:Project,Values=aws-eks-secure-network-fabric" "Name=instance-state-name,Values=running,pending" --query 'length(Reservations[*].Instances[*])' --output text)
-check_service "Running EC2 Instances" "$EC2_COUNT"
+### Bước 7: Lưu Báo Cáo Thật
 
-# 3. NAT Gateways (active)
-NAT_COUNT=$(aws ec2 describe-nat-gateways --region "$REGION" --filter "Name=state,Values=available,pending" --query 'length(NatGateways[?contains(Tags[?Key==`Name`].Value | [0], `fabric`)])' --output text)
-check_service "Active NAT Gateways" "$NAT_COUNT"
+Lưu `evidence/05-reports/ZERO-RESIDUAL-CERTIFICATE.md` với timestamp thật, người kiểm tra, account đã che, phạm vi, raw outputs và bảng sau. Tên file giữ để tương thích; đây là báo cáo giới hạn phạm vi, không phải bảo đảm hóa đơn bằng 0.
 
-# 4. Elastic IP Addresses (unattached/allocated)
-EIP_COUNT=$(aws ec2 describe-addresses --region "$REGION" --filters "Name=tag:Project,Values=aws-eks-secure-network-fabric" --query 'length(Addresses)' --output text)
-check_service "Allocated Elastic IPs" "$EIP_COUNT"
-
-# 5. Load Balancers (ALB/NLB/GWLB)
-ELB_COUNT=$(aws elbv2 describe-load-balancers --region "$REGION" --query 'length(LoadBalancers[?contains(LoadBalancerName, `fabric`)])' --output text)
-check_service "Load Balancers (ALB/NLB/GWLB)" "$ELB_COUNT"
-
-# 6. Transit Gateways (active)
-TGW_COUNT=$(aws ec2 describe-transit-gateways --region "$REGION" --filters "Name=tag:Project,Values=aws-eks-secure-network-fabric" "Name=state,Values=available,pending" --query 'length(TransitGateways)' --output text)
-check_service "Active Transit Gateways" "$TGW_COUNT"
-
-# 7. TGW VPC Attachments (active)
-TGW_ATT_COUNT=$(aws ec2 describe-transit-gateway-vpc-attachments --region "$REGION" --filters "Name=tag:Project,Values=aws-eks-secure-network-fabric" "Name=state,Values=available,pending" --query 'length(TransitGatewayVpcAttachments)' --output text)
-check_service "TGW VPC Attachments" "$TGW_ATT_COUNT"
-
-# 8. AWS Network Firewall (active)
-NFW_COUNT=$(aws network-firewall list-firewalls --region "$REGION" --query 'length(Firewalls[?contains(FirewallName, `fabric`)])' --output text)
-check_service "AWS Network Firewalls" "$NFW_COUNT"
-
-# 9. RDS Aurora DB Clusters
-RDS_COUNT=$(aws rds describe-db-clusters --region "$REGION" --query 'length(DBClusters[?contains(DBClusterIdentifier, `fabric`)])' --output text)
-check_service "Aurora PostgreSQL Clusters" "$RDS_COUNT"
-
-# 10. Project VPCs
-VPC_COUNT=$(aws ec2 describe-vpcs --region "$REGION" --filters "Name=tag:Project,Values=aws-eks-secure-network-fabric" --query 'length(Vpcs)' --output text)
-check_service "Project VPCs" "$VPC_COUNT"
-
-echo "======================================================================"
-if [ "$TOTAL_LEAKS" -eq 0 ]; then
-  echo ">> KẾT LUẬN: ĐẠT CHUẨN ZERO-RESIDUAL FINOPS (HOÀN TOÀN SẠCH TÀI NGUYÊN) <<"
-  echo ">> CHI PHÍ DUY TRÌ HẠ TẦNG HIỆN TẠI: $0.00 USD / GIỜ                    <<"
-else
-  echo ">> CẢNH BÁO: PHÁT HIỆN $TOTAL_LEAKS TÀI NGUYÊN CHƯA HỦY! VUI LÒNG DỌN DẸP TIẾP! <<"
-  exit 1
-fi
-```
-
----
-
-### Bước 5: Tạo Chứng Nhận Sạch Tài Nguyên (Zero Residual Certificate)
-Lưu kết quả kiểm toán vào tệp chứng nhận chính thức `evidence/05-reports/ZERO-RESIDUAL-CERTIFICATE.md`:
-
-```markdown
-# CHỨNG CHỈ KIỂM KÊ TỒN DƯ TÀI NGUYÊN (ZERO-RESIDUAL AUDIT CERTIFICATE)
-
-- **Dự án:** `aws-eks-secure-network-fabric`
-- **Region kiểm toán:** Singapore (`ap-southeast-1`)
-- **Thời gian hoàn thành kiểm kê:** 2026-11-05T14:00:00Z
-- **Người thực hiện:** Principal Cloud Architect & FinOps Specialist
-
-## Kết Quả Kiểm Kê Chi Tiết 10 Hạng Mục
-
-| Dịch Vụ AWS Được Kiểm Tra | Bộ Lọc Kiểm Tra | Số Lượng Tồn Dư | Trạng Thái FinOps |
-|---|---|---|---|
-| **Amazon EKS Clusters** | `fabric-*-cluster` | **0** | **CLEAN** ($0.00/h) ✅ |
-| **Running EC2 Instances** | `fabric-suricata-*`, Worker nodes | **0** | **CLEAN** ($0.00/h) ✅ |
-| **Active NAT Gateways** | `fabric-nat-gw-*` (`available`) | **0** | **CLEAN** ($0.00/h) ✅ |
-| **Elastic IP Addresses** | Project tags | **0** | **CLEAN** ($0.00/h) ✅ |
-| **Elastic Load Balancing** | ALB, Core NLB, GWLB | **0** | **CLEAN** ($0.00/h) ✅ |
-| **AWS Transit Gateway** | `fabric-tgw` (`available`) | **0** | **CLEAN** ($0.00/h) ✅ |
-| **TGW VPC Attachments** | `fabric-*-tgw-attachment` | **0** | **CLEAN** ($0.00/h) ✅ |
-| **AWS Network Firewall** | `fabric-egress-nfw` | **0** | **CLEAN** ($0.00/h) ✅ |
-| **Amazon Aurora PostgreSQL** | `fabric-core-db` | **0** | **CLEAN** ($0.00/h) ✅ |
-| **Project VPCs** | 4 Project VPCs (`10.30/40/50/60`) | **0** | **CLEAN** ($0.00/h) ✅ |
-
-## Tuyên Bố Xác Nhận FinOps (FinOps Affirmation)
-Tôi xác nhận rằng toàn bộ các tài nguyên tính phí theo giờ và theo lưu lượng của Project 6 đã được dọn dẹp sạch sẽ 100%. Mọi dịch vụ tính cước đã trở về trạng thái ngừng hoạt động. Chi phí phát sinh trong tương lai của tài khoản liên quan đến dự án này là **chính xác $0.00 USD**.
-```
-
----
+| Nhóm | IDs đã kiểm tra | Kết quả thực tế | Retained/pending và owner | Evidence |
+|---|---|---|---|---|
+| Compute/EKS/LB | Điền từ inventory | NOT_CHECKED trước khi chạy | Điền nếu có | Đường dẫn log |
+| VPC/TGW/NAT/endpoints/NFW | Điền từ inventory | NOT_CHECKED | Điền nếu có | Đường dẫn log |
+| Database/cache/queues | Điền từ inventory | NOT_CHECKED | Backup/expiry | Đường dẫn log |
+| Storage/logs/ECR/S3 | Điền từ inventory | NOT_CHECKED | Bytes/retention/cost | Đường dẫn log |
+| DNS/IAM/secrets/KMS/budgets | Điền từ inventory | NOT_CHECKED | Recovery/deletion dates | Đường dẫn log |
+| Billing sau cleanup | Khoảng usage đã cập nhật | PENDING_BILLING | Phí chưa giải thích | Export Cost Explorer |
 
 ## 5. Lệnh Kiểm Tra / CLI Verification (Zero Fake Data)
 
-Chạy lệnh kiểm tra tổng thể một dòng:
+Các lệnh chỉ đọc sau hỗ trợ Console, không thay thế toàn bộ checklist. Không tạo script kiểm kê hoặc tự chuyển PASS từ ba số đếm:
+
 ```bash
-aws ec2 describe-vpcs --region ap-southeast-1 --filters "Name=tag:Project,Values=aws-eks-secure-network-fabric" --query 'length(Vpcs)'
-aws eks list-clusters --region ap-southeast-1 --query 'length(clusters[?contains(@, `fabric`)])'
-aws elbv2 describe-load-balancers --region ap-southeast-1 --query 'length(LoadBalancers[?contains(LoadBalancerName, `fabric`)])'
+aws ec2 describe-vpcs --region ap-southeast-1 --filters "Name=tag:Project,Values=aws-eks-secure-network-fabric" --query 'Vpcs[].VpcId'
+aws eks list-clusters --region ap-southeast-1 --query 'clusters[?starts_with(@, `fabric-`)]'
+aws elasticache describe-replication-groups --region ap-southeast-1 --query 'ReplicationGroups[].{ID:ReplicationGroupId,State:Status}'
+aws rds describe-db-instances --region ap-southeast-1 --query 'DBInstances[].{ID:DBInstanceIdentifier,Cluster:DBClusterIdentifier,State:DBInstanceStatus}'
 ```
 
-*Kỳ vọng:* Cả 3 lệnh đều trả về số `0`.
-
----
+Chỉ lưu các rows của dự án; lỗi quyền/API hoặc tag thiếu phải ghi rõ. Không coi danh sách toàn tài khoản là danh sách được phép xóa.
 
 ## 6. Kế Hoạch Khôi Phục / Rollback Plan
 
-Bài lab này là bước kiểm toán nghiệm thu cuối cùng (Audit Only), không thực hiện bất kỳ hành động xóa bỏ nào nữa.
-
----
+Audit không thay đổi tài nguyên. Tồn dư phát hiện được chuyển về 12.01 theo ownership và quyết định giữ/xóa; pending hoặc AccessDenied giữ trạng thái chưa hoàn tất.
 
 ## 7. Đường Dẫn Bằng Chứng (Expected Evidence Path)
 
-- `evidence/05-reports/ZERO-RESIDUAL-CERTIFICATE.md`: Báo cáo chứng nhận sạch tài nguyên 100%.
-- `evidence/05-reports/zero-residual-audit-output.txt`: Raw log xuất từ script kiểm kê 10 hạng mục.
-
----
+- `evidence/05-reports/ZERO-RESIDUAL-CERTIFICATE.md`: phạm vi, kết quả thật, ngoại lệ và billing window.
+- `evidence/05-reports/zero-residual-audit-output.txt`: raw read-only outputs đã che thông tin nhạy cảm.
+- `evidence/05-reports/cleanup-billing-export.csv`: export chi phí với timestamp và filters.
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Script kiểm toán tự động 10 hạng mục đạt kết quả 10/10 PASSED.
-- [ ] Số lượng EKS Clusters = 0.
-- [ ] Số lượng EC2 running = 0.
-- [ ] Số lượng NAT Gateways active = 0.
-- [ ] Số lượng Load Balancers (ALB/NLB/GWLB) = 0.
-- [ ] Số lượng TGW Attachments = 0.
-- [ ] Số lượng Elastic IPs = 0.
-- [ ] Chứng chỉ `ZERO-RESIDUAL-CERTIFICATE.md` được ký duyệt và lưu trữ thành công.
+- [ ] Mọi resource ID của dự án đã đối chiếu; không suy luận sạch từ tag-only hoặc toàn account count.
+- [ ] Compute/network đã xóa hoặc ghi ngoại lệ có owner/expiry; không bỏ qua deleting/AccessDenied.
+- [ ] Storage/backups/logs/ECR/S3/secrets/KMS/DNS/IAM đã kiểm kê, retained costs được ghi rõ.
+- [ ] Evidence có timestamp thật; billing ghi khoảng usage đã cập nhật hoặc PENDING_BILLING.
+- [ ] Tài nguyên ngoài dự án giữ nguyên; không cam kết chi phí tài khoản chính xác $0.

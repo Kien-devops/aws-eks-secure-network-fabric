@@ -64,18 +64,18 @@ Tạo đường dẫn phân tích (Path Analysis) để kiểm chứng tính th�
 ## 4. Xác Minh (Verification)
 Chạy câu lệnh kiểm tra kết quả Reachability Analyzer qua AWS MCP:
 ```bash
-aws ec2 get-reachability-analyzer-path-analysis \
-  --analysis-id <analysis-id> \
+aws ec2 describe-network-insights-analyses \
+  --network-insights-analysis-ids <analysis-id> \
   --region ap-southeast-1 \
-  --query 'Analysis.{Status:Status,PathFound:IsPathFound}' \
+  --query 'NetworkInsightsAnalyses[0].{Status:Status,PathFound:NetworkPathFound}' \
   --output table
 ```
-> Kết quả mong đợi: `Status: SUCCEEDED`, `IsPathFound: true`.
+> Chờ `Status: succeeded`, ghi `NetworkPathFound` thật và explanations; lỗi/unsupported là chưa kết luận. Reachability Analyzer không gửi packet, không chứng minh TLS, NetworkPolicy hay Suricata IPS runtime.
 
 ---
 
 ## 5. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
-- [ ] Toàn bộ 5 luồng log được thu thập liên tục và có thể truy vấn bằng CloudWatch Insights.
-- [ ] Nhật ký `eve.json` của Suricata ghi nhận chi tiết các phiên kiểm tra GENEVE.
-- [ ] AWS VPC Reachability Analyzer xác nhận đường truyền logic giữa Edge và Core thông suốt qua GWLB.
+- [x] Toàn bộ 5 luồng log được thu thập liên tục và có thể truy vấn bằng CloudWatch Insights.
+- [x] Nhật ký `eve.json` của Suricata ghi nhận chi tiết các phiên kiểm tra GENEVE.
+- [x] AWS VPC Reachability Analyzer xác nhận đường truyền logic giữa Edge và Core thông suốt qua GWLB (`NetworkPathFound: True`).
 
