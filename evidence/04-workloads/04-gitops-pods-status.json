@@ -1,0 +1,70 @@
+{
+    "end_to_end_verification":  {
+                                    "service":  "core-service",
+                                    "status":  "UP",
+                                    "timestamp":  "2026-11-07T21:30:04Z",
+                                    "data":  {
+                                                 "amazon_sqs":  {
+                                                                    "queue_url":  "https://ap-southeast-1.queue.amazonaws.com/123456789012/fabric-order-events",
+                                                                    "status":  "ACTIVE",
+                                                                    "worker":  "payment-worker-1"
+                                                                },
+                                                 "aurora_postgresql":  {
+                                                                           "host":  "db.fabric.internal",
+                                                                           "status":  "OK"
+                                                                       },
+                                                 "cluster":  "fabric-core-eks",
+                                                 "elasticache_redis":  {
+                                                                           "host":  "redis.fabric.internal",
+                                                                           "status":  "OK",
+                                                                           "tls":  true
+                                                                       },
+                                                 "pod_hostname":  "core-service-85957f48c6-hsf9v"
+                                             }
+                                },
+    "timestamp":  "2026-11-07T21:29:54Z",
+    "cluster_edge":  {
+                         "sync_status":  "Synced",
+                         "name":  "fabric-edge-eks",
+                         "health_status":  "Healthy",
+                         "source_repo":  "https://github.com/Kien-devops/aws-eks-secure-network-fabric-app.git",
+                         "source_path":  "k8s/edge",
+                         "argocd_application":  "fabric-edge-apps",
+                         "pods":  [
+                                      {
+                                          "phase":  "Running",
+                                          "ip":  "10.40.8.60",
+                                          "name":  "edge-frontend-56f69bc7bb-fxbqp",
+                                          "image":  "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/fabric-edge-frontend@sha256:e03c575b12c782a7dc565d6cfb72a033bbfde45698959da6e0ad9e9c529ac086"
+                                      },
+                                      {
+                                          "phase":  "Running",
+                                          "ip":  "10.40.9.246",
+                                          "name":  "edge-frontend-56f69bc7bb-r2wlx",
+                                          "image":  "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/fabric-edge-frontend@sha256:e03c575b12c782a7dc565d6cfb72a033bbfde45698959da6e0ad9e9c529ac086"
+                                      }
+                                  ]
+                     },
+    "cluster_core":  {
+                         "sync_status":  "Synced",
+                         "name":  "fabric-core-eks",
+                         "health_status":  "Healthy",
+                         "source_repo":  "https://github.com/Kien-devops/aws-eks-secure-network-fabric-app.git",
+                         "source_path":  "k8s/core",
+                         "argocd_application":  "fabric-core-apps",
+                         "pods":  [
+                                      {
+                                          "phase":  "Running",
+                                          "ip":  "10.50.10.14",
+                                          "name":  "core-service-85957f48c6-9whjs",
+                                          "image":  "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/fabric-core-service@sha256:3ecc940bf25e548ccc0bf62d248e6b461e2ec6a552ea7e517fa4da0b7a0d0605"
+                                      },
+                                      {
+                                          "phase":  "Running",
+                                          "ip":  "10.50.9.102",
+                                          "name":  "core-service-85957f48c6-hsf9v",
+                                          "image":  "123456789012.dkr.ecr.ap-southeast-1.amazonaws.com/fabric-core-service@sha256:3ecc940bf25e548ccc0bf62d248e6b461e2ec6a552ea7e517fa4da0b7a0d0605"
+                                      }
+                                  ]
+                     }
+}

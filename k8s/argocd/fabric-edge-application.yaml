@@ -1,0 +1,26 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: fabric-edge-apps
+  namespace: argocd
+  labels:
+    project: aws-eks-secure-network-fabric
+    cluster: fabric-edge-eks
+    environment: prod
+  finalizers:
+    - resources-finalizer.argocd.argoproj.io
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/Kien-devops/aws-eks-secure-network-fabric-app.git
+    targetRevision: main
+    path: k8s/edge
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: fabric-apps
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true

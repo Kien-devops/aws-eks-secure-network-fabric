@@ -1,0 +1,56 @@
+{
+  "timestamp": "2026-11-07T16:55:00Z",
+  "lab": "04.02",
+  "title": "Cau Hinh Route 53 Private Hosted Zone Cho Noi Bo Fabric",
+  "region": "ap-southeast-1",
+  "account_id": "123456789012",
+  "hosted_zone": {
+    "id": "/hostedzone/Z04477472KIC6F9K2LUQ5",
+    "name": "fabric.internal.",
+    "private_zone": true,
+    "associated_vpcs": [
+      {
+        "vpc_id": "vpc-0468b18dddd1d4d2d",
+        "name": "fabric-edge-vpc",
+        "region": "ap-southeast-1"
+      },
+      {
+        "vpc_id": "vpc-09888cc991104c959",
+        "name": "fabric-core-vpc",
+        "region": "ap-southeast-1"
+      }
+    ]
+  },
+  "records": [
+    {
+      "name": "db.fabric.internal.",
+      "type": "CNAME",
+      "ttl": 60,
+      "value": "fabric-core-db.cluster-c1ky6i8iomcn.ap-southeast-1.rds.amazonaws.com",
+      "role": "Aurora PostgreSQL Writer Endpoint"
+    },
+    {
+      "name": "dbr.fabric.internal.",
+      "type": "CNAME",
+      "ttl": 60,
+      "value": "fabric-core-db.cluster-ro-c1ky6i8iomcn.ap-southeast-1.rds.amazonaws.com",
+      "role": "Aurora PostgreSQL Reader/Replica Endpoint"
+    },
+    {
+      "name": "redis.fabric.internal.",
+      "type": "CNAME",
+      "ttl": 60,
+      "value": "master.fabric-core-redis.qspmd1.apse1.cache.amazonaws.com",
+      "role": "ElastiCache Redis Primary Endpoint (Cluster Mode Disabled)"
+    },
+    {
+      "name": "redis-ro.fabric.internal.",
+      "type": "CNAME",
+      "ttl": 60,
+      "value": "replica.fabric-core-redis.qspmd1.apse1.cache.amazonaws.com",
+      "role": "ElastiCache Redis Replica Endpoint"
+    }
+  ],
+  "verification_status": "RUNTIME_PASS"
+}
+
