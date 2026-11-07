@@ -84,19 +84,69 @@ Toàn bộ hạ tầng mạng được phân chia thành 4 VPC chức năng riê
 
 ---
 
-### 2.2 Hệ Thống Bảng Định Tuyến & Subnet Chaining (16 Route Tables)
-Mỗi nhóm chức năng subnet đều sở hữu bảng định tuyến chuyên biệt, bảo đảm luồng dữ liệu bắt buộc phải đi qua các chốt kiểm soát an ninh trước khi đến đích:
+### 2.2 Trục Xương Sống AWS Transit Gateway & Cấu Hình Attachments (RTB Transit)
+Hạ tầng mạng sử dụng **AWS Transit Gateway (`fabric-tgw`)** làm trục xương sống kết nối trung tâm, phân chia thành 4 vùng định tuyến độc lập (Segregated Routing Domains):
 
-![Route Tables Inventory](docs/images/06-aws-route-tables-inventory.jpg)
+![Transit Gateway Details](docs/images/12-transit-gateway-details.png)
 
-- **Core VPC:** `fabric-core-tgw-rt`, `fabric-core-private-rt`, `fabric-core-data-rt` (Bảo vệ cơ sở dữ liệu Aurora & Redis tách biệt).
-- **Edge VPC:** `fabric-edge-tgw-rt`, `fabric-edge-public-rt`, `fabric-edge-private-rt`.
-- **Inspection VPC:** `fabric-insp-tgw-rt-1a/1b`, `fabric-insp-gwlbe-rt`, `fabric-insp-fw-rt`.
-- **Egress VPC:** `fabric-egress-tgw-rt-1a/1b`, `fabric-egress-fw-rt-1a/1b`, `fabric-egress-public-rt-1a/1b`.
+- **Transit Gateway ID:** `tgw-0fca495dfa8cfee17` (Amazon ASN: `64512`, DNS Support: `Enabled`, VPN ECMP: `Enabled`).
+- **Default Association / Propagation Route Table:** `Disable` (Bắt buộc vô hiệu hóa để toàn quyền kiểm soát định tuyến tường minh).
+
+#### Chi Tiết 4 VPC Attachments & Cờ Appliance Mode
+![Transit Gateway Attachments](docs/images/13-transit-gateway-attachments.png)
+
+| Attachment Name | Attachment ID | VPC Được Gắn | Appliance Mode | Mục Đích Kỹ Thuật |
+| :--- | :--- | :--- | :---: | :--- |
+| **`fabric-edge-tgw-attachment`** | `tgw-attach-06219b0f6f3082f3e` | `fabric-edge-vpc` | Disabled | Kết nối Edge EKS và Public Ingress. |
+| **`fabric-core-tgw-attachment`** | `tgw-attach-0d9cc79cb91dafeb2` | `fabric-core-vpc` | Disabled | Kết nối Core EKS, Database và Data Tier. |
+| **`fabric-insp-tgw-attachment`** | `tgw-attach-0fb21514974415f35` | `fabric-inspection-vpc` | **ENABLED** | Duy trì đối xứng luồng 2 chiều (AZ stickiness) cho GWLB & Suricata IDS/IPS. |
+| **`fabric-egress-tgw-attachment`** | `tgw-attach-0646bdfa31c6c8e66` | `fabric-egress-vpc` | **ENABLED** | Đảm bảo luồng ra và về qua Network Firewall/NAT cùng 1 AZ, triệt tiêu drop gói out-of-state. |
 
 ---
 
-### 2.3 Phân Bổ 30 Subnets & Internet Gateways
+### 2.3 Ma Trận Bảng Định Tuyến Transit Gateway (RTB Transit Matrix)
+Hệ thống thiết lập 4 Transit Gateway Route Tables riêng biệt, thực thi kiểm soát an ninh Service Chaining nghiêm ngặt:
+
+![Transit Gateway Route Tables](docs/images/14-transit-gateway-route-tables.png)
+
+| TGW Route Table | TGW RTB ID | Associated Attachment | Tuyến Tĩnh (Static Routes) | Next Hop Attachment | Mục Đích Kỹ Thuật |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **`fabric-tgw-edge-rt`** | `tgw-rtb-004772ba5b83f2b17` | `fabric-edge-tgw-attachment` | `10.50.0.0/16`<br>`0.0.0.0/0` | `fabric-insp-tgw-attachment`<br>`fabric-egress-tgw-attachment` | Bắt buộc lưu lượng sang Core VPC phải qua Inspection VPC; ra Internet qua Egress VPC. |
+| **`fabric-tgw-core-rt`** | `tgw-rtb-03c493c67bc6dc820` | `fabric-core-tgw-attachment` | `10.40.0.0/16`<br>`0.0.0.0/0` | `fabric-insp-tgw-attachment`<br>`fabric-egress-tgw-attachment` | Bắt buộc lưu lượng sang Edge VPC phải qua Inspection VPC; ra Internet qua Egress VPC. |
+| **`fabric-tgw-inspection-rt`** | `tgw-rtb-01abf43ebf7f1b21f` | `fabric-insp-tgw-attachment` | `10.40.0.0/16`<br>`10.50.0.0/16` | `fabric-edge-tgw-attachment`<br>`fabric-core-tgw-attachment` | Lưu lượng sau khi được Suricata kiểm tra sạch sẽ được chuyển tiếp thẳng về VPC đích. |
+| **`fabric-tgw-egress-rt`** | `tgw-rtb-066c8310ab347bf30` | `fabric-egress-tgw-attachment` | `10.40.0.0/16`<br>`10.50.0.0/16` | `fabric-edge-tgw-attachment`<br>`fabric-core-tgw-attachment` | Chuyển tiếp lưu lượng phản hồi từ Internet qua NAT trả ngược về các Spoke VPCs. |
+
+---
+
+### 2.4 Hệ Thống 16 Bảng Định Tuyến Tĩnh VPC & Chuỗi Subnet (RTB Static Matrix)
+Mỗi nhóm chức năng subnet sở hữu bảng định tuyến tĩnh (VPC Route Table) riêng biệt, bảo đảm luồng dữ liệu bắt buộc phải qua các chốt kiểm soát an ninh (Service Chaining):
+
+![Route Tables Inventory](docs/images/06-aws-route-tables-inventory.jpg)
+
+#### Bảng Tổng Hợp 16 Bảng Định Tuyến Tĩnh VPC (RTB Static)
+
+| VPC | Tên Bảng Định Tuyến (RTB Static) | RTB ID | Subnets Gắn Kèm | Tuyến Tĩnh (Static Routes) | Next Hop Target | Nguyên Tắc & Mục Đích An Ninh |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Edge** | `fabric-edge-public-rt` | `rtb-0c5a68767a6fe2926` | `public-1a`, `public-1b` | `0.0.0.0/0`<br>`10.50.0.0/16` | `fabric-edge-igw`<br>`fabric-tgw` | Tiếp nhận traffic từ Internet vào Public ALB; forward sang Core qua TGW. |
+| **Edge** | `fabric-edge-private-rt` | `rtb-00cd096fd0d4a2615` | `nodes-1a/1b`, `vpce-1a/1b` | `0.0.0.0/0`<br>`10.50.0.0/16` | `fabric-tgw`<br>`fabric-tgw` | Ép toàn bộ lưu lượng ra Internet và East-West đi qua TGW. |
+| **Edge** | `fabric-edge-tgw-rt` | `rtb-0e6e7436bb74cdf73` | `tgw-1a`, `tgw-1b` | `10.40.0.0/16` | `local` | **Chỉ chứa local route** nhằm triệt tiêu hoàn toàn nguy cơ routing loop tại attachment. |
+| **Core** | `fabric-core-private-rt` | `rtb-00ac268964554cc7e` | `nodes-1a/1b`, `vpce-1a/1b` | `0.0.0.0/0`<br>`10.40.0.0/16` | `fabric-tgw`<br>`fabric-tgw` | Core EKS ra ngoài qua Egress tập trung; phản hồi East-West về Edge qua TGW. |
+| **Core** | `fabric-core-data-rt` | `rtb-0df8c388148a51656` | `data-1a`, `data-1b` | `10.50.0.0/16`<br>`10.40.0.0/16` | `local`<br>`fabric-tgw` | **Cô lập 100% khỏi Internet (Không có 0.0.0.0/0)**; bảo vệ tuyệt đối Aurora & Redis. |
+| **Core** | `fabric-core-tgw-rt` | `rtb-047cf904c6c014554` | `tgw-1a`, `tgw-1b` | `10.50.0.0/16` | `local` | **Chỉ chứa local route**; đẩy traffic tới Core nodes theo IP đích trực tiếp. |
+| **Insp** | `fabric-insp-tgw-rt-1a` | `rtb-0b04448561b80d486` | `insp-tgw-1a` | `10.40.0.0/16`<br>`10.50.0.0/16` | GWLB Endpoint 1a (`vpce-*`) | Cổng đón luồng từ TGW tại AZ-a ép chuyển tiếp vào GWLBe AZ-a. |
+| **Insp** | `fabric-insp-tgw-rt-1b` | `rtb-026ce1b95a394d8c1` | `insp-tgw-1b` | `10.40.0.0/16`<br>`10.50.0.0/16` | GWLB Endpoint 1b (`vpce-*`) | Cổng đón luồng từ TGW tại AZ-b ép chuyển tiếp vào GWLBe AZ-b. |
+| **Insp** | `fabric-insp-gwlbe-rt` | `rtb-0378f50d79f1ed01f` | `gwlbe-1a`, `gwlbe-1b` | `10.40.0.0/16`<br>`10.50.0.0/16` | `fabric-tgw`<br>`fabric-tgw` | Đẩy gói tin đã giải bọc GENEVE và được Suricata kiểm tra sạch quay lại TGW. |
+| **Insp** | `fabric-insp-fw-rt` | `rtb-00b06850e681ef0e6` | `insp-fw-1a`, `insp-fw-1b` | `10.70.0.0/16` | `local` | Kiến trúc GWLB One-Arm: Giao tiếp qua tunnel GENEVE UDP 6081 nội bộ. |
+| **Egress** | `fabric-egress-tgw-rt-1a` | `rtb-0e44e9ee6af736348` | `egress-tgw-1a` | `0.0.0.0/0` | NFW Endpoint 1a (`vpce-*`) | Bắt buộc lưu lượng từ TGW tại AZ-a đi vào NFW Endpoint AZ-a để lọc SNI. |
+| **Egress** | `fabric-egress-tgw-rt-1b` | `rtb-0f49dc7e1ab7a050d` | `egress-tgw-1b` | `0.0.0.0/0` | NFW Endpoint 1b (`vpce-*`) | Bắt buộc lưu lượng từ TGW tại AZ-b đi vào NFW Endpoint AZ-b để lọc SNI. |
+| **Egress** | `fabric-egress-fw-rt-1a` | `rtb-0f71ea39c116e5857` | `egress-fw-1a` | `0.0.0.0/0` | NAT Gateway 1a (`nat-*`) | Đẩy lưu lượng sạch từ NFW Endpoint AZ-a sang NAT Gateway AZ-a. |
+| **Egress** | `fabric-egress-fw-rt-1b` | `rtb-04406e0f6edaaa3c8` | `egress-fw-1b` | `0.0.0.0/0` | NAT Gateway 1b (`nat-*`) | Đẩy lưu lượng sạch từ NFW Endpoint AZ-b sang NAT Gateway AZ-b. |
+| **Egress** | `fabric-egress-public-rt-1a` | `rtb-0c759f9192847ad8b` | `egress-public-1a` | `0.0.0.0/0`<br>`10.40.0.0/16`<br>`10.50.0.0/16` | `fabric-egress-igw`<br>NFW Endpoint 1a (`vpce-*`)<br>NFW Endpoint 1a (`vpce-*`) | **Tuyến đường về (Return Route) tối quan trọng**: Đưa SYN-ACK quay lại NFW & TGW; triệt tiêu hố đen mạng (Blackhole). |
+| **Egress** | `fabric-egress-public-rt-1b` | `rtb-086d9ec09e2b732d7` | `egress-public-1b` | `0.0.0.0/0`<br>`10.40.0.0/16`<br>`10.50.0.0/16` | `fabric-egress-igw`<br>NFW Endpoint 1b (`vpce-*`)<br>NFW Endpoint 1b (`vpce-*`) | Tuyến đường về độc lập cho AZ-b, duy trì đối xứng luồng 100%. |
+
+---
+
+### 2.5 Phân Bổ 30 Subnets & Internet Gateways
 Mỗi VPC đều được chia subnet tách biệt trên 2 Availability Zones (`ap-southeast-1a` và `ap-southeast-1b`) tuân thủ nghiêm ngặt nguyên tắc Zero-Trust, kết nối có kiểm soát qua các Internet Gateways:
 
 ![Subnet Topology](docs/images/05-aws-subnets-30-subnets-topology.jpg)
@@ -111,7 +161,7 @@ Mỗi VPC đều được chia subnet tách biệt trên 2 Availability Zones (`
 
 ---
 
-### 2.4 Cụm Tường Lửa AWS Network Firewall & Chính Sách Stateful Egress
+### 2.6 Cụm Tường Lửa AWS Network Firewall & Chính Sách Stateful Egress
 Hạ tầng Egress tập trung được bảo vệ bởi AWS Network Firewall với chính sách lọc tên miền đa tầng (Domain Filtering) theo chuẩn Suricata:
 
 ![Network Firewall Deployment](docs/images/09-network-firewall-details.jpg)
@@ -120,14 +170,17 @@ Hạ tầng Egress tập trung được bảo vệ bởi AWS Network Firewall v�
 
 ![Network Firewall Domain Allowlist](docs/images/10-network-firewall-domain-allowlist.png)
 
+![Network Firewall HOME_NET Variables](docs/images/11-network-firewall-suricata-home-net-variables.png)
+
 - **Firewall Policy:** `fabric-egress-fw-policy` (Trạng thái Stateful Action Order, Capacity: 200/30,000 units).
+- **Rule Variables:** `HOME_NET = [10.40.0.0/16, 10.50.0.0/16, 10.80.0.0/16]`.
 - **Stateful Rule Groups:**
   1. `fabric-egress-domain-allowlist-rg`: Kiểm soát danh sách 11 tên miền tin cậy chuẩn Enterprise (`.quay.io`, `.docker.io`, `.docker.com`, `.github.com`, `.githubusercontent.com`, `.k8s.io`, `.amazonaws.com`, `.amazon.com`, `.cloudflare.docker.com`, `.devopsss.site`). Mọi truy vấn ngoài danh mục đều bị DROP tự động.
   2. `fabric-egress-malicious-drop-rg`: Chặn tức thì các mẫu traffic độc hại, C2 beaconing và botnet ra bên ngoài.
 
 ---
 
-### 2.5 Phân Tầng Hệ Thống Cân Bằng Tải (Load Balancing Hierarchy)
+### 2.7 Phân Tầng Hệ Thống Cân Bằng Tải (Load Balancing Hierarchy)
 Hạ tầng cân bằng tải 3 cấp độ phục vụ từng luồng giao tiếp chuyên biệt:
 
 ![Load Balancers Overview](docs/images/01-aws-load-balancers-overview.png)
@@ -144,21 +197,90 @@ Hạ tầng cân bằng tải 3 cấp độ phục vụ từng luồng giao ti�
 
 ---
 
-### 2.6 Bảng Điều Khiển Giám Sát Tập Trung (CloudWatch Security & Observability Dashboard)
+### 2.8 Cụm EKS Kép & Giao Diện Ứng Dụng Microservices Thực Tế (Dual EKS Clusters)
+Toàn bộ ứng dụng microservices phân tán được triển khai trên 2 cụm Amazon EKS v1.31 riêng biệt:
+
+#### Cụm EKS Biên: `fabric-edge-eks`
+![EKS Cluster Fabric Edge](docs/images/15-eks-cluster-fabric-edge.jpg)
+- **Role:** Tiếp nhận và xử lý giao diện người dùng `frontend`, định tuyến an toàn qua Service Mesh / Ingress Controller.
+- **Node Groups:** 2 Worker Nodes phân bổ đa vùng sẵn sàng, tích hợp EKS Pod Identity.
+
+#### Cụm EKS Lõi: `fabric-core-eks`
+![EKS Cluster Fabric Core](docs/images/16-eks-cluster-fabric-core.jpg)
+- **Role:** Chạy các backend microservices nhạy cảm (`order-service`, `payment-service`, `inventory-service`), kết nối cơ sở dữ liệu nội bộ.
+- **Bảo mật:** Hoàn toàn cô lập khỏi Internet, giao tiếp hai chiều với Edge VPC thông qua GWLB và Suricata IDS/IPS.
+
+#### Giao Diện Cổng Thông Tin Vận Hành Thực Tế (Telemetry Portal)
+![Production Web App Telemetry Portal](docs/images/17-production-web-app-telemetry-portal.png)
+- **End-to-End Flow Traversal Map:** Minh chứng gói tin di chuyển xuyên suốt qua toàn bộ các trạm kiểm soát an ninh (WAF → ALB → Edge EKS → TGW GWLB Suricata → Core NLB → Core EKS → RDS/Redis/SQS).
+- **Runtime Telemetry:** Kiểm tra và xác nhận đồng thời trạng thái hoạt động của Aurora PostgreSQL, ElastiCache Redis và SQS Worker.
+
+---
+
+### 2.9 Hệ Thống Phân Giải Tên Miền Route 53 (Public & Private Hosted Zones)
+Hạ tầng DNS được thiết kế phân tầng rõ ràng giữa môi trường Public Internet và Private VPC:
+
+![Route 53 Hosted Zones Overview](docs/images/18-route53-hosted-zones-overview.png)
+
+#### Private Hosted Zone: `fabric.internal`
+![Route 53 Private Hosted Zone Records](docs/images/19-route53-private-hosted-zone-records.jpg)
+- Phân giải nội bộ cho các thành phần cốt lõi:
+  - `core.fabric.internal` → CNAME trỏ tới `fabric-core-internal-nlb`.
+  - `db.fabric.internal` & `dbr.fabric.internal` → CNAME trỏ tới Aurora PostgreSQL Writer và Reader.
+  - `redis.fabric.internal` & `redis-ro.fabric.internal` → CNAME trỏ tới ElastiCache Redis Primary và Replica.
+
+#### Public Hosted Zone: `devopsss.site`
+![Route 53 Public Hosted Zone Records](docs/images/20-route53-public-hosted-zone-records.jpg)
+- `app3.devopsss.site` → Record A (Alias) trỏ trực tiếp tới Public Application Load Balancer `fabric-edge-public-alb`.
+
+---
+
+### 2.10 Tầng Lưu Trữ Dữ Liệu Đa Vùng & Quản Trị Bí Mật (Data Tier & Secrets)
+
+#### Amazon Aurora PostgreSQL Multi-AZ
+![Aurora PostgreSQL Cluster](docs/images/22-aurora-postgresql-multi-az-cluster.png)
+- Cụm CSDL `fabric-core-db` gồm 2 instances (Writer tại `ap-southeast-1a`, Reader tại `ap-southeast-1b`) bảo đảm tính sẵn sàng cao (High Availability).
+
+#### Amazon ElastiCache Redis Cluster
+![ElastiCache Redis Replication Group](docs/images/23-elasticache-redis-replication-group.png)
+- Cụm cache `fabric-core-redis` (Redis 7.1.0, 2 nodes) với tính năng Auto-failover, Transit Encryption và Encryption at Rest được kích hoạt đầy đủ.
+
+#### AWS Secrets Manager
+![AWS Secrets Manager](docs/images/21-aws-secrets-manager-credentials.png)
+- Lưu trữ an toàn mật khẩu Aurora DB và Redis Auth Token, tích hợp tự động qua EKS Pod Identity (Zero Plaintext Passwords).
+
+---
+
+### 2.11 Bảng Điều Khiển Giám Sát Tập Trung & Nhật Ký Lưu Lượng (CloudWatch & WAF)
 Toàn bộ telemetry của hệ thống (WAF, ALB, GWLB, Suricata EVE, NLB, NAT) được gom về Dashboard **`fabric-network-security-ops`**:
 
-#### Phần 1: Giám Sát Bảo Mật WAF & Hiệu Năng ALB Công Khai
+#### Giám Sát Bảo Mật WAF & Hiệu Năng ALB Công Khai
+![AWS WAF Traffic Overview](docs/images/25-aws-waf-traffic-overview-metrics.jpg)
+
 ![CloudWatch Dashboard WAF & ALB Metrics](docs/images/02-cloudwatch-dashboard-waf-alb-metrics.jpg)
-- **AWS WAF Metric:** Thống kê chi tiết Blocked vs Allowed requests theo thời gian thực.
+- **AWS WAF Metric:** Thống kê chi tiết Blocked (22) vs Allowed (385) requests theo thời gian thực (Zero False Negatives).
 - **WAF Top Blocked IPs:** Tự động điều tra từ CloudWatch Logs Insights, ghi nhận các IP độc hại bị chặn bởi bộ luật `AWSManagedRulesAmazonIpReputationList`.
 - **ALB Response Time & HTTP Status:** Độ trễ mục tiêu đạt ~354.5µs đến 88.2ms; phân loại mã phản hồi HTTP 2xx, 4xx, 5xx.
 
-#### Phần 2: Giám Sát Kiểm Tra Suricata IDS/IPS, GWLB & NAT Egress
+#### Giám Sát Kiểm Tra Suricata IDS/IPS, GWLB & NAT Egress
 ![CloudWatch Dashboard Suricata & GWLB Telemetry](docs/images/03-cloudwatch-dashboard-suricata-gwlb-telemetry.jpg)
 - **Suricata Flow Telemetry:** Theo dõi từng phiên kết nối liên cụm giữa Edge Pods (`10.40.x.x`) và Core Pods (`10.50.x.x`) qua cổng 443 TLS và cổng kiểm thử IPS 8084.
 - **Inspection GWLB Active Flows:** Giám sát số lượng luồng gói tin hoạt động trên cụm thiết bị kiểm tra an ninh.
 - **Centralized NAT Gateways:** Đếm số kết nối đồng thời và lưu lượng Bytes Out trên từng Availability Zone.
 - **Core Internal NLB:** Đo lường các luồng kết nối TCP active và tỷ lệ target resets.
+
+#### Hệ Thống CloudWatch Centralized Log Groups
+![CloudWatch Centralized Log Groups](docs/images/24-cloudwatch-centralized-log-groups.png)
+- Quản lý tập trung 8 Log Groups với thời hạn lưu trữ chuẩn 7 ngày (FinOps compliance):
+  - `/aws/network-firewall/fabric-egress-alerts`
+  - `/aws/network-firewall/fabric-egress-flows`
+  - `/aws/suricata/fabric-inspection-eve`
+  - `/aws/tgw/fabric-tgw-flow`
+  - `/aws/vpc/fabric-centralized-flow-logs`
+  - `/aws/vpc/fabric-core-flow`
+  - `/aws/vpc/fabric-edge-flow`
+  - `/aws/vpc/fabric-egress-flow`
+  - `/aws/vpc/fabric-inspection-flow`
 
 ---
 
@@ -193,7 +315,7 @@ Dự án đã hoàn thành diễn tập thực nghiệm với dữ liệu runtim
 ```text
 aws-eks-secure-network-fabric/
 ├── diagrams/                       # Sơ đồ kiến trúc chi tiết (draw.io, svg, png)
-├── docs/images/                    # Ảnh chụp bằng chứng giao diện AWS Console & Dashboard
+├── docs/images/                    # 25 ảnh chụp bằng chứng giao diện AWS Console & Dashboard
 ├── evidence/                       # Bằng chứng kỹ thuật runtime (Zero Fake Data, 100% Sanitized)
 │   ├── 01-network-topology/        # Dữ liệu VPCs, Subnets, TGW Route Tables, EKS Clusters
 │   ├── 02-gwlb-inspection/         # Trạng thái GWLB, Suricata Target Group
@@ -215,7 +337,6 @@ aws-eks-secure-network-fabric/
 │   ├── 10-gameday-su-co-mang/      # 5 kịch bản diễn tập sự cố mạng (GameDay)
 │   ├── 11-bang-chung-bao-cao/      # Thu thập bằng chứng, khử trùng dữ liệu, post-mortem, finops
 │   └── 12-don-dep-finops/          # Kịch bản dọn dẹp an toàn theo thứ tự ngược phụ thuộc
-├── spec.md                         # Đặc tả kỹ thuật kiến trúc toàn diện
 └── README.md                       # Tài liệu tổng quan dự án
 ```
 
