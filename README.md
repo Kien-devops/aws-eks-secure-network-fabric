@@ -84,14 +84,50 @@ Toàn bộ hạ tầng mạng được phân chia thành 4 VPC chức năng riê
 
 ---
 
-### 2.2 Phân Bổ 30 Subnets Phân Đoạn Chuyên Biệt (Subnet Topology)
-Mỗi VPC đều được chia subnet tách biệt trên 2 Availability Zones (`ap-southeast-1a` và `ap-southeast-1b`) tuân thủ nghiêm ngặt nguyên tắc Zero-Trust:
+### 2.2 Hệ Thống Bảng Định Tuyến & Subnet Chaining (16 Route Tables)
+Mỗi nhóm chức năng subnet đều sở hữu bảng định tuyến chuyên biệt, bảo đảm luồng dữ liệu bắt buộc phải đi qua các chốt kiểm soát an ninh trước khi đến đích:
 
-![Subnet Topology](docs/images/05-aws-subnets-30-subnets-topology.jpg)
+![Route Tables Inventory](docs/images/06-aws-route-tables-inventory.jpg)
+
+- **Core VPC:** `fabric-core-tgw-rt`, `fabric-core-private-rt`, `fabric-core-data-rt` (Bảo vệ cơ sở dữ liệu Aurora & Redis tách biệt).
+- **Edge VPC:** `fabric-edge-tgw-rt`, `fabric-edge-public-rt`, `fabric-edge-private-rt`.
+- **Inspection VPC:** `fabric-insp-tgw-rt-1a/1b`, `fabric-insp-gwlbe-rt`, `fabric-insp-fw-rt`.
+- **Egress VPC:** `fabric-egress-tgw-rt-1a/1b`, `fabric-egress-fw-rt-1a/1b`, `fabric-egress-public-rt-1a/1b`.
 
 ---
 
-### 2.3 Phân Tầng Hệ Thống Cân Bằng Tải (Load Balancing Hierarchy)
+### 2.3 Phân Bổ 30 Subnets & Internet Gateways
+Mỗi VPC đều được chia subnet tách biệt trên 2 Availability Zones (`ap-southeast-1a` và `ap-southeast-1b`) tuân thủ nghiêm ngặt nguyên tắc Zero-Trust, kết nối có kiểm soát qua các Internet Gateways:
+
+![Subnet Topology](docs/images/05-aws-subnets-30-subnets-topology.jpg)
+
+![Internet Gateways](docs/images/07-aws-internet-gateways.png)
+
+| Gateway Name | Gateway ID | VPC Gắn Kèm | Vai Trò |
+| :--- | :--- | :--- | :--- |
+| **`fabric-edge-igw`** | `igw-0849ffbd341601849` | `fabric-edge-vpc` | Tiếp nhận traffic từ Internet vào Public ALB. |
+| **`fabric-egress-igw`** | `igw-0742fe0915c3feadc` | `fabric-egress-vpc` | Cung cấp lối thoát Internet tập trung qua NAT Gateway sau khi qua Network Firewall. |
+| **`fabric-insp-igw`** | `igw-04b844b4753f7c549` | `fabric-inspection-vpc` | Cổng quản trị phụ trợ và cập nhật signature Suricata IDS/IPS. |
+
+---
+
+### 2.4 Cụm Tường Lửa AWS Network Firewall & Chính Sách Stateful Egress
+Hạ tầng Egress tập trung được bảo vệ bởi AWS Network Firewall với chính sách lọc tên miền đa tầng (Domain Filtering) theo chuẩn Suricata:
+
+![Network Firewall Deployment](docs/images/09-network-firewall-details.jpg)
+
+![Network Firewall Policy](docs/images/08-network-firewall-policy-rules.png)
+
+![Network Firewall Domain Allowlist](docs/images/10-network-firewall-domain-allowlist.png)
+
+- **Firewall Policy:** `fabric-egress-fw-policy` (Trạng thái Stateful Action Order, Capacity: 200/30,000 units).
+- **Stateful Rule Groups:**
+  1. `fabric-egress-domain-allowlist-rg`: Kiểm soát danh sách 11 tên miền tin cậy chuẩn Enterprise (`.quay.io`, `.docker.io`, `.docker.com`, `.github.com`, `.githubusercontent.com`, `.k8s.io`, `.amazonaws.com`, `.amazon.com`, `.cloudflare.docker.com`, `.devopsss.site`). Mọi truy vấn ngoài danh mục đều bị DROP tự động.
+  2. `fabric-egress-malicious-drop-rg`: Chặn tức thì các mẫu traffic độc hại, C2 beaconing và botnet ra bên ngoài.
+
+---
+
+### 2.5 Phân Tầng Hệ Thống Cân Bằng Tải (Load Balancing Hierarchy)
 Hạ tầng cân bằng tải 3 cấp độ phục vụ từng luồng giao tiếp chuyên biệt:
 
 ![Load Balancers Overview](docs/images/01-aws-load-balancers-overview.png)
@@ -108,7 +144,7 @@ Hạ tầng cân bằng tải 3 cấp độ phục vụ từng luồng giao ti�
 
 ---
 
-### 2.4 Bảng Điều Khiển Giám Sát Tập Trung (CloudWatch Security & Observability Dashboard)
+### 2.6 Bảng Điều Khiển Giám Sát Tập Trung (CloudWatch Security & Observability Dashboard)
 Toàn bộ telemetry của hệ thống (WAF, ALB, GWLB, Suricata EVE, NLB, NAT) được gom về Dashboard **`fabric-network-security-ops`**:
 
 #### Phần 1: Giám Sát Bảo Mật WAF & Hiệu Năng ALB Công Khai
