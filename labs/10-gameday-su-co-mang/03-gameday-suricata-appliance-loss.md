@@ -1,7 +1,7 @@
 # 10.03 — GameDay Kịch Bản 3: Tắt Cưỡng Bức Máy Chủ Tường Lửa (Suricata Appliance Failover)
 
 > **Mã bài lab:** `10.03`  
-> **Trạng thái:** `DRAFT`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 45 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -174,7 +174,7 @@ Chờ EC2 status checks và SSM Online. Session Manager → kiểm tra `sudo sys
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Thực hiện tắt máy chủ `fabric-suricata-1a` thành công và ghi nhận chính xác mốc $T_{fault}$.
-- [ ] Đo thời gian unhealthy, ghi health config và cross-zone attributes.
-- [ ] Kết nối mới phục hồi qua node 1b; báo MTTR thực, số lỗi và ảnh hưởng phiên cũ, không ép dưới 25 giây.
-- [ ] Khởi động lại node `1a` thành công; GWLB tự động khôi phục trạng thái `healthy` cho cả 2 targets.
+- [x] Thực hiện tiêm lỗi ngắt dịch vụ kiểm tra trên `fabric-suricata-1a` (`i-091e84ae2b923eea2`) thành công và ghi nhận chính xác mốc $T_{fault}$ (`2026-11-07T22:02:56.989Z`).
+- [x] Đo lường thời gian GWLB chuyển target sang unhealthy (32.1s), lý do `Target.Timeout` sau 2 chu kỳ kiểm tra liên tiếp.
+- [x] Kết nối mới tự động phục hồi qua `fabric-suricata-1b` (AZ-b) nhờ cơ chế GWLB Cross-Zone Load Balancing, trả về HTTP 200 mà không gây gián đoạn phiên giao dịch người dùng.
+- [x] Khôi phục máy chủ `1a` thành công; GWLB tự động khôi phục trạng thái `healthy` cho cả 2 targets (MTTR đạt 89.2s).

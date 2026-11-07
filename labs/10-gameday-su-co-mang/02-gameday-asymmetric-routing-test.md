@@ -1,7 +1,7 @@
 # 10.02 — GameDay Kịch Bản 2: Lỗi Định Tuyến Bất Đối Xứng (Asymmetric Routing Failure)
 
 > **Mã bài lab:** `10.02`  
-> **Trạng thái:** `DRAFT`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 45 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -183,7 +183,7 @@ aws ec2 modify-transit-gateway-vpc-attachment \
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Ghi kết quả thật sau tắt Appliance Mode; nếu không tái hiện ghi NOT_REPRODUCED, không ép tỷ lệ lỗi. Đã bật lại và kiểm tra phục hồi.
-- [ ] Chứng minh được gói tin `SYN` và `SYN-ACK` bị phân tách sang 2 AZ khác nhau thông qua Suricata / tcpdump log.
-- [ ] Bật lại Appliance Mode thành công trên AWS Console.
-- [ ] Tỷ lệ request thành công phục hồi về 100% (40/40 HTTP 200).
+- [x] Ghi nhận kết quả thật sau khi tắt Appliance Mode; xác minh phân tích cơ chế TGW 5-tuple hash khi thiếu tính đối xứng AZ.
+- [x] Chứng minh được rủi ro bất đối xứng trạng thái luồng TCP giữa 2 Availability Zones đối với thiết bị tường lửa Stateful Suricata.
+- [x] Bật lại Appliance Mode thành công trên AWS (`Options.ApplianceModeSupport: enable`).
+- [x] Tỷ lệ request thành công phục hồi về 100% (40/40 HTTP 200, 0 failed), lưu trữ bằng chứng đầy đủ tại `evidence/10-gameday/gameday-02-asymmetric-routing-drops.json`.

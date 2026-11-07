@@ -1,0 +1,40 @@
+﻿{
+    "TransitGatewayVpcAttachments": [
+        {
+            "TransitGatewayAttachmentId": "tgw-attach-0fb21514974415f35",
+            "TransitGatewayId": "tgw-0fca495dfa8cfee17",
+            "VpcId": "vpc-0c94a30a1a915fc0f",
+            "VpcOwnerId": "620306387033",
+            "State": "available",
+            "SubnetIds": [
+                "subnet-0e260eae20eea3ccb",
+                "subnet-0a1481ce7d8302538"
+            ],
+            "CreationTime": "2026-11-05T16:44:57.000Z",
+            "Options": {
+                "DnsSupport": "enable",
+                "SecurityGroupReferencingSupport": "enable",
+                "Ipv6Support": "disable",
+                "ApplianceModeSupport": "enable"
+            },
+            "Tags": [
+                {
+                    "Key": "Project",
+                    "Value": "aws-eks-secure-network-fabric"
+                },
+                {
+                    "Key": "Environment",
+                    "Value": "prod"
+                },
+                {
+                    "Key": "ManagedBy",
+                    "Value": "console-lab"
+                },
+                {
+                    "Key": "Name",
+                    "Value": "fabric-insp-tgw-attachment"
+                }
+            ]
+        }
+    ]
+}

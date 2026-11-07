@@ -1,0 +1,8 @@
+﻿[
+    {
+        "DestinationCidrBlock": "10.50.0.0/16",
+        "GatewayId": "vpce-008c9b7972ba12c2c",
+        "Origin": "CreateRoute",
+        "State": "active"
+    }
+]

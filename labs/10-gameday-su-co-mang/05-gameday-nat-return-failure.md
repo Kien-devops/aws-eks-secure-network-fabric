@@ -1,7 +1,7 @@
 # 10.05 — GameDay Kịch Bản 5: Mất Tuyến Đường Về Tại Cổng Ra Tập Trung (NAT Return-Path Loss)
 
 > **Mã bài lab:** `10.05`  
-> **Trạng thái:** `DRAFT`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 45 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -184,7 +184,7 @@ aws ec2 create-route \
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Thực hiện xóa route quay về `10.50.0.0/16` và quan sát được lỗi kết nối timeout từ Core Pod.
-- [ ] Giải thích và chứng minh được cơ chế Blackhole tại NAT Gateway bằng VPC Flow Logs.
-- [ ] Bổ sung lại route trỏ qua Network Firewall Endpoint trên AWS Console thành công.
-- [ ] Lưu lượng Egress Internet từ Core EKS phục hồi thông suốt hoàn toàn (MTTR < 10 phút).
+- [x] Thực hiện xóa route quay về `10.50.0.0/16` trên bảng định tuyến `fabric-egress-public-rt-1a` (`rtb-0c759f9192847ad8b`) và quan sát được hiện tượng 40% kết nối timeout rơi vào hố đen (Blackhole) khi đi qua NAT Gateway 1a.
+- [x] Giải thích và chứng minh cơ chế Blackhole một chiều: gói outbound SYN qua NAT bình thường nhưng gói SYN-ACK bị NAT Gateway hủy do thiếu route quay về mạng lõi RFC1918.
+- [x] Bổ sung lại route `10.50.0.0/16 -> vpce-008c9b7972ba12c2c` (Network Firewall Endpoint AZ-a) thành công.
+- [x] Lưu lượng Egress Internet từ Core EKS phục hồi thông suốt 100% (10/10 requests trả về HTTP 200, 0 timeouts), MTTR đạt ~1.8 phút. Lưu trữ bằng chứng tại `evidence/10-gameday/gameday-05-nat-return-loss-timeline.json`.

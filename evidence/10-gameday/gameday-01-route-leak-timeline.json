@@ -1,0 +1,24 @@
+﻿{
+    "metrics":  {
+                    "mttd_seconds":  5.7120182999999995,
+                    "mttr_seconds":  14.597555
+                },
+    "route_table_name":  "fabric-tgw-edge-rt",
+    "gameday_id":  "10.01-route-leak-test",
+    "timestamps":  {
+                       "t_detect":  "2026-11-07T21:57:37.6045362Z",
+                       "t_recover":  "2026-11-07T21:57:46.4900729Z",
+                       "t_baseline":  "2026-11-07T21:57:31.4416498Z",
+                       "t_fault":  "2026-11-07T21:57:31.8925179Z",
+                       "t_mitigate":  "2026-11-07T21:57:40.5292323Z"
+                   },
+    "target_region":  "ap-southeast-1",
+    "observations":  {
+                         "recovered_http":  "{\"service\":\"core-service\",\"status\":\"UP\",\"timestamp\":\"2026-11-07T21:57:56Z\",\"data\":{\"amazon_sqs\":{\"queue_url\":\"https://ap-southeast-1.queue.amazonaws.com/620306387033/fabric-order-events\",\"status\":\"ACTIVE\",\"worker\":\"payment-worker-1\"},\"aurora_postgresql\":{\"host\":\"db.fabric.internal\",\"status\":\"OK\"},\"cluster\":\"fabric-core-eks\",\"elasticache_redis\":{\"host\":\"redis.fabric.internal\",\"status\":\"OK\",\"tls\":true},\"pod_hostname\":\"core-service-85957f48c6-hsf9v\"}}",
+                         "asymmetric_impact":  "Forward traffic bypassed Inspection VPC directly to Core VPC attachment. Return traffic from Core VPC route table routed via Inspection VPC, causing asymmetric routing.",
+                         "baseline_http":  "{\"service\":\"core-service\",\"status\":\"UP\",\"timestamp\":\"2026-11-07T21:57:41Z\",\"data\":{\"amazon_sqs\":{\"queue_url\":\"https://ap-southeast-1.queue.amazonaws.com/620306387033/fabric-order-events\",\"status\":\"ACTIVE\",\"worker\":\"payment-worker-1\"},\"aurora_postgresql\":{\"host\":\"db.fabric.internal\",\"status\":\"OK\"},\"cluster\":\"fabric-core-eks\",\"elasticache_redis\":{\"host\":\"redis.fabric.internal\",\"status\":\"OK\",\"tls\":true},\"pod_hostname\":\"core-service-85957f48c6-hsf9v\"}}",
+                         "fault_http":  "{\"service\":\"core-service\",\"status\":\"UP\",\"timestamp\":\"2026-11-07T21:57:50Z\",\"data\":{\"amazon_sqs\":{\"queue_url\":\"https://ap-southeast-1.queue.amazonaws.com/620306387033/fabric-order-events\",\"status\":\"ACTIVE\",\"worker\":\"payment-worker-1\"},\"aurora_postgresql\":{\"host\":\"db.fabric.internal\",\"status\":\"OK\"},\"cluster\":\"fabric-core-eks\",\"elasticache_redis\":{\"host\":\"redis.fabric.internal\",\"status\":\"OK\",\"tls\":true},\"pod_hostname\":\"core-service-85957f48c6-hsf9v\"}}"
+                     },
+    "route_table_id":  "tgw-rtb-004772ba5b83f2b17",
+    "destination_cidr":  "10.50.0.0/16"
+}

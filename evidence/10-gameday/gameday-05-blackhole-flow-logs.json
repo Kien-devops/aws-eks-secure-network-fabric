@@ -1,0 +1,19 @@
+﻿{
+    "symptom":  "SILENT_ONE_WAY_RETURN_PATH_DROP",
+    "return_flow":  "Internet -\u003e NAT GW 1a (DNAT to 10.50.11.152) -\u003e Route Lookup in fabric-egress-public-rt-1a -\u003e MISSING 10.50.0.0/16 -\u003e PACKET DROPPED",
+    "remediation_verdict":  "Recreated static return route 10.50.0.0/16 targeting Network Firewall endpoint vpce-008c9b7972ba12c2c.",
+    "evidence_drop_pattern":  [
+                                  "000 TIMEOUT",
+                                  "000 TIMEOUT",
+                                  "200",
+                                  "200",
+                                  "000 TIMEOUT",
+                                  "000 TIMEOUT",
+                                  "200",
+                                  "200",
+                                  "200",
+                                  "200"
+                              ],
+    "scenario":  "10.05-nat-return-path-blackhole",
+    "outbound_flow":  "Core Node -\u003e TGW -\u003e Egress VPC -\u003e Network Firewall -\u003e NAT GW 1a -\u003e Internet (SYN reaches destination)"
+}

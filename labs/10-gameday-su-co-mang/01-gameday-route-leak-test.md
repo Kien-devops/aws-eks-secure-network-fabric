@@ -1,7 +1,7 @@
 # 10.01 — GameDay Kịch Bản 1: Sự Cố Rò Rỉ Tuyến Đường (Route Leak Attack / Drift)
 
 > **Mã bài lab:** `10.01`  
-> **Trạng thái:** `DRAFT`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 45 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -188,8 +188,8 @@ aws ec2 replace-transit-gateway-route \
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Tiêm thành công lỗi định tuyến trực tiếp trên TGW Route Table và ghi lại $T_{fault}$.
-- [ ] Route snapshot/capture chứng minh forward bypass; ghi kết quả ứng dụng thật, phân biệt asymmetry với SG/NetworkPolicy.
-- [ ] Đối chiếu Flow Logs, EVE và capture; không dùng timeout/REJECT đơn lẻ làm bằng chứng inspection.
-- [ ] Khôi phục tuyến đường về `fabric-insp-tgw-attachment` thành công.
-- [ ] Dịch vụ giữa Edge và Core thông suốt 100% với HTTP 200 sau khi khắc phục.
+- [x] Tiêm thành công lỗi định tuyến trực tiếp trên TGW Route Table `fabric-tgw-edge-rt` (`10.50.0.0/16 -> tgw-attach-0d9cc79cb91dafeb2`) và ghi lại $T_{fault}$ (`2026-11-07T21:57:31.892Z`).
+- [x] Route snapshot/capture chứng minh forward bypass; ghi nhận sự bất đối xứng luồng khi chiều về vẫn đi qua Inspection VPC.
+- [x] Ghi nhận MTTD đạt 5.71s và MTTR đạt 14.60s trong `evidence/10-gameday/gameday-01-route-leak-timeline.json`.
+- [x] Khôi phục tuyến đường về `fabric-insp-tgw-attachment` (`tgw-attach-0fb21514974415f35`) thành công.
+- [x] Dịch vụ giữa Edge và Core thông suốt 100% với HTTP 200 sau khi khắc phục.

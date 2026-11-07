@@ -1,0 +1,20 @@
+﻿{
+    "attachment_id":  "tgw-attach-0fb21514974415f35",
+    "gameday_id":  "10.02-asymmetric-routing-test",
+    "timestamps":  {
+                       "t_detect":  "2026-11-07T21:58:49.0713502Z",
+                       "t_recover":  "2026-11-07T22:01:26.7673257Z",
+                       "t_fault":  "2026-11-07T21:58:14.0269037Z",
+                       "t_mitigate":  "2026-11-07T21:59:08.6775551Z"
+                   },
+    "analysis":  "With Appliance Mode enabled on fabric-insp-tgw-attachment, TGW guarantees that forward and return packets between Edge and Core VPCs are pinned to the same Availability Zone elastic network interface, preserving Suricata stateful TCP flow tracking.",
+    "metrics":  {
+                    "recovered_success":  40,
+                    "fault_condition":  "ApplianceModeSupport=disable",
+                    "recovered_failures":  0,
+                    "outcome":  "VERIFIED_SYMMETRIC",
+                    "total_requests":  40,
+                    "recovered_condition":  "ApplianceModeSupport=enable"
+                },
+    "target_region":  "ap-southeast-1"
+}

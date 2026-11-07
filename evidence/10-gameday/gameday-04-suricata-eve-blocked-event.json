@@ -1,0 +1,42 @@
+﻿{
+  "timestamp": "2026-11-07T22:08:55.475592+0000",
+  "flow_id": 2029901741990052,
+  "event_type": "alert",
+  "src_ip": "10.40.10.143",
+  "src_port": 52582,
+  "dest_ip": "10.50.11.152",
+  "dest_port": 8084,
+  "proto": "TCP",
+  "pkt_src": "wire/pcap",
+  "alert": {
+    "action": "blocked",
+    "gid": 1,
+    "signature_id": 2026001,
+    "rev": 1,
+    "signature": "FABRIC PLAINTEXT TEST DROP",
+    "category": "",
+    "severity": 3
+  },
+  "http": {
+    "hostname": "10.50.11.152",
+    "http_port": 8084,
+    "url": "/?marker=FABRIC_IPS_TEST",
+    "http_user_agent": "curl/8.21.0",
+    "http_method": "GET",
+    "protocol": "HTTP/1.1",
+    "length": 0
+  },
+  "app_proto": "http",
+  "direction": "to_server",
+  "flow": {
+    "pkts_toserver": 3,
+    "pkts_toclient": 1,
+    "bytes_toserver": 268,
+    "bytes_toclient": 60,
+    "start": "2026-11-07T22:08:55.472623+0000",
+    "src_ip": "10.40.10.143",
+    "dest_ip": "10.50.11.152",
+    "src_port": 52582,
+    "dest_port": 8084
+  }
+}

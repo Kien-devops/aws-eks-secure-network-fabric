@@ -1,0 +1,26 @@
+﻿{
+    "TargetHealthDescriptions": [
+        {
+            "Target": {
+                "Id": "i-091e84ae2b923eea2",
+                "Port": 6081,
+                "AvailabilityZone": "ap-southeast-1b"
+            },
+            "HealthCheckPort": "80",
+            "TargetHealth": {
+                "State": "healthy"
+            }
+        },
+        {
+            "Target": {
+                "Id": "i-089127472b112deff",
+                "Port": 6081,
+                "AvailabilityZone": "ap-southeast-1a"
+            },
+            "HealthCheckPort": "80",
+            "TargetHealth": {
+                "State": "healthy"
+            }
+        }
+    ]
+}

@@ -1,0 +1,8 @@
+﻿{
+    "return_path":  "Core -\u003e TGW -\u003e Inspection VPC (tgw-attach-0fb21514974415f35) -\u003e Suricata",
+    "forward_path":  "Edge -\u003e TGW -\u003e Core VPC (tgw-attach-0d9cc79cb91dafeb2)",
+    "detected_anomaly":  "ROUTE_ASYMMETRY_DETECTED",
+    "scenario":  "10.01-route-leak-defense-in-depth",
+    "security_verdict":  "Defense-in-depth: Route drift detected via TGW audit, remediated back to inspection fabric.",
+    "vpc_flow_logs_action":  "ACCEPT_AT_NLB_BUT_TCP_RESET_AT_SURICATA_RETURN"
+}

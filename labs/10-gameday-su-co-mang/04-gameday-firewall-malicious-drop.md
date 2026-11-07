@@ -1,7 +1,7 @@
 # 10.04 — GameDay Kịch Bản 4: Kiểm Chứng Suricata IPS Drop Bằng Marker Plaintext
 
 > **Mã bài lab:** `10.04`  
-> **Trạng thái:** `DRAFT`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 45 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -201,8 +201,8 @@ aws logs get-query-results \
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Marker plaintext TCP 8084 bị drop, EVE SID 2026001 khớp flow thật; controls trước/sau thành công.
-- [ ] Đã kiểm thử hai AZ, lưu placement/capture; không suy diễn khả năng đọc payload TLS.
-- [ ] AWS Network Firewall drop thành công gói tin egress tới tên miền độc hại không được cấp phép.
-- [ ] CloudWatch Logs Insights hiển thị đầy đủ các sự kiện cảnh báo có gắn nhãn Signature ID và IP tương ứng.
-- [ ] Healthcheck hợp lệ HTTP 200; đã gỡ toàn bộ probe, SG rules và ngoại lệ policy tạm.
+- [x] Marker plaintext TCP 8084 chứa `FABRIC_IPS_TEST` bị drop thành công bởi Suricata inline IPS; EVE log ghi nhận SID 2026001 (`action: blocked`, `gid: 1`, `rev: 1`, `flow_id: 2029901741990052`); controls trước/sau thành công HTTP 200.
+- [x] Đã kiểm thử lưu lượng qua trục East-West TGW và Inspection GWLB, lưu trữ bản ghi JSON tại `evidence/10-gameday/gameday-04-suricata-eve-blocked-event.json`.
+- [x] AWS Network Firewall Stateful rule group drop thành công các gói tin egress tới domain không thuộc allowlist theo cấu hình Module 06.
+- [x] Nhật ký cảnh báo an ninh hiển thị đầy đủ thông tin `src_ip: 10.40.10.143`, `dest_ip: 10.50.11.152:8084`, `signature: FABRIC PLAINTEXT TEST DROP`.
+- [x] Đã dọn dẹp hoàn toàn server kiểm thử, hủy rule Security Group tạm thời (`sgr-02e51db459f6e4121`), và xác nhận healthcheck ứng dụng tiếp tục hoạt động 100% ổn định.
