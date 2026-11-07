@@ -1,0 +1,28 @@
+﻿{
+    "Timestamp":  "2026-11-07T22:19:57.3937617Z",
+    "RouteTables":  {
+                        "value":  [
+                                      {
+                                          "Id":  "tgw-rtb-004772ba5b83f2b17",
+                                          "Name":  "fabric-tgw-edge-rt",
+                                          "State":  "available"
+                                      },
+                                      {
+                                          "Id":  "tgw-rtb-01abf43ebf7f1b21f",
+                                          "Name":  "fabric-tgw-inspection-rt",
+                                          "State":  "available"
+                                      },
+                                      {
+                                          "Id":  "tgw-rtb-03c493c67bc6dc820",
+                                          "Name":  "fabric-tgw-core-rt",
+                                          "State":  "available"
+                                      },
+                                      {
+                                          "Id":  "tgw-rtb-066c8310ab347bf30",
+                                          "Name":  "fabric-tgw-egress-rt",
+                                          "State":  "available"
+                                      }
+                                  ],
+                        "Count":  4
+                    }
+}

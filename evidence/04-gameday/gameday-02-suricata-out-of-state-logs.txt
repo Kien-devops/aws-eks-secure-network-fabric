@@ -1,0 +1,1 @@
+﻿Suricata Eve log monitoring note: When flows are symmetric (Appliance Mode enable), no TCP out-of-order session drops occur. During asymmetric transitions, non-SYN packets hitting opposing AZ appliances trigger flow tracking alerts.

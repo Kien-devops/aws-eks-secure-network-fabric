@@ -1,0 +1,25 @@
+﻿{
+    "Timestamp":  "2026-11-07T22:20:29.1441542Z",
+    "Vpcs":  [
+                 {
+                     "VpcId":  "vpc-0468b18dddd1d4d2d",
+                     "Cidr":  "10.40.0.0/16",
+                     "Name":  "fabric-edge-vpc"
+                 },
+                 {
+                     "VpcId":  "vpc-0c1479727a5e38b4c",
+                     "Cidr":  "10.80.0.0/16",
+                     "Name":  "fabric-egress-vpc"
+                 },
+                 {
+                     "VpcId":  "vpc-09888cc991104c959",
+                     "Cidr":  "10.50.0.0/16",
+                     "Name":  "fabric-core-vpc"
+                 },
+                 {
+                     "VpcId":  "vpc-0c94a30a1a915fc0f",
+                     "Cidr":  "10.70.0.0/16",
+                     "Name":  "fabric-inspection-vpc"
+                 }
+             ]
+}

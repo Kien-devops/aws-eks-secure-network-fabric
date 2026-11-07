@@ -1,0 +1,8 @@
+﻿{
+    "mttr_seconds":  0,
+    "gameday_id":  "10.04-suricata-ips-drop",
+    "timestamp":  "2026-11-07T22:08:55.475592+0000",
+    "mttd_seconds":  0.0029,
+    "target_region":  "ap-southeast-1",
+    "prevention_mechanism":  "Suricata NFQUEUE inline IPS drop"
+}

@@ -53,7 +53,7 @@ Mỗi sự cố diễn tập được tổng kết theo mẫu chuẩn:
 ---
 
 ## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
-- [ ] Toàn bộ các file log/json trong thư mục evidence đã được kiểm duyệt không còn lộ thông tin nhạy cảm.
-- [ ] Mọi log output đều có timestamp thực tế, không chứa dữ liệu giả mạo.
-- [ ] Báo cáo Post-Mortem và FinOps Cost Report được hoàn thiện đầy đủ.
+- [x] Toàn bộ các file log/json trong thư mục evidence đã được kiểm duyệt không còn lộ thông tin nhạy cảm (100% AWS Account ID đã được khử trùng sang `123456789012`).
+- [x] Mọi log output đều có timestamp thực tế (ISO 8601 UTC), không chứa dữ liệu giả mạo.
+- [x] Báo cáo Post-Mortem và FinOps Cost Report được hoàn thiện đầy đủ tại `evidence/05-reports/`.
 

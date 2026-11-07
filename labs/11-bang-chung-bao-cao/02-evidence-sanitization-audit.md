@@ -1,7 +1,7 @@
 # 11.02 — Kiểm Toán Vệ Sinh Dữ Liệu & Khử Trùng Thông Tin Nhạy Cảm (Sanitization Audit)
 
 > **Mã bài lab:** `11.02`  
-> **Trạng thái:** `DRAFT`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 30 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -231,8 +231,8 @@ cp -r /tmp/evidence-backup-pre-sanitize evidence
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Script kiểm toán 5 lớp an ninh chạy với mã thoát `exit 0` (100% PASSED).
-- [ ] Không có bất kỳ AWS Access Key `AKIA...` nào tồn tại trong repository.
-- [ ] Không có tệp chứa Private Key hoặc mật khẩu plain text.
-- [ ] Toàn bộ AWS Account ID được thay thế đồng nhất bằng `123456789012`.
-- [ ] Báo cáo `SANITIZATION-AUDIT-REPORT.md` được tạo đầy đủ.
+- [x] Script kiểm toán 5 lớp an ninh chạy với mã thoát `exit 0` (100% PASSED).
+- [x] Không có bất kỳ AWS Access Key `AKIA...` nào tồn tại trong repository.
+- [x] Không có tệp chứa Private Key hoặc mật khẩu plain text.
+- [x] Toàn bộ AWS Account ID được thay thế đồng nhất bằng `123456789012`.
+- [x] Báo cáo `SANITIZATION-AUDIT-REPORT.md` được tạo đầy đủ.

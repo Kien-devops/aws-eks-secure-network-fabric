@@ -1,7 +1,7 @@
 # 11.04 — Báo Cáo Đo Lường Chi Phí Thực Tế & Tối Ưu Hóa FinOps
 
 > **Mã bài lab:** `11.04`  
-> **Trạng thái:** `DRAFT`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 30 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -184,7 +184,7 @@ Tệp báo cáo FinOps là tài liệu tổng kết tĩnh. Nếu cần cập nh�
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Tổng chi phí thực tế được đối soát đầy đủ và nằm trong hạn mức **< $50.00 USD** (thực tế ~$17.64 USD).
-- [ ] Phân rã chi phí chi tiết cho từng dịch vụ AWS chính (TGW, NFW, NAT, EKS, EC2, RDS).
-- [ ] Báo cáo ghi nhận rõ ràng 4 chiến lược tối ưu FinOps đã triển khai trong kiến trúc.
-- [ ] Lưu trữ thành công tệp `FINOPS-COST-REPORT.md` vào thư mục bằng chứng.
+- [x] Tổng chi phí thực tế được đối soát đầy đủ và nằm trong hạn mức **< $50.00 USD** (thực tế ~$18.42 USD).
+- [x] Phân rã chi phí chi tiết cho từng dịch vụ AWS chính (TGW, NFW, NAT, EKS, EC2, RDS).
+- [x] Báo cáo ghi nhận rõ ràng 4 chiến lược tối ưu FinOps đã triển khai trong kiến trúc.
+- [x] Lưu trữ thành công tệp `FINOPS-COST-REPORT.md` vào thư mục bằng chứng.

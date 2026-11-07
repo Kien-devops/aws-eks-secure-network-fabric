@@ -1,7 +1,7 @@
 # 11.03 — Mẫu Báo Cáo Phân Tích Sự Cố Sau Diễn Tập (Incident Post-Mortem Report)
 
 > **Mã bài lab:** `11.03`  
-> **Trạng thái:** `DRAFT`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 35 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -186,8 +186,8 @@ Tệp báo cáo Post-Mortem là tài liệu phân tích kỹ thuật tĩnh, khô
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Báo cáo ghi nhận đầy đủ 4 mốc thời gian UTC thực tế ($T_{fault}, T_{detect}, T_{mitigate}, T_{recover}$).
-- [ ] Tính toán chính xác các chỉ số MTTD và MTTR.
-- [ ] Áp dụng phương pháp 5 Whys phân tích triệt để tới tận bản chất TGW Appliance Mode.
-- [ ] Bảng phân công Action Items có người phụ trách, thời hạn và trạng thái rõ ràng.
-- [ ] Báo cáo tuân thủ nguyên tắc Blameless Post-Mortem.
+- [x] Báo cáo ghi nhận đầy đủ 4 mốc thời gian UTC thực tế ($T_{fault}, T_{detect}, T_{mitigate}, T_{recover}$).
+- [x] Tính toán chính xác các chỉ số MTTD và MTTR.
+- [x] Áp dụng phương pháp 5 Whys phân tích triệt để tới tận bản chất TGW Appliance Mode.
+- [x] Bảng phân công Action Items có người phụ trách, thời hạn và trạng thái rõ ràng.
+- [x] Báo cáo tuân thủ nguyên tắc Blameless Post-Mortem.

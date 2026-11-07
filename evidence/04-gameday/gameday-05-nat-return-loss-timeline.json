@@ -1,0 +1,22 @@
+﻿{
+    "observations":  "Removing the return route 10.50.0.0/16 on fabric-egress-public-rt-1a caused 40% intermittent packet drop (timeouts) for outbound connections from Core EKS node i-04fab6784ac8b3fff when packets egressed via NAT-1a. Egress via NAT-1b remained intact. Reinstating 10.50.0.0/16 -\u003e vpce-008c9b7972ba12c2c restored 100% (10/10) success.",
+    "gameday_id":  "10.05-nat-return-failure",
+    "deleted_destination":  "10.50.0.0/16",
+    "restored_target":  "vpce-008c9b7972ba12c2c",
+    "timestamps":  {
+                       "t_detect":  "2026-11-07T22:13:14Z",
+                       "t_recover":  "2026-11-07T22:13:48.2103665Z",
+                       "t_fault":  "2026-11-07T22:11:46Z",
+                       "t_mitigate":  "2026-11-07T22:13:33.1874863Z"
+                   },
+    "metrics":  {
+                    "fault_cross_zone_successes":  6,
+                    "total_requests_tested":  10,
+                    "fault_intermittent_timeouts":  4,
+                    "recovered_successes":  10,
+                    "recovered_timeouts":  0
+                },
+    "target_region":  "ap-southeast-1",
+    "route_table_id":  "rtb-0c759f9192847ad8b",
+    "route_table_name":  "fabric-egress-public-rt-1a"
+}

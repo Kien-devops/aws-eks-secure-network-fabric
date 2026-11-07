@@ -1,0 +1,33 @@
+﻿{
+    "Timestamp":  "2026-11-07T22:19:57.3937617Z",
+    "Firewall":  {
+                     "Status":  "READY",
+                     "Endpoints":  {
+                                       "ap-southeast-1a":  {
+                                                               "Attachment":  {
+                                                                                  "SubnetId":  "subnet-0c7142131794aa34c",
+                                                                                  "EndpointId":  "vpce-008c9b7972ba12c2c",
+                                                                                  "Status":  "READY"
+                                                                              },
+                                                               "Config":  {
+                                                                              "arn:aws:network-firewall:ap-southeast-1:123456789012:firewall-policy/fabric-egress-fw-policy":  "@{SyncStatus=IN_SYNC; UpdateToken=a40ec990-ffb2-4945-a3bb-bdf9de48f65b}",
+                                                                              "arn:aws:network-firewall:ap-southeast-1:123456789012:stateful-rulegroup/fabric-egress-domain-allowlist-rg":  "@{SyncStatus=IN_SYNC; UpdateToken=e1521976-4cab-4df8-8b28-43a30a5ae90f}",
+                                                                              "arn:aws:network-firewall:ap-southeast-1:123456789012:stateful-rulegroup/fabric-egress-malicious-drop-rg":  "@{SyncStatus=IN_SYNC; UpdateToken=ed8aa5cd-9282-4964-85ac-787406b18f97}"
+                                                                          }
+                                                           },
+                                       "ap-southeast-1b":  {
+                                                               "Attachment":  {
+                                                                                  "SubnetId":  "subnet-05ce922d28724c2f9",
+                                                                                  "EndpointId":  "vpce-0a4193a072d8c041f",
+                                                                                  "Status":  "READY"
+                                                                              },
+                                                               "Config":  {
+                                                                              "arn:aws:network-firewall:ap-southeast-1:123456789012:firewall-policy/fabric-egress-fw-policy":  "@{SyncStatus=IN_SYNC; UpdateToken=a40ec990-ffb2-4945-a3bb-bdf9de48f65b}",
+                                                                              "arn:aws:network-firewall:ap-southeast-1:123456789012:stateful-rulegroup/fabric-egress-domain-allowlist-rg":  "@{SyncStatus=IN_SYNC; UpdateToken=e1521976-4cab-4df8-8b28-43a30a5ae90f}",
+                                                                              "arn:aws:network-firewall:ap-southeast-1:123456789012:stateful-rulegroup/fabric-egress-malicious-drop-rg":  "@{SyncStatus=IN_SYNC; UpdateToken=ed8aa5cd-9282-4964-85ac-787406b18f97}"
+                                                                          }
+                                                           }
+                                   }
+                 }
+}
+

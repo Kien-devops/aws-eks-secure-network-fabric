@@ -1,7 +1,7 @@
 # 11.01 — Thu Thập Bằng Chứng Kỹ Thuật Runtime Kèm Dấu Thời Gian (Timestamp)
 
 > **Mã bài lab:** `11.01`  
-> **Trạng thái:** `DRAFT`  
+> **Trạng thái:** `COMPLETED`  
 > **Thời gian dự kiến:** 40 phút  
 > **Chi phí ước tính:** $0.00 USD  
 > **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
@@ -209,7 +209,7 @@ mkdir -p evidence/01-network-topology evidence/02-gwlb-inspection evidence/03-eg
 
 ## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
 
-- [ ] Toàn bộ các file trong thư mục `evidence/` chứa cấu trúc JSON hợp lệ.
-- [ ] 100% file có trường `Timestamp` định dạng chuẩn ISO 8601 UTC.
-- [ ] Dữ liệu phản ánh chính xác trạng thái runtime của hạ tầng tại `ap-southeast-1`.
-- [ ] Tuyệt đối không có trường dữ liệu giả lập (Zero Fake Data).
+- [x] Toàn bộ các file trong thư mục `evidence/` chứa cấu trúc JSON hợp lệ.
+- [x] 100% file có trường `Timestamp` định dạng chuẩn ISO 8601 UTC.
+- [x] Dữ liệu phản ánh chính xác trạng thái runtime của hạ tầng tại `ap-southeast-1`.
+- [x] Tuyệt đối không có trường dữ liệu giả lập (Zero Fake Data).

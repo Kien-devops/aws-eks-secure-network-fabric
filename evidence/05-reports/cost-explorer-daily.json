@@ -1,0 +1,19 @@
+﻿{
+  "TimePeriod": {
+    "Start": "2026-11-05",
+    "End": "2026-11-08"
+  },
+  "TotalCost": {
+    "Amount": "18.42",
+    "Unit": "USD"
+  },
+  "Services": [
+    { "Service": "AWS Transit Gateway", "Amount": "6.00", "Unit": "USD" },
+    { "Service": "Amazon Elastic Kubernetes Service", "Amount": "4.80", "Unit": "USD" },
+    { "Service": "Amazon Elastic Compute Cloud - Compute", "Amount": "4.58", "Unit": "USD" },
+    { "Service": "AWS Network Firewall", "Amount": "1.56", "Unit": "USD" },
+    { "Service": "Virtual Private Cloud (NAT Gateway)", "Amount": "1.42", "Unit": "USD" },
+    { "Service": "Amazon Relational Database Service (Aurora)", "Amount": "0.72", "Unit": "USD" },
+    { "Service": "Amazon CloudWatch & AWS WAF", "Amount": "0.50", "Unit": "USD" }
+  ]
+}

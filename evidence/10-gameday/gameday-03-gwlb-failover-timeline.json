@@ -1,5 +1,5 @@
 ﻿{
-    "target_group_arn":  "arn:aws:elasticloadbalancing:ap-southeast-1:620306387033:targetgroup/fabric-suricata-tg/001c164dc0b0afa208",
+    "target_group_arn":  "arn:aws:elasticloadbalancing:ap-southeast-1:123456789012:targetgroup/fabric-suricata-tg/001c164dc0b0afa208",
     "tested_instance":  "i-091e84ae2b923eea2",
     "gameday_id":  "10.03-suricata-appliance-loss",
     "timestamps":  {
@@ -18,3 +18,4 @@
                     "failover_http_status":  "200"
                 }
 }
+

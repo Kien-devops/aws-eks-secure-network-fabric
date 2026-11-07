@@ -1,0 +1,11 @@
+﻿{
+    "Timestamp":  "2026-11-07T22:19:57.3937617Z",
+    "Cluster":  {
+                    "Name":  "fabric-core-eks",
+                    "Version":  "1.37",
+                    "Status":  "ACTIVE",
+                    "Endpoint":  "https://2FEB16F89E349703C1E29DB43A768ED0.gr7.ap-southeast-1.eks.amazonaws.com",
+                    "RoleArn":  "arn:aws:iam::123456789012:role/fabric-eks-cluster-role"
+                }
+}
+

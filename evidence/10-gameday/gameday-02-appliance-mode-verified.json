@@ -4,7 +4,7 @@
             "TransitGatewayAttachmentId": "tgw-attach-0fb21514974415f35",
             "TransitGatewayId": "tgw-0fca495dfa8cfee17",
             "VpcId": "vpc-0c94a30a1a915fc0f",
-            "VpcOwnerId": "620306387033",
+            "VpcOwnerId": "123456789012",
             "State": "available",
             "SubnetIds": [
                 "subnet-0e260eae20eea3ccb",
@@ -38,3 +38,4 @@
         }
     ]
 }
+

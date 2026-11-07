@@ -1,0 +1,18 @@
+﻿{
+    "Timestamp":  "2026-11-07T22:19:57.3937617Z",
+    "Targets":  {
+                    "value":  [
+                                  {
+                                      "Id":  "i-091e84ae2b923eea2",
+                                      "Port":  6081,
+                                      "State":  "healthy"
+                                  },
+                                  {
+                                      "Id":  "i-089127472b112deff",
+                                      "Port":  6081,
+                                      "State":  "healthy"
+                                  }
+                              ],
+                    "Count":  2
+                }
+}

@@ -1,0 +1,11 @@
+﻿{
+    "Timestamp":  "2026-11-07T22:19:57.3937617Z",
+    "Cluster":  {
+                    "Name":  "fabric-edge-eks",
+                    "Version":  "1.37",
+                    "Status":  "ACTIVE",
+                    "Endpoint":  "https://C1659A4972ED6E8E4868A43BB740689A.gr7.ap-southeast-1.eks.amazonaws.com",
+                    "RoleArn":  "arn:aws:iam::123456789012:role/fabric-eks-cluster-role"
+                }
+}
+

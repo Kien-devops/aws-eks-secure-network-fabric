@@ -1,0 +1,13 @@
+﻿{
+    "scenario":  "10.04-suricata-ips-drop",
+    "target_node":  "10.50.11.152",
+    "signature_id":  2026001,
+    "control_2_status":  "HTTP 200 OK (Directory listing received)",
+    "control_1_status":  "HTTP 200 OK (Directory listing received)",
+    "marker_probe_status":  "BLOCKED / DROPPED (curl timeout, packet dropped by Suricata IPS)",
+    "port":  8084,
+    "drop_evidence":  "Verified in Suricata 1B /var/log/suricata/eve.json alert event",
+    "source_node":  "10.40.10.143",
+    "signature_message":  "FABRIC PLAINTEXT TEST DROP",
+    "suricata_action":  "blocked"
+}
