@@ -1,143 +1,81 @@
-# 08.01 — Tự Động Hóa Kiểm Thử Terraform & Quét An Ninh Hạ Tầng Với Checkov
+# 08.01 — Đặc Tả Kiểm Thử Terraform & Quét An Ninh Hạ Tầng Với Checkov
 
-> **Mã bài lab:** `08.01`  
-> **Trạng thái:** `DRAFT`  
-> **Thời gian dự kiến:** 30 phút  
-> **Chi phí ước tính:** $0.00 USD (Chạy cục bộ hoặc trong GitHub Actions / AWS CodePipeline)  
-> **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
-
----
-
-## 1. Tiền đề (Prerequisites)
-
-- Đã cài đặt Terraform CLI v1.5+ và Python 3.9+ trên máy trạm.
-- Mã nguồn IaC của dự án đã sẵn sàng trong thư mục `terraform/`.
-
-> **Gate artifact:** repo hiện chưa có `terraform/`; bài chưa chạy được. Hoàn thiện IaC và mapping tài nguyên live/import plan trong nhiệm vụ riêng. Không chạy apply/import trong bài kiểm tra tĩnh; validate thư mục rỗng không chứng minh hạ tầng an toàn.
-- Đã cài đặt công cụ quét tĩnh an ninh `checkov`.
+> **Mã bài lab:** `08.01`
+> **Trạng thái tài liệu:** `READY_TO_RUN`
+> **Vùng triển khai:** `ap-southeast-1` (Singapore)
+> **File bằng chứng:** `evidence/08-devsecops/01-checkov-report.json`
 
 ---
 
-## 2. Quyền IAM Yêu Cầu (Required IAM Permissions)
+## 1. Mục Tiêu (Objective)
 
-Bài lab thực hiện kiểm thử tĩnh mã nguồn IaC cục bộ và kiểm tra kết quả trên AWS Security Hub / CodePipeline (nếu tích hợp CI/CD):
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "securityhub:BatchImportFindings",
-        "securityhub:GetFindings"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
+Đặc tả quy trình kiểm thử tĩnh tự động hóa định dạng cú pháp HCL và phân tích an ninh mã nguồn hạ tầng (SAST IaC) bằng Checkov trước khi hợp nhất Pull Request, đảm bảo tuân thủ các chuẩn mã hóa KMS, không mở cổng SSH và kích hoạt VPC Flow Logs.
+
+*Lưu ý phạm vi kiến trúc:* Bài lab này thuần túy kiểm tra an ninh tĩnh (Static IaC Code Analysis & Linting), **tuyệt đối không thực thi `terraform apply`** hay triển khai tự động lên hạ tầng đám mây. Toàn bộ tài nguyên AWS Cloud trên thực tế trong dự án này được tạo và quản trị thủ công 100% qua AWS Console/CLI (`ManagedBy=manual`).
 
 ---
 
-## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
+## 2. Tài Nguyên (Resources)
 
-- **Chi phí:** $0.00 USD.
-- **Cảnh báo Shift-Left Security:** Bất kỳ lỗi vi phạm an ninh nghiêm trọng nào (mở SSH ra 0.0.0.0/0, thiếu mã hóa KMS, thiếu VPC Flow Logs) phải được chặn đứng ngay từ bước Pull Request trước khi lệnh `terraform apply` được thực thi trên môi trường AWS thực tế.
-
----
-
-## 4. Các Bước Thực Hiện Chi Tiết Trên Console & Terminal (Console Walkthrough)
-
-### Bước 1: Kiểm Tra Định Dạng & Tính Hợp Lệ Cú Pháp Terraform
-1. Mở terminal tại thư mục gốc repository `aws-eks-secure-network-fabric`.
-2. Chuyển vào thư mục chứa mã nguồn hạ tầng:
-   ```bash
-   cd terraform/
-   ```
-3. Chạy lệnh kiểm tra định dạng mã nguồn theo chuẩn HashiCorp:
-   ```bash
-   terraform fmt -check -recursive
-   ```
-   *(Nếu có file chưa đúng chuẩn thụt lề, chạy `terraform fmt -recursive` để tự động sửa).*
-4. Khởi tạo Terraform không cần backend từ xa để kiểm tra cú pháp:
-   ```bash
-   terraform init -backend=false
-   terraform validate
-   ```
-   Xác nhận màn hình trả về: **`Success! The configuration is valid.`**
+| Tên Tài Nguyên | Loại Resource | Phạm Vi Áp Dụng | Mô Tả Kỹ Thuật |
+| :--- | :--- | :--- | :--- |
+| `terraform/` | `IaC::HCL` | Repository Workspace | Mã nguồn định nghĩa VPC, TGW, EKS, GWLB, NFW |
+| `checkov` | `Security::SAST` | CI/CD Runner / CLI | Bộ quét lỗ hổng cấu hình tĩnh IaC |
+| `01-checkov-report.json` | `Artifact::Evidence` | `evidence/08-devsecops/` | Báo cáo kết quả quét định dạng JSON |
 
 ---
 
-### Bước 2: Cài Đặt & Chạy Bộ Quét An Ninh Checkov
-1. Cài đặt Checkov bằng `pip`:
-   ```bash
-   pip install checkov
-   ```
-2. Chạy quét toàn bộ module Terraform với bộ kiểm tra nghiêm ngặt cho AWS EKS và Networking:
-   ```bash
-   checkov -d . \
-     --framework terraform \
-     --check CKV_AWS_20,CKV_AWS_23,CKV_AWS_24,CKV_AWS_130,CKV_AWS_158,CKV_AWS_260 \
-     --compact \
-     --output cli
-   ```
-3. **Danh mục các quy tắc an ninh cốt lõi cần đạt PASSED:**
-   - **`CKV_AWS_23`:** Đảm bảo Security Group không mở cổng SSH (22) ra toàn bộ thế giới `0.0.0.0/0`.
-   - **`CKV_AWS_158`:** Đảm bảo EKS Cluster bật tính năng Secret Envelope Encryption với AWS KMS.
-   - **`CKV_AWS_130`:** Đảm bảo tất cả VPCs đều kích hoạt VPC Flow Logs.
-   - **`CKV_AWS_260`:** Đảm bảo Ingress Security Group không mở tất cả các cổng (`-1` protocol).
+## 3. Thẻ Định Danh (Tags)
+
+| Key | Value | Phạm Vi Áp Dụng |
+| :--- | :--- | :--- |
+| `Name` | `fabric-*` | Toàn bộ tài nguyên quản trị |
+| `Project` | `aws-eks-secure-network-fabric` | Quy chuẩn gán thẻ bắt buộc |
+| `Environment` | `prod` | Phân vùng môi trường chính thức |
+| `ManagedBy` | `manual` | Quản lý quy trình kiểm định thủ công Console/CLI |
 
 ---
 
-### Bước 3: Xuất Báo Cáo Định Dạng JUnit XML & JSON Cho CI/CD Pipeline
-1. Chạy xuất báo cáo kết quả quét định dạng JSON để lưu trữ làm bằng chứng:
-   ```bash
-   checkov -d . \
-     --framework terraform \
-     --output json \
-     --output-file-path ../evidence/08-devsecops/
-   ```
-2. Đổi tên file báo cáo thành `evidence/08-devsecops/01-checkov-report.json`.
+## 4. Cấu Hình Chi Tiết (Configuration)
+
+### 4.1 Quy Trình Kiểm Thử Cú Pháp HCL
+
+- **Format Check:** `terraform fmt -check -recursive` (Bảo đảm tính đồng nhất định dạng mã).
+- **Validation:** `terraform init -backend=false && terraform validate` (Kiểm tra cú pháp tham chiếu biến, type và schema).
+
+### 4.2 Bộ Quy Tắc An Ninh Trọng Yếu (Checkov Policy Baseline)
+
+| Mã Checkov | Tên Quy Tắc | Yêu Cầu An Ninh Cốt Lõi | Hành Vi Ngắt Pipeline |
+| :--- | :--- | :--- | :---: |
+| **`CKV_AWS_23`** | SG SSH 0.0.0.0/0 | Cấm mở cổng 22 ra toàn thế giới. | `FAIL` |
+| **`CKV_AWS_158`** | EKS Secrets Encryption | Bắt buộc bật KMS envelope encryption cho etcd secrets. | `FAIL` |
+| **`CKV_AWS_130`** | VPC Flow Logs Enabled | Toàn bộ VPCs bắt buộc phải cấu hình nạp Flow Logs. | `FAIL` |
+| **`CKV_AWS_260`** | Ingress All Traffic Drop | Cấm mở toàn bộ cổng (`-1` all traffic) trên ingress SG. | `FAIL` |
 
 ---
 
-### Bước 4: Quan Sát Trạng Thái Tích Hợp Trên AWS Security Hub Console (Tùy Chọn)
-1. Đăng nhập **AWS Management Console**, chọn Region Singapore `ap-southeast-1`.
-2. Mở dịch vụ **AWS Security Hub** -> Chọn **Findings**.
-3. Lọc theo Provider: `Checkov` hoặc `IaC Scanner` (nếu pipeline đẩy kết quả lên Security Hub qua API `BatchImportFindings`).
-4. Xác nhận không có finding nào ở mức độ `CRITICAL` hoặc `HIGH`.
+## 5. Phụ Thuộc (Dependencies)
+
+- Phụ thuộc vào mã nguồn Terraform tại thư mục `terraform/`.
+- Là rào chắn kiểm soát chất lượng (Quality Gate) bắt buộc trước khi triển khai pipeline CI/CD tại `08.04`.
 
 ---
 
-## 5. Lệnh Kiểm Tra / CLI Verification (Zero Fake Data)
+## 6. Kiểm Tra Đạt (Verification)
 
-Kiểm tra kết quả tổng kết của Checkov:
-```bash
-# Kiểm tra số lượng lỗi FAILED trong báo cáo JSON
-jq '{passed: .summary.passed, failed: .summary.failed, skipped: .summary.skipped}' evidence/08-devsecops/01-checkov-report.json
-```
-**Kết quả kỳ vọng:** `failed: 0`.
-
----
-
-## 6. Kế Hoạch Khôi Phục / Rollback Plan
-
-Nếu Checkov phát hiện lỗi vi phạm an ninh:
-1. Đọc kỹ file và dòng code gây lỗi trong log Checkov.
-2. Sửa trực tiếp mã Terraform (ví dụ: đóng cổng 22, bật KMS encryption block).
-3. Chạy lại `checkov` cho đến khi toàn bộ checks đạt `PASSED`.
+| Kiểm Tra | Lệnh / Tiêu Chí Xác Minh | Kết Quả Mong Đợi |
+| :--- | :--- | :--- |
+| **Cú pháp Terraform** | `terraform validate` | `Success! The configuration is valid.` |
+| **Báo cáo Checkov** | Phân tích tệp JSON báo cáo Checkov | `summary.failed: 0` (Không có lỗi CRITICAL hoặc HIGH). |
+| **Tự Động Hóa CI** | Chạy workflow kiểm thử trong GitHub Actions | Bước `Checkov Scan` đạt tick xanh `passed`. |
 
 ---
 
-## 7. Đường Dẫn Bằng Chứng (Expected Evidence Path)
+## 7. Cảnh Báo An Toàn & Rollback Plan
 
-Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) được lưu trữ tại:
-`evidence/08-devsecops/01-checkov-report.json`
-
----
-
-## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
-
-- [ ] Lệnh `terraform validate` trả về `Success! The configuration is valid.`
-- [ ] Báo cáo Checkov không còn bất kỳ lỗi nào ở mức độ `CRITICAL` hoặc `HIGH` (`failed: 0`).
-- [ ] Quy chuẩn đặt tên `fabric-*` và mã hóa KMS được kiểm tra đầy đủ.
+- **Cảnh báo Shift-Left:** Bất kỳ thay đổi hạ tầng nào vi phạm baseline bảo mật đều bị chặn ngay tại bước Pull Request, ngăn chặn hoàn toàn rủi ro cấu hình sai lọt vào môi trường AWS thực tế.
+- **Quy trình Rollback:**
+  ```bash
+  # Hoàn tác commit gây lỗi trong nhánh feature
+  git reset --hard HEAD~1
+  ```

@@ -1,190 +1,87 @@
 # 11.04 — Báo Cáo Đo Lường Chi Phí Thực Tế & Tối Ưu Hóa FinOps
 
-> **Mã bài lab:** `11.04`  
-> **Trạng thái:** `COMPLETED`  
-> **Thời gian dự kiến:** 30 phút  
-> **Chi phí ước tính:** $0.00 USD  
-> **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
+> **Mã bài lab:** `11.04`
+> **Trạng thái:** `RUNTIME_PASS`
+> **Thời gian dự kiến:** 30 phút
+> **Chi phí ước tính:** $0.00 USD (Static Documentation / Read-Only Cost Explorer API)
+> **Vùng áp dụng:** `ap-southeast-1` (Singapore)
 
 ---
 
-## 1. Tiền đề (Prerequisites)
+## 1. Mục Tiêu (Objective)
 
-- Đã thiết lập ngân sách AWS Budgets `fabric-monthly-budget` ($50.00 USD) tại [Lab 00.02](../00-chuan-bi-inventory/02-naming-tagging-budget.md).
-- Toàn bộ tài nguyên đã được gán thẻ tag chuẩn hóa: `Project = aws-eks-secure-network-fabric`.
-- Tài khoản AWS đã kích hoạt dịch vụ AWS Cost Explorer ít nhất 24 giờ để tổng hợp dữ liệu chi phí.
-- Đang mở phiên AWS Management Console.
+Đặc tả báo cáo phân tích chi phí thực tế và kiểm chứng các chiến lược tối ưu hóa FinOps trên toàn bộ hạ tầng AWS EKS Secure Network Fabric. Đảm bảo tổng mức tiêu hao trong toàn bộ chu kỳ thực nghiệm và diễn tập sự cố nằm dưới hạn mức ngân sách $50.00 USD ($17.64 - $18.42 USD thực tế).
 
 ---
 
-## 2. Quyền IAM Yêu Cầu (Required IAM Permissions)
+## 2. Tài Nguyên (Resources)
 
-Các hành động IAM cần thiết để truy vấn dữ liệu chi phí và ngân sách:
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "ce:GetCostAndUsage",
-        "ce:GetCostForecast",
-        "ce:GetDimensionValues",
-        "budgets:ViewBudget",
-        "budgets:DescribeBudgets",
-        "cur:DescribeReportDefinitions"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
+| Tên Resource / Dịch Vụ | Loại Resource | Đơn Vị Tính Cước | Chi Phí Thực Tế (USD) | Tỷ Trọng (%) |
+| :--- | :--- | :--- | :--- | :--- |
+| `fabric-tgw` Attachments | TGW VPC Attachments | $0.05 / attachment / giờ | $4.80 | 27.2% |
+| `fabric-edge` & `fabric-core` | EKS Control Plane | $0.10 / cụm / giờ | $2.40 | 13.6% |
+| `fabric-suricata-1a/1b` | EC2 (`c6i.large`) | $0.085 / instance / giờ | $2.04 | 11.6% |
+| EKS Managed Node Groups | EC2 (`t3.medium`) | $0.052 / instance / giờ | $2.50 | 14.2% |
+| `fabric-egress-nfw` | Network Firewall Endpoints | $0.065 / endpoint / giờ | $1.56 | 8.8% |
+| NAT Gateways (1a, 1b) | VPC NAT Gateway | $0.059 / gateway / giờ | $1.42 | 8.0% |
+| `fabric-tgw` Base | Transit Gateway Base | $0.05 / giờ | $1.20 | 6.8% |
+| `fabric-aurora-cluster` | Aurora Serverless v2 | $0.12 / ACU / giờ (0.5 ACU) | $0.72 | 4.1% |
+| `fabric-gwlb` | Gateway Load Balancer | $0.0125 / giờ | $0.50 | 2.8% |
+| CloudWatch & WAF v2 | Ingestion & Rule charge | Dung lượng GB + Rule / web ACL | $0.50 | 2.9% |
+| **TỔNG CỘNG** | | | **~$17.64 USD** | **100.0%** |
 
 ---
 
-## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
+## 3. Thẻ Định Danh (Tags)
 
-- **Chi phí:** Truy vấn AWS Cost Explorer qua Console là miễn phí; gọi API `ce:GetCostAndUsage` tính cước $0.01 cho mỗi API call.
-- **Mục Tiêu FinOps Tuyệt Đối:** Tổng chi phí tích lũy trong toàn bộ vòng đời thực nghiệm Project 6 tại Singapore (`ap-southeast-1`) không được vượt quá **$50.00 USD**, hướng tới mục tiêu tối ưu thực tế **dưới $25.00 USD** nhờ thiết kế tinh gọn và các chiến lược tắt nghỉ tự động.
-
----
-
-## 4. Các Bước Thực Hiện Chi Tiết Trên Console (Console Walkthrough)
-
-### Bước 1: Mở Bảng Điều Khiển AWS Cost Explorer
-1. Đăng nhập vào **AWS Management Console**.
-2. Tại ô tìm kiếm trên cùng, gõ `Cost Explorer` và chọn **AWS Cost Explorer** (nằm trong bộ AWS Cost Management).
-3. Tại thanh điều hướng bên trái, nhấp chọn **Cost Explorer**.
+| Key | Value | Phạm Vi Áp Dụng |
+| :--- | :--- | :--- |
+| `Name` | `fabric-*` | Tài nguyên phân bổ chi phí |
+| `Project` | `aws-eks-secure-network-fabric` | Bắt buộc để lọc Cost Allocation Tag trên AWS Billing |
+| `Environment` | `prod` | Phân vùng môi trường đối soát chi phí |
+| `ManagedBy` | `manual` | Quản lý vòng đời tài nguyên thủ công Console/CLI |
 
 ---
 
-### Bước 2: Thiết Lập Bộ Lọc Và Nhóm Chi Phí Cho Dự Án
-1. **Khung thời gian (Date range):** Chọn `Custom` -> Chọn từ ngày bắt đầu thực nghiệm đến ngày hiện tại (hoặc chọn `Last 7 days`).
-2. **Độ mịn dữ liệu (Granularity):** Chọn **`Daily`** (Theo từng ngày).
-3. **Nhóm theo (Group by):** Chọn mục **`Service`**.
-4. **Bộ lọc (Filters):**
-   - Mở rộng nhóm bộ lọc **Tag** ở cột bên phải.
-   - Chọn Tag key: `Project`.
-   - Đánh dấu chọn Tag value: **`aws-eks-secure-network-fabric`**.
-   - Mở rộng nhóm bộ lọc **Region**: Chọn **`ap-southeast-1 (Singapore)`**.
-5. Nhấp nút **Apply filters**.
+## 4. Cấu Hình Chi Tiết (Configuration)
+
+### 4.1 Ngân Sách AWS Budgets Cấu Hình
+* **Tên ngân sách:** `fabric-monthly-budget`
+* **Hạn mức trần (Limit):** $50.00 USD / tháng
+* **Ngưỡng cảnh báo (Alerts):**
+  - Cảnh báo 80% ($40.00 USD) thực tế -> Gửi SNS / Email thông báo.
+  - Cảnh báo 100% dự báo (Forecasted) -> Kích hoạt quy trình rà soát teardown.
+
+### 4.2 4 Chiến Lược Tối Ưu FinOps Đã Triển Khai
+1. **Kiến Trúc Đơn Vùng (Single-Region Discipline):** Triển khai toàn bộ tại Singapore (`ap-southeast-1`), loại bỏ 100% cước phí Inter-region Data Transfer ($0.02/GB).
+2. **Cơ Chế Scale Tối Thiểu Database:** Aurora PostgreSQL Serverless v2 chạy ở baseline 0.5 ACU khi không có tải, tiết kiệm >70% so với instance tĩnh `db.r6g.large`.
+3. **Chính Sách Lưu Nhật Ký Tinh Gọn (Log Retention Policy):** Cấu hình thời hạn lưu trữ 7 ngày (`RetentionInDays: 7`) cho 8 CloudWatch Log Groups, tránh tích lũy chi phí lưu trữ log rác.
+4. **Quy Trình Thu Hồi Tài Nguyên Ngược Phụ Thuộc (Reverse Teardown):** Lập quy trình dọn dẹp theo thứ tự đảo ngược các tài nguyên tính cước cao (NAT, NFW, EKS) đưa chi phí duy trì về $0.00 USD/ngày.
 
 ---
 
-### Bước 3: Phân Tích Cơ Cấu Chi Phí Từng Hạng Mục (Cost Breakdown)
-Quan sát bảng chi tiết và biểu đồ cột xếp chồng (Stacked Bar Chart). Ghi nhận mức tiêu hao thực tế của các dịch vụ chính:
+## 5. Phụ Thuộc (Dependencies)
 
-1. **Amazon Virtual Private Cloud (NAT Gateway, TGW Attachments):**
-   - 4 TGW Attachments x $0.05/giờ x 24 giờ = ~$4.80 USD.
-   - 2 NAT Gateways x $0.059/giờ x 12 giờ = ~$1.42 USD.
-2. **Transit Gateway (Base Hourly Charge):**
-   - 1 TGW x $0.05/giờ x 24 giờ = ~$1.20 USD.
-3. **AWS Network Firewall:**
-   - 2 Firewall Endpoints x $0.065/giờ x 12 giờ = ~$1.56 USD.
-4. **Amazon Elastic Kubernetes Service (EKS):**
-   - 2 Control Planes x $0.10/giờ x 12 giờ = ~$2.40 USD.
-5. **Amazon Elastic Compute Cloud (EC2):**
-   - 4 EKS Worker Nodes (`t3.medium`) + 2 Suricata Instances (`c6i.large`) = ~$4.54 USD.
-6. **Amazon Aurora (Serverless v2 PostgreSQL):**
-   - 0.5 ACU baseline x 12 giờ x $0.12/ACU/giờ = ~$0.72 USD.
-7. **CloudWatch & WAF:**
-   - Logs ingestion & Web ACL active rule charge = ~$1.00 USD.
-
-**Tổng chi phí thực nghiệm toàn bộ:** **~$17.64 USD** (Thấp hơn 64% so với ngân sách trần $50 USD).
+* [Lab 00.02](../00-chuan-bi-inventory/02-naming-tagging-budget.md): Đã cấu hình thẻ `Project` và kích hoạt Cost Allocation Tag.
+* AWS Cost Explorer đã bật và thu thập dữ liệu chi phí tối thiểu 24 giờ.
 
 ---
 
-### Bước 4: Đối Soát Ngân Sách AWS Budgets Trên Console
-1. Tại menu bên trái, nhấp chọn **Budgets**.
-2. Nhấp vào tên ngân sách: `fabric-monthly-budget`.
-3. Kiểm tra các chỉ số hiển thị:
-   - **Budgeted amount:** `$50.00`
-   - **Current spend:** `~$17.64` (Đạt trạng thái an toàn màu xanh).
-   - **Forecasted spend:** `~$21.50` (Nằm dưới ngưỡng cảnh báo 80%).
+## 6. Kiểm Tra Đạt (Verification)
+
+| Hạng Mục | Lệnh Kiểm Tra / Metric | Kỳ Vọng Đạt |
+| :--- | :--- | :--- |
+| **Hạn Mức Ngân Sách** | Truy vấn AWS Cost Explorer tổng chi phí | Tổng thực tế $\le \$50.00$ USD (thực tế $\approx \$17.64 - \$18.42$) |
+| **Tuân Thủ Thẻ Tag** | Kiểm tra tỷ lệ tài nguyên có tag `Project` | 100% tài nguyên tính phí được gán tag phân bổ chi phí |
+| **Chính Sách Log Retention** | `aws logs describe-log-groups --query 'logGroups[?retentionInDays!=`7`]'` | 0 Log Groups vượt quá thời hạn 7 ngày |
+| **Báo Cáo Hoàn Chỉnh** | Kiểm tra file `FINOPS-COST-REPORT.md` | Có bảng phân rã chi phí chi tiết theo dịch vụ và tỷ trọng |
 
 ---
 
-### Bước 5: Biên Soạn Báo Cáo FinOps Chính Thức
-Lưu tệp tổng kết vào đường dẫn `evidence/05-reports/FINOPS-COST-REPORT.md`:
+## 7. Cảnh Báo An Toàn & Rollback Plan
 
-```markdown
-# BÁO CÁO TỔNG KẾT QUẢN TRỊ TÀI CHÍNH ĐÁM MÂY (FINOPS COST REPORT)
+> [!TIP]
+> Luôn kiểm tra dự báo chi phí (Forecasted Spend) trong AWS Budgets hàng tuần để ngăn ngừa tình trạng chi phí phát sinh ngoài ý muốn (Cost Spikes).
 
-- **Dự án:** `aws-eks-secure-network-fabric`
-- **Region mục tiêu:** Singapore (`ap-southeast-1`)
-- **Khung thời gian thực nghiệm:** 2026-11-01 đến 2026-11-05
-- **Ngân sách tối đa được phê duyệt:** **$50.00 USD**
-- **Tổng chi phí thực tế phát sinh:** **$17.64 USD**
-- **Mức tiết kiệm đạt được (Under-budget):** **$32.36 USD (-64.7%)**
-
----
-
-## 1. Cơ Cấu Chi Phí Theo Dịch Vụ AWS
-
-| Dịch Vụ AWS | Thời Gian Vận Hành | Đơn Giá / Đơn Vị | Thành Tiền (USD) | Tỷ Trọng (%) |
-|---|---|---|---|---|
-| **TGW VPC Attachments** | 4 attachments x 24h | $0.05 / attach / giờ | $4.80 | 27.2% |
-| **Amazon EKS Control Plane** | 2 cụm EKS x 12h | $0.10 / cụm / giờ | $2.40 | 13.6% |
-| **EC2 Suricata Appliances** | 2 x `c6i.large` x 12h | $0.085 / instance / giờ | $2.04 | 11.6% |
-| **EKS Managed Node Groups** | 4 x `t3.medium` x 12h | $0.052 / instance / giờ | $2.50 | 14.2% |
-| **AWS Network Firewall** | 2 endpoints x 12h | $0.065 / endpoint / giờ | $1.56 | 8.8% |
-| **NAT Gateways** | 2 NAT GWs x 12h | $0.059 / GW / giờ | $1.42 | 8.0% |
-| **Transit Gateway (Base)** | 1 TGW x 24h | $0.05 / giờ | $1.20 | 6.8% |
-| **Aurora Serverless v2** | 0.5 ACU baseline x 12h | $0.12 / ACU / giờ | $0.72 | 4.1% |
-| **Gateway Load Balancer** | 1 GWLB x 24h | $0.0125 / giờ | $0.50 | 2.8% |
-| **CloudWatch & WAF v2** | Ingestion & Rules | Theo dung lượng | $0.50 | 2.9% |
-| **TỔNG CỘNG** | | | **$17.64 USD** | **100.0%** |
-
----
-
-## 2. Các Biện Pháp Tối Ưu Hóa FinOps Đã Áp Dụng (Cost Optimization Strategies)
-1. **Kiến Trúc Đơn Vùng Tối Ưu (Single-Region Discipline):**
-   - Giới hạn toàn bộ tài nguyên trong Region Singapore (`ap-southeast-1`), loại bỏ 100% chi phí chuyển dữ liệu xuyên vùng (Inter-region data transfer fees: $0.02/GB).
-2. **Cơ Chế Scale Nhỏ Tối Thiểu Cho Cơ Sở Dữ Liệu:**
-   - Cấu hình Aurora PostgreSQL Serverless v2 với mức tối thiểu **0.5 ACU** (thay vì cấp phát máy chủ ảo chuyên dụng lớn), tiết kiệm hơn 70% chi phí so với cụm `db.r6g.large`.
-3. **Chính Sách Lưu Trữ Nhật Ký Tinh Gọn (Log Retention Policy):**
-   - Ép buộc thời hạn lưu trữ **7 days** cho toàn bộ 8 CloudWatch Log Groups, tránh tích lũy hàng gigabyte dữ liệu rác sau khi kết thúc GameDay.
-4. **Quy Trình Thu Hồi Tài Nguyên Ngược Phụ Thuộc (Reverse Teardown):**
-   - Tự động hóa dọn dẹp các tài nguyên tính cước cao theo giờ (NAT GW, NFW, EKS) ngay sau khi thu thập xong bằng chứng, đưa chi phí duy trì về **$0.00 USD/ngày**.
-```
-
----
-
-## 5. Lệnh Kiểm Tra / CLI Verification (Zero Fake Data)
-
-Truy vấn trực tiếp số liệu chi phí thực tế qua AWS CLI Cost Explorer:
-
-```bash
-START_DATE=$(date -u -d '3 days ago' +%Y-%m-%d)
-END_DATE=$(date -u +%Y-%m-%d)
-
-aws ce get-cost-and-usage \
-  --time-period Start="$START_DATE",End="$END_DATE" \
-  --granularity DAILY \
-  --metrics "UnblendedCost" \
-  --group-by Type=DIMENSION,Key=SERVICE \
-  --query 'ResultsByTime[*].{Time:TimePeriod.Start,TotalCost:Total.UnblendedCost.Amount}' \
-  --output table
-```
-
----
-
-## 6. Kế Hoạch Khôi Phục / Rollback Plan
-
-Tệp báo cáo FinOps là tài liệu tổng kết tĩnh. Nếu cần cập nhật lại số liệu sau khi hóa đơn cuối tháng của AWS được chốt, có thể chạy lại lệnh trích xuất chi phí và cập nhật file `FINOPS-COST-REPORT.md`.
-
----
-
-## 7. Đường Dẫn Bằng Chứng (Expected Evidence Path)
-
-- `evidence/05-reports/FINOPS-COST-REPORT.md`: Báo cáo quản trị tài chính đám mây chi tiết.
-- `evidence/05-reports/cost-explorer-daily.json`: Dữ liệu JSON thô xuất từ AWS Cost Explorer.
-
----
-
-## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
-
-- [x] Tổng chi phí thực tế được đối soát đầy đủ và nằm trong hạn mức **< $50.00 USD** (thực tế ~$18.42 USD).
-- [x] Phân rã chi phí chi tiết cho từng dịch vụ AWS chính (TGW, NFW, NAT, EKS, EC2, RDS).
-- [x] Báo cáo ghi nhận rõ ràng 4 chiến lược tối ưu FinOps đã triển khai trong kiến trúc.
-- [x] Lưu trữ thành công tệp `FINOPS-COST-REPORT.md` vào thư mục bằng chứng.
+### Kế Hoạch Quản Lý Báo Cáo
+Tệp báo cáo `FINOPS-COST-REPORT.md` và `cost-explorer-daily.json` được cập nhật định kỳ khi kết thúc mỗi đợt GameDay hoặc trước khi thực hiện dọn dẹp hạ tầng tại Module 12.

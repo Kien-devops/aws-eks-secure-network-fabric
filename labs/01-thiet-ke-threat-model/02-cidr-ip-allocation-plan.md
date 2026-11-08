@@ -1,153 +1,87 @@
-# 01.02 — Kế Hoạch Phân Bổ Dải Mạng (IP Plan) & Quy Hoạch Subnets
+# Lab 01.02: Kế Hoạch Phân Bổ Dải Mạng (IP Plan) & Quy Hoạch Subnets
 
-> **Mã bài lab:** `01.02`  
-> **Trạng thái:** `RUNTIME_PASS`  
-> **Thời gian dự kiến:** 20 phút  
-> **Chi phí ước tính:** $0.00 USD  
-> **Vùng áp dụng:** `ap-southeast-1` (Singapore) — AZs: `ap-southeast-1a`, `ap-southeast-1b`  
-
----
-
-## 1. Tiền đề (Prerequisites)
-
-- Đã hoàn thành phân tích mô hình đe dọa [01.01 — Phân Tích STRIDE](01-stride-threat-analysis.md).
-- Đã xác nhận trên AWS Inventory không có VPC nào xung đột các dải mạng `10.40.0.0/16`, `10.50.0.0/16`, `10.70.0.0/16`, `10.80.0.0/16`.
+> **Mã bài lab:** `01.02`
+> **Trạng thái:** `RUNTIME_PASS`
+> **Thời gian dự kiến:** 30 phút
+> **Chi phí ước tính:** $0.00 USD (Thiết kế kiến trúc)
+> **Vùng áp dụng:** `ap-southeast-1` (Singapore) — AZs: `ap-southeast-1a`, `ap-southeast-1b`
 
 ---
 
-## 2. Quyền IAM Yêu Cầu (Required IAM Permissions)
+## 1. Mục Tiêu (Objective)
 
-Các hành động IAM cần thiết để kiểm tra CIDR và hạn ngạch (Quotas) trên AWS Console:
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "ec2:DescribeVpcs",
-        "ec2:DescribeSubnets",
-        "servicequotas:GetServiceQuota",
-        "servicequotas:ListServiceQuotas"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
+Quy hoạch dải mạng RFC 1918 không chồng lấn cho 4 VPC chức năng và 28 subnets phân bổ đối xứng đa vùng (Multi-AZ), đảm bảo đáp ứng dung lượng IP cho EKS Pods, Interface Endpoints và Transit Gateway Dedicated Attachments.
 
 ---
 
-## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
+## 2. Tài Nguyên (Resources)
 
-- **Chi phí:** $0.00 USD.
-- **Cảnh báo quan trọng:** Dải mạng CIDR của VPC sau khi tạo không thể thu hẹp. AWS tự động giữ lại 5 địa chỉ IP đầu tiên và cuối cùng trong mỗi subnet (Network address, VPC router, DNS server, AWS future use, Broadcast address). Việc quy hoạch kích thước subnet phải tính toán dự phòng cho địa chỉ IP của Pod (EKS VPC CNI phân bổ IP trực tiếp từ subnet của Node), IP của ENI TGW và IP của VPC Endpoints.
+| Tên Logical | Loại Resource | VPC / Subnet / AZ | Runtime ID / ARN (Snapshot) |
+| :--- | :--- | :--- | :--- |
+| `fabric-edge-vpc` | `AWS::EC2::VPC` | `10.40.0.0/16` (8 Subnets) | `vpc-0468b18dddd1d4d2d` |
+| `fabric-core-vpc` | `AWS::EC2::VPC` | `10.50.0.0/16` (8 Subnets) | `vpc-09888cc991104c959` |
+| `fabric-inspection-vpc` | `AWS::EC2::VPC` | `10.70.0.0/16` (6 Subnets) | `vpc-0c94a30a1a915fc0f` |
+| `fabric-egress-vpc` | `AWS::EC2::VPC` | `10.80.0.0/16` (6 Subnets) | `vpc-0c1479727a5e38b4c` |
 
----
-
-## 4. Các Bước Thực Hiện Chi Tiết Trên Console (Console Walkthrough)
-
-### Bước 1: Kiểm Tra Trạng Thái & Hạn Ngạch VPC Trên AWS Console
-1. Đăng nhập vào **AWS Management Console**, chọn Region Singapore `ap-southeast-1`.
-2. Trên thanh tìm kiếm, nhập `Service Quotas` và chọn **Service Quotas**.
-3. Tại menu điều hướng bên trái, chọn **AWS services** -> Nhập `Amazon Virtual Private Cloud (Amazon VPC)`.
-4. Kiểm tra các hạn ngạch quan trọng:
-   - **VPCs per Region:** Mặc định là 5 (Đủ cho 4 VPCs của Fabric).
-   - **Subnets per VPC:** Mặc định là 200 (Thỏa mãn quy hoạch tối đa 8 subnets/VPC).
-   - **Transit Gateways per Region:** Mặc định là 5.
-   - **Interface VPC endpoints per VPC:** Mặc định là 50.
-
-### Bước 2: Rà Soát Chi Tiết Ma Trận Phân Bổ 4 VPCs & 28 Subnets
-Mở **VPC Console** -> Chuẩn bị danh sách tham số để khởi tạo trong Module 02:
-
-#### 1. Edge EKS VPC (`10.40.0.0/16`) — Tổng: 65,536 IPs
-- **`ap-southeast-1a`:**
-  - `fabric-edge-public-1a`: `10.40.0.0/24` (251 IPs khả dụng — ALB Ingress A)
-  - `fabric-edge-nodes-1a`: `10.40.8.0/22` (1,019 IPs khả dụng — EKS Edge Worker Nodes & Frontend Pods)
-  - `fabric-edge-vpce-1a`: `10.40.20.0/24` (251 IPs khả dụng — Interface Endpoints)
-  - `fabric-edge-tgw-1a`: `10.40.250.0/28` (11 IPs khả dụng — Dedicated TGW Attachment ENI)
-- **`ap-southeast-1b`:**
-  - `fabric-edge-public-1b`: `10.40.1.0/24` (251 IPs khả dụng — ALB Ingress B)
-  - `fabric-edge-nodes-1b`: `10.40.12.0/22` (1,019 IPs khả dụng — EKS Edge Worker Nodes & Auth Pods)
-  - `fabric-edge-vpce-1b`: `10.40.21.0/24` (251 IPs khả dụng — Interface Endpoints)
-  - `fabric-edge-tgw-1b`: `10.40.250.16/28` (11 IPs khả dụng — Dedicated TGW Attachment ENI)
-
-#### 2. Core EKS VPC (`10.50.0.0/16`) — Tổng: 65,536 IPs
-- **`ap-southeast-1a`:**
-  - `fabric-core-nodes-1a`: `10.50.8.0/22` (1,019 IPs khả dụng — EKS Core Nodes: Order, Inventory, Payment)
-  - `fabric-core-data-1a`: `10.50.20.0/24` (251 IPs khả dụng — Aurora PostgreSQL Primary / Redis AZ-a)
-  - `fabric-core-vpce-1a`: `10.50.30.0/24` (251 IPs khả dụng — VPCE ECR, SQS, Logs, eks-auth AZ-a)
-  - `fabric-core-tgw-1a`: `10.50.250.0/28` (11 IPs khả dụng — Dedicated TGW Attachment ENI)
-- **`ap-southeast-1b`:**
-  - `fabric-core-nodes-1b`: `10.50.12.0/22` (1,019 IPs khả dụng — EKS Core Nodes AZ-b)
-  - `fabric-core-data-1b`: `10.50.21.0/24` (251 IPs khả dụng — Aurora PostgreSQL Replica / Redis AZ-b)
-  - `fabric-core-vpce-1b`: `10.50.31.0/24` (251 IPs khả dụng — VPCE AZ-b)
-  - `fabric-core-tgw-1b`: `10.50.250.16/28` (11 IPs khả dụng — Dedicated TGW Attachment ENI)
-
-#### 3. Inspection VPC (`10.70.0.0/16`) — Tách Biệt 3 Tầng Cho An Toàn GWLB
-- **`ap-southeast-1a`:**
-  - `fabric-insp-tgw-1a`: `10.70.0.0/28` (11 IPs khả dụng — TGW Attachment ENI, Appliance Mode = ENABLED)
-  - `fabric-insp-gwlbe-1a`: `10.70.1.0/24` (251 IPs khả dụng — Điểm cuối GWLB Endpoint AZ-a)
-  - `fabric-insp-fw-1a`: `10.70.10.0/24` (251 IPs khả dụng — Suricata EC2 Instance A GENEVE 6081)
-- **`ap-southeast-1b`:**
-  - `fabric-insp-tgw-1b`: `10.70.0.16/28` (11 IPs khả dụng — TGW Attachment ENI AZ-b)
-  - `fabric-insp-gwlbe-1b`: `10.70.2.0/24` (251 IPs khả dụng — Điểm cuối GWLB Endpoint AZ-b)
-  - `fabric-insp-fw-1b`: `10.70.11.0/24` (251 IPs khả dụng — Suricata EC2 Instance B GENEVE 6081)
-
-#### 4. Centralized Egress VPC (`10.80.0.0/16`) — Tường Lửa Ra Ngoài Tập Trung
-- **`ap-southeast-1a`:**
-  - `fabric-egress-public-1a`: `10.80.0.0/24` (251 IPs khả dụng — NAT Gateway A & Internet Gateway)
-  - `fabric-egress-fw-1a`: `10.80.10.0/24` (251 IPs khả dụng — AWS Network Firewall Endpoint AZ-a)
-  - `fabric-egress-tgw-1a`: `10.80.250.0/28` (11 IPs khả dụng — TGW Attachment ENI AZ-a)
-- **`ap-southeast-1b`:**
-  - `fabric-egress-public-1b`: `10.80.1.0/24` (251 IPs khả dụng — NAT Gateway B & Internet Gateway)
-  - `fabric-egress-fw-1b`: `10.80.11.0/24` (251 IPs khả dụng — AWS Network Firewall Endpoint AZ-b)
-  - `fabric-egress-tgw-1b`: `10.80.250.16/28` (11 IPs khả dụng — TGW Attachment ENI AZ-b)
+*Ghi chú: Runtime ID / ARN là dữ liệu snapshot tại thời điểm kiểm tra thực tế (có thể thay đổi khi tái tạo hạ tầng); Tên Logical là định danh chuẩn theo thiết kế.*
 
 ---
 
-## 5. Lệnh Kiểm Tra / CLI Verification (Zero Fake Data)
+## 3. Thẻ Định Danh (Tags)
 
-Kiểm tra xác nhận không có dải mạng nào trùng lặp trên tài khoản:
-```bash
-# 1. Liệt kê toàn bộ CIDR block hiện có trong Region Singapore
-aws ec2 describe-vpcs --region ap-southeast-1 \
-  --query 'Vpcs[*].{VpcId:VpcId,CidrBlock:CidrBlock,State:State,Name:Tags[?Key==`Name`].Value | [0]}' \
-  --output table
-
-# 2. Kiểm tra hạn ngạch VPC hiện tại
-aws service-quotas get-service-quota --region ap-southeast-1 \
-  --service-code vpc \
-  --quota-code L-F678F165 \
-  --query 'Quota.{Name:QuotaName,Value:Value}' \
-  --output table
-```
+| Khóa (Key) | Giá Trị (Value) | Phạm Vi Áp Dụng |
+| :--- | :--- | :--- |
+| `Name` | `fabric-*-vpc` / `fabric-*-subnet` | Toàn bộ VPC và Subnet tạo mới |
+| `Project` | `aws-eks-secure-network-fabric` | Bắt buộc trên toàn bộ tài nguyên mạng |
+| `Environment` | `prod` | Phân vùng môi trường chính thức |
+| `ManagedBy` | `manual` | Quản lý triển khai thủ công Console/CLI |
 
 ---
 
-## 6. Kế Hoạch Khôi Phục / Rollback Plan
+## 4. Cấu Hình Chi Tiết (Configuration)
 
-Trong giai đoạn thiết kế, mọi cập nhật dải CIDR được ghi nhận bằng văn bản và điều chỉnh lại bảng phân bổ trước khi áp dụng vào Module 02. Không có tài nguyên đám mây nào cần xóa bỏ.
+### Bảng Phân Bổ Subnet Chuẩn Hóa 4 VPCs (Canonical IP Plan)
+
+| VPC | Tên Subnet Logical | Dải Mạng (CIDR Block) | AZ | Mục Đích Kỹ Thuật |
+| :--- | :--- | :--- | :--- | :--- |
+| **Edge** | `fabric-edge-public-1a` / `1b` | `10.40.0.0/24`, `10.40.1.0/24` | 1a / 1b | Public ALB Ingress (251 IPs/AZ) |
+| **Edge** | `fabric-edge-nodes-1a` / `1b` | `10.40.8.0/22`, `10.40.12.0/22` | 1a / 1b | EKS Nodes & `edge-frontend` Pods (1,019 IPs/AZ) |
+| **Edge** | `fabric-edge-vpce-1a` / `1b` | `10.40.20.0/24`, `10.40.21.0/24` | 1a / 1b | Interface VPC Endpoints |
+| **Edge** | `fabric-edge-tgw-1a` / `1b` | `10.40.250.0/28`, `10.40.250.16/28` | 1a / 1b | TGW Dedicated Attachment ENIs |
+| **Core** | `fabric-core-nodes-1a` / `1b` | `10.50.8.0/22`, `10.50.12.0/22` | 1a / 1b | EKS Nodes & `core-service` Pods (1,019 IPs/AZ) |
+| **Core** | `fabric-core-data-1a` / `1b` | `10.50.20.0/24`, `10.50.21.0/24` | 1a / 1b | Aurora PostgreSQL & ElastiCache Redis |
+| **Core** | `fabric-core-vpce-1a` / `1b` | `10.50.30.0/24`, `10.50.31.0/24` | 1a / 1b | Private Interface VPC Endpoints |
+| **Core** | `fabric-core-tgw-1a` / `1b` | `10.50.250.0/28`, `10.50.250.16/28` | 1a / 1b | TGW Dedicated Attachment ENIs |
+| **Insp** | `fabric-insp-tgw-1a` / `1b` | `10.70.0.0/28`, `10.70.0.16/28` | 1a / 1b | TGW Ingress (Appliance Mode = Enabled) |
+| **Insp** | `fabric-insp-gwlbe-1a` / `1b` | `10.70.1.0/28`, `10.70.1.16/28` | 1a / 1b | Gateway Load Balancer Zonal Endpoints |
+| **Insp** | `fabric-insp-fw-1a` / `1b` | `10.70.10.0/24`, `10.70.11.0/24` | 1a / 1b | Cụm Suricata EC2 IDS/IPS (GENEVE 6081) |
+| **Egress** | `fabric-egress-tgw-1a` / `1b` | `10.80.0.0/28`, `10.80.0.16/28` | 1a / 1b | TGW Egress Ingress ENIs |
+| **Egress** | `fabric-egress-fw-1a` / `1b` | `10.80.1.0/28`, `10.80.1.16/28` | 1a / 1b | AWS Network Firewall Zonal Endpoints |
+| **Egress** | `fabric-egress-public-1a` / `1b` | `10.80.10.0/24`, `10.80.11.0/24` | 1a / 1b | Dual NAT Gateways & Internet Gateway |
 
 ---
 
-## 7. Đường Dẫn Bằng Chứng (Expected Evidence Path)
+## 5. Phụ Thuộc (Dependencies)
 
-Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) được lưu trữ tại:
-`evidence/01-threat-model/02-ip-plan-audit.json`
+* [Lab 01.01](01-stride-threat-analysis.md): Mô hình mối đe dọa STRIDE và yêu cầu cô lập vùng mạng.
 
 ---
 
-## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
+## 6. Kiểm Tra Đạt (Verification)
 
-- [x] Toàn bộ 4 VPCs hoàn toàn không chồng lấn CIDR (`10.40/16`, `10.50/16`, `10.70/16`, `10.80/16`).
-- [x] Subnet TGW và Subnet Endpoints có kích thước tối thiểu `/28` theo khuyến nghị AWS Best Practices.
-- [x] Subnet Private Nodes có kích thước `/22` đáp ứng hơn 1,000 Pod IPs cho cụm EKS.
-- [x] Tách biệt hoàn toàn 3 lớp subnet trong từng AZ tại Inspection VPC để phục vụ GWLB.
+| Hạng Mục | Tiêu Chí Kiểm Tra | Kỳ Vọng Đạt |
+| :--- | :--- | :--- |
+| **Non-overlapping CIDR** | So khớp 4 dải mạng VPC chính | 100% không chồng lấn (`10.40/16`, `10.50/16`, `10.70/16`, `10.80/16`) |
+| **Dung Lượng Subnet EKS** | Dải `/22` cho Node subnets | Đủ 1,019 IPs khả dụng/AZ cho Pod density |
+| **Dedicated TGW Subnets** | Dải `/28` riêng biệt cho TGW | Đúng 11 IPs khả dụng phục vụ ENI attachment |
+| **Đối Soát Runtime** | Kiểm tra `evidence/01-network-topology/subnets.json` | 16 Subnets runtime khớp hoàn toàn canonical IP plan |
 
-### Kết Quả Thực Thi Runtime Xác Thực (Runtime Execution Summary)
-- **Thời gian thực thi:** `2026-11-05T15:46:30Z`
-- **Công cụ thực thi:** MCP `aws-api-mcp/call_aws`
-- **Kiểm tra tài khoản:** Hạn ngạch và tài nguyên VPC tại `ap-southeast-1` sạch sẽ, không trùng dải CIDR
-- **Quy hoạch Subnet:** 4 VPCs và 28 Subnets trải đều 2 AZs (`ap-southeast-1a`, `ap-southeast-1b`)
-- **File bằng chứng:** `evidence/01-threat-model/02-ip-plan-audit.json` (Status: `RUNTIME_PASS`)
+---
+
+## 7. Cảnh Báo An Toàn & Rollback Plan
+
+> [!WARNING]
+> CIDR Block của VPC sau khi tạo không thể thu nhỏ. Mọi sai lệch subnet phải được rà soát đối chiếu trước khi khởi tạo route tables hoặc triển khai workloads.
+
+### Kế Hoạch Khôi Phục (Rollback Plan)
+Nếu phát hiện sai lệch CIDR trong quá trình cấu hình, xóa subnet chưa gắn ENI và khởi tạo lại theo đúng bảng phân bổ chuẩn hóa trên.

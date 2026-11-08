@@ -1,224 +1,99 @@
-# 03.03 — Khởi Tạo Managed Node Groups Riêng Tư Cho Hai Cụm EKS
+# 03.03 — Đặc Tả Managed Node Groups Riêng Tư Cho Hai Cụm EKS
 
-> **Mã bài lab:** `03.03`  
-> **Trạng thái:** `RUNTIME_PASS`  
-> **Thời gian dự kiến:** 40 phút  
-> **Chi phí ước tính:** ~$0.0416 USD / giờ / instance t3.medium (4 instances = ~$0.166 USD / giờ)  
-> **Vùng áp dụng:** `ap-southeast-1` (Singapore) — Subnets: `nodes-1a`, `nodes-1b`  
-
----
-
-## 1. Tiền đề (Prerequisites)
-
-- Đã hoàn thành bài lab [03.02](02-dual-eks-clusters.md). Cả 2 cụm EKS (`fabric-edge-eks` và `fabric-core-eks`) đang ở trạng thái xanh `ACTIVE`.
-- **Yêu cầu kết nối mạng bắt buộc:** Private VPC Endpoints tại lab [02.06](../02-ha-tang-mang-co-ban/06-private-vpc-endpoints.md) (ECR API, ECR DKR, S3 Gateway, STS, EC2, Logs) HOẶC đường Egress NAT qua TGW phải sẵn sàng để các worker nodes bootstrap và join cluster.
-- Đang mở phiên AWS Management Console tại Singapore `ap-southeast-1`.
+> **Mã bài lab:** `03.03`
+> **Trạng thái tài liệu:** `RUNTIME_PASS`
+> **Vùng triển khai:** `ap-southeast-1` (Singapore) — AZs: `ap-southeast-1a`, `ap-southeast-1b`
+> **File bằng chứng:** `evidence/03-eks/03-nodes-ready.json`
 
 ---
 
-## 2. Quyền IAM Yêu Cầu (Required IAM Permissions)
+## 1. Mục Tiêu (Objective)
 
-Các hành động IAM cần thiết để thực thi bài lab này:
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "eks:CreateNodegroup",
-        "eks:DescribeNodegroup",
-        "eks:ListNodegroups",
-        "eks:DeleteNodegroup",
-        "iam:CreateRole",
-        "iam:AttachRolePolicy",
-        "iam:PassRole",
-        "ec2:RunInstances",
-        "ec2:DescribeInstances"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
+Đặc tả cấu hình hạ tầng tính toán riêng tư cho hai cụm EKS bằng Managed Node Groups (EC2 Spot `t3.medium`, Amazon Linux 2023) đặt trong các Subnets Private Nodes của Edge VPC và Core VPC với cơ chế quản trị không SSH thông qua AWS Systems Manager.
 
 ---
 
-## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
+## 2. Tài Nguyên (Resources)
 
-- **Chi phí:** 4 EC2 instances `t3.medium` (2 nodes cho Edge cluster, 2 nodes cho Core cluster) tiêu tốn ~$4.00 USD/ngày. Cần chú ý theo dõi ngân sách $50.00 USD.
-- **Cảnh báo Node Subnet Placement:** Các worker nodes **CHỈ ĐƯỢC PHÉP ĐẶT TRONG PRIVATE NODE SUBNETS** (`fabric-edge-nodes-1a/b` và `fabric-core-nodes-1a/b`). Tuyệt đối không chọn Public subnets, Data subnets hoặc TGW subnets.
-- **AMI Type:** Chọn **Amazon Linux 2023 (AL2023_x86_64_STANDARD)** tương thích EKS 1.37 và instance amd64; kiểm tra release/add-ons trước khi tạo hoặc nâng cấp. Không dùng AMI version cũ chỉ vì có trong ví dụ.
+| Tên Logical | Loại Resource | Vị Trí / VPC / AZ | Runtime ID / ARN (Snapshot) |
+| :--- | :--- | :--- | :--- |
+| `fabric-eks-node-role` | `AWS::IAM::Role` | Global (IAM) | `arn:aws:iam::123456789012:role/fabric-eks-node-role` |
+| `fabric-edge-ng-1` | `AWS::EKS::Nodegroup` | `fabric-edge-vpc` (`1a`, `1b`) | Cụm `fabric-edge-eks`<br>Subnets: `subnet-0e9f90d0d4e220d3a`, `subnet-034f4fc00bfd6cd09` |
+| `fabric-core-ng-1` | `AWS::EKS::Nodegroup` | `fabric-core-vpc` (`1a`, `1b`) | Cụm `fabric-core-eks`<br>Subnets: `subnet-0124e28037a2e4118`, `subnet-0fe561d6217b04955` |
 
----
-
-## 4. Các Bước Thực Hiện Chi Tiết Trên Console (Console Walkthrough)
-
-### Bước 1: Khởi Tạo IAM Role Cho Worker Nodes (`fabric-eks-node-role`)
-1. Mở **IAM Console** (Global service).
-2. Tại menu bên trái, chọn **Roles** -> Nhấp nút cam **Create role**.
-3. **Select trusted entity:**
-   - Trusted entity type: Chọn **AWS service**.
-   - Use case: Chọn **EC2** (Cho phép máy ảo EC2 gọi các dịch vụ AWS).
-   - Nhấp **Next**.
-4. **Add permissions:**
-   - Trong ô tìm kiếm chính sách, lần lượt tìm và đánh dấu tích vào 4 AWS Managed Policies:
-     1. [x] **`AmazonEKSWorkerNodePolicy`** (Cấp quyền kết nối tới EKS Control Plane).
-     2. [x] **`AmazonEC2ContainerRegistryReadOnly`** (Cấp quyền kéo container images từ ECR).
-     3. [x] **`AmazonEKS_CNI_Policy`** (Cấp quyền cho VPC CNI cấp phát ENIs và địa chỉ IP cho Pods).
-     4. [x] **`AmazonSSMManagedInstanceCore`** (Cấp quyền kết nối SSM Session Manager an toàn, loại bỏ hoàn toàn nhu cầu mở SSH port 22).
-   - Nhấp **Next**.
-5. **Name, review, and create:**
-   - **Role name:** Nhập `fabric-eks-node-role`.
-   - **Description:** Nhập `Worker node instance role for fabric EKS clusters in Singapore`.
-   - **Tags:** Key: `Project` | Value: `aws-eks-secure-network-fabric`.
-   - Nhấp **Create role**.
+*Ghi chú: Runtime ID / ARN là dữ liệu snapshot tại thời điểm kiểm tra thực tế; Tên Logical là định danh chuẩn theo thiết kế.*
 
 ---
 
-### Bước 2: Tạo Managed Node Group Cho Cụm `fabric-edge-eks`
-1. Trên thanh tìm kiếm AWS Console, nhập `EKS` và chọn **Amazon EKS**.
-2. Chọn cụm `fabric-edge-eks` trong danh sách Clusters.
-3. Chọn tab **Compute** ở giữa màn hình.
-4. Tại mục **Node groups**, nhấp nút **Add node group**:
+## 3. Thẻ Định Danh (Tags)
 
-   - **Step 1 — Configure node group:**
-     - **Name:** Nhập `fabric-edge-ng-1`.
-     - **Node IAM role:** Chọn `fabric-eks-node-role`.
-     - **Kubernetes labels:** Nhấp **Add label**:
-       - Key: `node.kubernetes.io/tier` | Value: `edge`
-       - Key: `environment` | Value: `prod`
-     - Nhấp **Next**.
-
-   - **Step 2 — Set compute and scaling configuration:**
-     - **AMI type:** Chọn **Amazon Linux 2023 (AL2023_x86_64_STANDARD)**.
-     - **Capacity type:** Chọn **Spot**.
-     - **Instance types:** Chọn `t3.medium` (2 vCPU, 4 GiB Memory - đáp ứng tốt nhu cầu workloads và CNI).
-     - **Disk size:** Nhập `20` GiB (loại gp3).
-     - **Node group scaling configuration:**
-       - **Minimum size:** Nhập `2`.
-       - **Maximum size:** Nhập `3`.
-       - **Desired size:** Nhập `2`.
-     - Nhấp **Next**.
-
-   - **Step 3 — Specify networking:**
-     - **Subnets:**
-       - Tích chọn: `fabric-edge-nodes-1a` (`10.40.8.0/22`).
-       - Tích chọn: `fabric-edge-nodes-1b` (`10.40.12.0/22`).
-       - *(Đảm bảo bỏ chọn các subnet khác)*.
-     - **Configure SSH access to nodes:** Chọn **Disable** (Kết nối quản trị hoàn toàn thông qua AWS Systems Manager / SSM).
-     - Nhấp **Next**.
-
-   - **Step 4 — Review and create:**
-     - Kiểm tra lại các thông số và nhấp nút cam **Create**.
-     - Node group sẽ chuyển sang trạng thái **Creating** (Mất khoảng 3 đến 5 phút để các máy ảo EC2 khởi chạy và gia nhập cluster).
+| Key | Value | Phạm Vi Áp Dụng |
+| :--- | :--- | :--- |
+| `Name` | `fabric-edge-ng-1` / `fabric-core-ng-1` | Gán Name tag cho EC2 Worker Nodes |
+| `Project` | `aws-eks-secure-network-fabric` | IAM Role và cả 2 Node Groups |
+| `Environment` | `prod` | IAM Role và cả 2 Node Groups |
+| `ManagedBy` | `manual` | Quản trị tài nguyên tính toán thủ công Console/CLI |
 
 ---
 
-### Bước 3: Tạo Managed Node Group Cho Cụm `fabric-core-eks`
-Quay lại trang chi tiết cụm `fabric-core-eks` -> Tab **Compute** -> Nhấp **Add node group**:
-1. **Configure node group:**
-   - **Name:** Nhập `fabric-core-ng-1`.
-   - **Node IAM role:** Chọn `fabric-eks-node-role`.
-   - **Kubernetes labels:**
-     - Key: `node.kubernetes.io/tier` | Value: `core`
-     - Key: `environment` | Value: `prod`
-   - Nhấp **Next**.
-2. **Set compute and scaling configuration:**
-   - **AMI type:** Chọn **Amazon Linux 2023 (AL2023_x86_64_STANDARD)**.
-   - **Instance types:** `t3.medium`.
-   - **Disk size:** `20` GiB.
-   - **Scaling configuration:** Minimum: `2`, Desired: `2`, Maximum: `4`.
-   - Nhấp **Next**.
-3. **Specify networking:**
-   - **Subnets:**
-     - Tích chọn: `fabric-core-nodes-1a` (`10.50.8.0/22`).
-     - Tích chọn: `fabric-core-nodes-1b` (`10.50.12.0/22`).
-   - **SSH access:** Disable.
-   - Nhấp **Next**.
-4. **Review and create:** Nhấp **Create**.
-5. Đợi cho đến khi cả 2 Node Groups (`fabric-edge-ng-1` và `fabric-core-ng-1`) hiển thị trạng thái xanh **`Active`**.
+## 4. Cấu Hình Chi Tiết (Configuration)
+
+### 4.1 Cấu Hình IAM Node Role
+
+- **Trust Policy:** `ec2.amazonaws.com` (Action: `sts:AssumeRole`)
+- **Attached Managed Policies:**
+  1. `arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy`
+  2. `arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly`
+  3. `arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy`
+  4. `arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore` (Quản trị từ xa qua SSM Session Manager, không mở SSH port 22).
+
+### 4.2 Cấu Hình Kỹ Thuật Node Groups
+
+| Thuộc Tính | Node Group Edge (`fabric-edge-ng-1`) | Node Group Core (`fabric-core-ng-1`) | Lý Do Thiết Kế |
+| :--- | :--- | :--- | :--- |
+| **Instance Type** | `t3.medium` (2 vCPU, 4 GiB RAM) | `t3.medium` (2 vCPU, 4 GiB RAM) | Tối ưu hóa chi phí và tài nguyên cụm. |
+| **Capacity Type** | `SPOT` | `SPOT` | Tiết kiệm chi phí lên tới 70% trong môi trường lab/dev. |
+| **AMI Type** | `AL2023_x86_64_STANDARD` | `AL2023_x86_64_STANDARD` | Amazon Linux 2023 chuẩn hóa cho Kubernetes 1.37. |
+| **Disk Size** | `20 GiB` (gp3) | `20 GiB` (gp3) | Đủ dung lượng lưu trữ cho container images và logs. |
+| **Scaling Config** | Min: `2`, Desired: `2`, Max: `3` | Min: `2`, Desired: `2`, Max: `4` | Đảm bảo tính sẵn sàng cao (High Availability) trên 2 AZs. |
+| **Subnet Placement** | `fabric-edge-nodes-1a/b` | `fabric-core-nodes-1a/b` | Tuyệt đối không cấp Public IP, bảo vệ khỏi Internet. |
+| **Remote Access** | `Disabled` | `Disabled` | Tuân thủ Zero Trust, cấm mở cổng 22. |
 
 ---
 
-### Bước bổ sung: Nghỉ lab và tiếp tục
+## 5. Phụ Thuộc (Dependencies)
 
-1. Trước khi nghỉ, lưu scaling hiện tại của từng node group vào evidence phiên chạy, kiểm tra không còn tác vụ ghi dữ liệu.
-2. EKS → Cluster → Compute → Node group → Edit scaling configuration. Chỉ khi đã cho phép dừng workload: Minimum 0, Desired 0; giữ Maximum → Save.
-3. Trước bài 03.05, vào cùng màn hình, phục hồi Desired 2 và Minimum phù hợp phiên lab trên mỗi cluster; chờ EC2 khởi tạo.
-4. Resources → Nodes: kiểm tra node Ready ở hai AZ; Add-ons: CoreDNS/EBS CSI Active; Workloads → kube-system: các pod Running/Ready. Nếu thiếu capacity Spot, xem node group Health trước khi chọn phương án capacity khác.
-5. Scale 0 không dừng phí EKS control plane, endpoints hoặc TGW. Không biến kết quả nghỉ lab thành bằng chứng lỗi triển khai lịch sử.
-
-
-## 5. Lệnh Kiểm Tra / CLI Verification (Zero Fake Data)
-
-Chạy các lệnh xác minh trạng thái các node groups và xác nhận các Kubernetes worker nodes đã `Ready`:
-```bash
-# 1. Kiểm tra trạng thái Node Group qua AWS CLI
-aws eks describe-nodegroup --region ap-southeast-1 \
-  --cluster-name fabric-edge-eks --nodegroup-name fabric-edge-ng-1 \
-  --query 'nodegroup.{Name:nodegroupName,Status:status,Desired:scalingConfig.desiredSize,InstanceTypes:instanceTypes[0]}' \
-  --output table
-
-aws eks describe-nodegroup --region ap-southeast-1 \
-  --cluster-name fabric-core-eks --nodegroup-name fabric-core-ng-1 \
-  --query 'nodegroup.{Name:nodegroupName,Status:status,Desired:scalingConfig.desiredSize,InstanceTypes:instanceTypes[0]}' \
-  --output table
-
-# 2. Chuyển context sang fabric-edge và kiểm tra danh sách Node (Tất cả phải Ready)
-aws eks update-kubeconfig --region ap-southeast-1 --name fabric-edge-eks --alias fabric-edge
-kubectl get nodes -o wide
-
-# 3. Chuyển context sang fabric-core và kiểm tra danh sách Node
-aws eks update-kubeconfig --region ap-southeast-1 --name fabric-core-eks --alias fabric-core
-kubectl get nodes -o wide
-```
+- Phụ thuộc vào `02.01` (Private Node Subnets sẵn sàng).
+- Phụ thuộc vào `02.06` (VPC Endpoints cho ECR, S3, STS, logs sẵn sàng để bootstrap node).
+- Phụ thuộc vào `03.02` (Cụm EKS ở trạng thái `ACTIVE`).
+- Là điều kiện tiên quyết cho `03.04` (Pod Identity & Add-ons) và [Module 04](../04-phan-bo-workloads/README.md).
 
 ---
 
-## 6. Kế Hoạch Khôi Phục / Rollback Plan
+## 6. Kiểm Tra Đạt (Verification)
 
-Xóa Node Groups trước khi xóa cụm EKS:
-```bash
-aws eks delete-nodegroup --region ap-southeast-1 --cluster-name fabric-edge-eks --nodegroup-name fabric-edge-ng-1
-aws eks delete-nodegroup --region ap-southeast-1 --cluster-name fabric-core-eks --nodegroup-name fabric-core-ng-1
-```
-
----
-
-## 7. Đường Dẫn Bằng Chứng (Expected Evidence Path)
-
-Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) được lưu trữ tại:
-`evidence/03-eks/03-nodes-ready.json`
+| Kiểm Tra | Lệnh / Tiêu Chí Xác Minh | Kết Quả Mong Đợi |
+| :--- | :--- | :--- |
+| **Trạng thái Node Groups** | `aws eks describe-nodegroup --cluster-name <Cluster> --nodegroup-name <NodeGroup>` | `nodegroup.status: ACTIVE` cho cả 2 nhóm. |
+| **Trạng thái Kubernetes Nodes** | `kubectl get nodes -o wide` trên cả 2 context `fabric-edge` và `fabric-core` | Mỗi cụm có đúng 2 nodes ở trạng thái `Ready`. |
+| **Phân bổ Dải IP Subnet** | Kiểm tra Internal IP của nodes | Edge: thuộc dải `10.40.8.0/22`; Core: thuộc dải `10.50.8.0/22`. |
+| **Trạng thái Pods Hệ Thống** | `kubectl get pods -n kube-system` | Pods `aws-node`, `coredns`, `kube-proxy` ở trạng thái `Running`. |
 
 ---
 
-## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
+## 7. Cảnh Báo An Toàn & Rollback Plan
 
-- [x] Cả 2 Node Groups `fabric-edge-ng-1` và `fabric-core-ng-1` đạt trạng thái `ACTIVE` với mô hình EC2 SPOT (`CapacityType: SPOT`).
-- [x] Lệnh `kubectl get nodes` hiển thị đủ 4 worker nodes (2 nodes per cluster) ở trạng thái `Ready`.
-- [x] Địa chỉ IP nội bộ của Node nằm trọn vẹn trong dải `10.40.8.0/22` (Edge: `10.40.8.220`, `10.40.13.39`) và `10.50.8.0/22` (Core: `10.50.11.181`, `10.50.14.4`).
-- [x] Các Add-on pods cốt lõi (`aws-node`, `coredns`, `kube-proxy`) chạy ổn định `Running`.
+- **Cảnh báo chi phí & gián đoạn:** EC2 Spot có thể bị thu hồi nếu thiếu capacity. Trong trường hợp cần tạm nghỉ phiên lab để tiết kiệm chi phí, có thể scale Desired = 0 và phục hồi Desired = 2 trước khi kiểm thử.
+- **Quy trình Rollback:**
+  ```bash
+  # Xóa 2 Node Groups
+  aws eks delete-nodegroup --region ap-southeast-1 --cluster-name fabric-edge-eks --nodegroup-name fabric-edge-ng-1
+  aws eks delete-nodegroup --region ap-southeast-1 --cluster-name fabric-core-eks --nodegroup-name fabric-core-ng-1
 
----
-
-### Báo Cáo Thực Thi Runtime (Execution Summary)
-
-- **Thời gian thực thi:** `2026-11-05T18:52:00Z`
-- **Công cụ thực thi:** MCP `aws-api-mcp/call_aws`
-- **IAM Node Role:** `fabric-eks-node-role` (`arn:aws:iam::123456789012:role/fabric-eks-node-role`)
-- **Cụm `fabric-edge-eks` - Node Group `fabric-edge-ng-1`:**
-  - Status: `ACTIVE`
-  - Capacity Type: `SPOT` (t3.medium)
-  - AMI: `AL2023_x86_64_STANDARD`
-  - Nodes:
-    - `ip-10-40-8-220` (AZ-a): `Ready`
-    - `ip-10-40-13-39` (AZ-b): `Ready`
-- **Cụm `fabric-core-eks` - Node Group `fabric-core-ng-1`:**
-  - Status: `ACTIVE`
-  - Capacity Type: `SPOT` (t3.medium)
-  - AMI: `AL2023_x86_64_STANDARD`
-  - Nodes:
-    - `ip-10-50-11-181` (AZ-a): `Ready`
-    - `ip-10-50-14-4` (AZ-b): `Ready`
-- **Tập tin bằng chứng:** [`evidence/03-eks/03-nodes-ready.json`](../../evidence/03-eks/03-nodes-ready.json)
+  # Xóa IAM Node Role sau khi EC2 instances đã bị hủy
+  aws iam detach-role-policy --role-name fabric-eks-node-role --policy-arn arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+  aws iam detach-role-policy --role-name fabric-eks-node-role --policy-arn arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+  aws iam detach-role-policy --role-name fabric-eks-node-role --policy-arn arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+  aws iam detach-role-policy --role-name fabric-eks-node-role --policy-arn arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+  aws iam delete-role --role-name fabric-eks-node-role
+  ```

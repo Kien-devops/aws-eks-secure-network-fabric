@@ -1,152 +1,76 @@
-# 01.03 — Ma Trận Định Tuyến TGW & Bảng Bước Nhảy Gói Tin (Hop Tables)
+# Lab 01.03: Ma Trận Định Tuyến TGW & Bảng Bước Nhảy Gói Tin (Hop Tables)
 
-> **Mã bài lab:** `01.03`  
-> **Trạng thái:** `RUNTIME_PASS`  
-> **Thời gian dự kiến:** 30 phút  
-> **Chi phí ước tính:** $0.00 USD  
-> **Vùng áp dụng:** `ap-southeast-1` (Singapore) — AZs: `ap-southeast-1a`, `ap-southeast-1b`  
+**Mã tài liệu:** `LAB-01-03`
+**Trạng thái:** `RUNTIME_PASS`
+**Vùng áp dụng:** `ap-southeast-1` (Singapore) — AZs: `ap-southeast-1a`, `ap-southeast-1b`
 
 ---
 
-## 1. Tiền đề (Prerequisites)
-
-- Đã hoàn thành bảng phân bổ IP [01.02 — Kế Hoạch Phân Bổ Dải Mạng](02-cidr-ip-allocation-plan.md).
-- Nắm vững nguyên lý hoạt động của AWS Transit Gateway Route Tables, Subnet Route Chaining và Appliance Mode.
+## 1. Mục Tiêu (Objective)
+Đặc tả ma trận định tuyến 4 phân vùng cô lập trên AWS Transit Gateway và bảng bước nhảy (Hop Tables) cho luồng East-West qua Suricata và luồng Egress qua Network Firewall.
 
 ---
 
-## 2. Quyền IAM Yêu Cầu (Required IAM Permissions)
+## 2. Tài Nguyên (Resources)
 
-Bài lab phân tích ma trận định tuyến logic và mô phỏng bước nhảy trên tài liệu thiết kế:
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "ec2:DescribeTransitGateways",
-        "ec2:DescribeTransitGatewayRouteTables",
-        "ec2:DescribeRouteTables"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
+| Tên Logical | Định Danh Runtime (Snapshot) | Attachment Liên Kết | Chức Năng Phân Đoạn |
+| :--- | :--- | :--- | :--- |
+| `fabric-tgw-edge-rt` | `tgw-rtb-004772ba5b83f2b17` | `fabric-edge-tgw-attachment` | Ép traffic sang Core qua Inspection; ra Internet qua Egress |
+| `fabric-tgw-core-rt` | `tgw-rtb-03c493c67bc6dc820` | `fabric-core-tgw-attachment` | Ép traffic sang Edge qua Inspection; ra Internet qua Egress |
+| `fabric-tgw-inspection-rt` | `tgw-rtb-01abf43ebf7f1b21f` | `fabric-insp-tgw-attachment` | Trả traffic sạch sau kiểm tra về Edge hoặc Core |
+| `fabric-tgw-egress-rt` | `tgw-rtb-066c8310ab347bf30` | `fabric-egress-tgw-attachment` | Trả traffic phản hồi từ Internet về Edge hoặc Core |
+
+*Ghi chú: Runtime ID / ARN là dữ liệu snapshot tại thời điểm kiểm tra thực tế; Tên Logical là định danh chuẩn theo thiết kế.*
 
 ---
 
-## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
+## 3. Thẻ Định Danh (Tags)
 
-- **Chi phí:** $0.00 USD.
-- **Cảnh báo định tuyến đối xứng (Symmetric Routing & Appliance Mode):** Tường lửa kiểm tra trạng thái (Stateful Firewall như Suricata và AWS Network Firewall) sẽ lập tức DROP gói tin nếu luồng đi (Request) và luồng về (Response) đi qua 2 AZ khác nhau (Asymmetric Routing). Bắt buộc phải bật `ApplianceModeSupport = enable` trên TGW Attachment kết nối vào Inspection VPC và Egress VPC.
-- **Cảnh báo bẫy định tuyến đường về (Return Path Trap):** Khi gói tin từ Internet quay trở lại qua NAT Gateway, Route Table của Public Subnet trong Egress VPC **bắt buộc phải trỏ dải mạng `10.40.0.0/16` và `10.50.0.0/16` về điểm cuối Network Firewall**, tuyệt đối không trỏ thẳng về TGW để tránh tình trạng bypass kiểm duyệt chiều về.
-
----
-
-## 4. Các Bước Thực Hiện Chi Tiết Trên Console (Console Walkthrough)
-
-### Bước 1: Thiết Kế Ma Trận Phân Đoạn Định Tuyến TGW (TGW Route Domains)
-Trên AWS Transit Gateway Console, chúng ta thiết lập 4 miền định tuyến độc lập (fail-closed, tắt hoàn toàn default association và propagation):
-
-| TGW Route Table | Attachment Được Associated | Static Routes Cấu Hình | Mục Đích Thiết Kế An Ninh |
-|---|---|---|---|
-| **`fabric-tgw-edge-rt`** | `fabric-edge-tgw-attachment` | `10.50.0.0/16` -> `fabric-insp-tgw-attachment`<br>`0.0.0.0/0` -> `fabric-egress-tgw-attachment` | Bắt buộc lưu lượng sang Core phải vào Inspection VPC; lưu lượng ra Internet phải vào Egress VPC. |
-| **`fabric-tgw-core-rt`** | `fabric-core-tgw-attachment` | `10.40.0.0/16` -> `fabric-insp-tgw-attachment`<br>`0.0.0.0/0` -> `fabric-egress-tgw-attachment` | Bắt buộc lưu lượng về Edge phải vào Inspection VPC; lưu lượng ra Internet phải vào Egress VPC. |
-| **`fabric-tgw-inspection-rt`** | `fabric-insp-tgw-attachment` | `10.40.0.0/16` -> `fabric-edge-tgw-attachment`<br>`10.50.0.0/16` -> `fabric-core-tgw-attachment` | Sau khi Suricata kiểm duyệt xong, gói tin trả về TGW và được định tuyến đến đúng VPC đích. |
-| **`fabric-tgw-egress-rt`** | `fabric-egress-tgw-attachment` | `10.40.0.0/16` -> `fabric-edge-tgw-attachment`<br>`10.50.0.0/16` -> `fabric-core-tgw-attachment` | Định tuyến phản hồi từ Internet sau khi qua Network Firewall về đúng VPC khởi tạo. |
-| **`fabric-tgw-dev-rt`** *(Mở rộng)* | `fabric-dev-tgw-attachment` | `10.40.0.0/16` -> `blackhole`<br>`10.50.0.0/16` -> `blackhole` | Cô lập triệt để môi trường Dev, ngăn không cho chạm vào Prod workloads. |
-
-### Bước 2: Bảng Bước Nhảy Chi Tiết Luồng Đông - Tây (East-West Hop-by-Hop Trace)
-Luồng từ Pod Frontend (`10.40.10.x`) gọi sang Internal NLB của Core EKS (`10.50.20.y`):
-
-```text
-[Pod Frontend] 
-    │ (1. Node default route)
-    ▼
-[Edge Node Subnet RT] ─── 10.50.0.0/16 ───► [Edge TGW Attachment]
-                                                    │ (2. Ingress TGW lookup fabric-tgw-edge-rt)
-                                                    ▼
-[TGW fabric-tgw-edge-rt] ── 10.50.0.0/16 ──► [Inspection TGW Attachment] (Appliance Mode = ON)
-                                                    │ (3. Gói tin giữ nguyên AZ-a)
-                                                    ▼
-[Inspection TGW Subnet RT] ─ 10.50.0.0/16 ─► [GWLB Endpoint AZ-a (gwlbe-1a)]
-                                                    │ (4. Đóng gói GENEVE UDP 6081)
-                                                    ▼
-[Gateway Load Balancer] ───────────────────► [Suricata EC2 Appliance A]
-                                                    │ (5. Kiểm tra IDS/IPS: ALLOW)
-                                                    ▼
-[Gateway Load Balancer] ◄─────────────────── [Suricata EC2 Appliance A]
-    │ (6. Trả lại gói tin đã inspect)
-    ▼
-[Inspection GWLBe Subnet RT] 10.50.0.0/16 ─► [Inspection TGW Attachment]
-                                                    │ (7. Ingress TGW lookup fabric-tgw-inspection-rt)
-                                                    ▼
-[TGW fabric-tgw-inspection-rt] 10.50.0.0/16► [Core TGW Attachment]
-                                                    │ (8. Giao cho Core VPC)
-                                                    ▼
-[Core Subnet RT] ──────────────────────────► [Core Internal NLB] ──► [Pod Order Service]
-```
-
-### Bước 3: Bảng Bước Nhảy Chi Tiết Luồng Egress Ra Internet & Đường Về (Outbound & Return Trace)
-Luồng từ Pod Core EKS kết nối ra Internet và gói tin phản hồi quay lại:
-
-1. **Chiều Đi (Outbound Forward):**
-   - **Hop 1:** Pod Core gửi gói tin `SYN` tới `quay.io:443`.
-   - **Hop 2:** Subnet Route Table của Core EKS: `0.0.0.0/0` -> Target: `fabric-tgw`.
-   - **Hop 3:** TGW `fabric-tgw-core-rt`: `0.0.0.0/0` -> Target: `fabric-egress-tgw-attachment`.
-   - **Hop 4:** TGW Subnet RT trong Egress VPC: `0.0.0.0/0` -> Target: AWS Network Firewall Endpoint trong cùng AZ.
-   - **Hop 5:** AWS Network Firewall kiểm tra TLS SNI allowlist. Kết quả: `ALLOW`.
-   - **Hop 6:** Firewall Subnet RT trong Egress VPC: `0.0.0.0/0` -> Target: NAT Gateway trong cùng AZ.
-   - **Hop 7:** NAT Gateway thực hiện SNAT sang Public IP và gửi qua Internet Gateway (IGW) ra ngoài.
-
-2. **Chiều Về (Inbound Return Path — Điểm Sống Còn):**
-   - **Hop 8:** Gói tin phản hồi `SYN-ACK` từ Internet quay trở về qua IGW tới Public Subnet NAT Gateway.
-   - **Hop 9 (Bắt buộc):** Route Table của Public Subnet trong Egress VPC:
-     - `10.40.0.0/16` -> Target: Network Firewall Endpoint cùng AZ.
-     - `10.50.0.0/16` -> Target: Network Firewall Endpoint cùng AZ.
-   - **Hop 10:** Network Firewall nhận diện đúng phiên kết nối TCP hợp lệ (Stateful inspection).
-   - **Hop 11:** Firewall Subnet RT: `10.50.0.0/16` -> Target: `fabric-tgw`.
-   - **Hop 12:** TGW `fabric-tgw-egress-rt`: `10.50.0.0/16` -> Target: `fabric-core-tgw-attachment`.
-   - **Hop 13:** Gói tin quay trở lại Pod Core an toàn, hoàn tất bắt tay TCP 3 bước.
+| Khóa (Key) | Giá Trị (Value) | Phạm Vi Áp Dụng |
+| :--- | :--- | :--- |
+| `Name` | `fabric-tgw-*-rt` | Toàn bộ TGW Route Tables |
+| `Project` | `aws-eks-secure-network-fabric` | Toàn bộ TGW Route Tables |
+| `Environment` | `prod` | Toàn bộ TGW Route Tables |
+| `ManagedBy` | `manual` | Thiết kế định tuyến trung tâm thủ công Console/CLI |
 
 ---
 
-## 5. Lệnh Kiểm Tra / CLI Verification (Zero Fake Data)
+## 4. Cấu Hình Chi Tiết (Configuration)
 
-Kiểm tra tính sẵn sàng của kiến trúc định tuyến lý thuyết:
-```bash
-# Kiểm tra tài khoản sẵn sàng khởi tạo TGW
-aws ec2 describe-transit-gateways --region ap-southeast-1 \
-  --query 'TransitGateways[*].TransitGatewayId' --output text
-```
+### 4.1 Bảng Ma Trận Định Tuyến Nguồn - Đích - Next Hop - AZ
+| Nguồn (Source) | Đích (Destination CIDR) | Bảng Tra Cứu (Lookup RT) | Next Hop Target | AZ Affinity (Appliance Mode) |
+| :--- | :--- | :--- | :--- | :---: |
+| `edge-frontend` (`10.40.0.0/16`) | `10.50.0.0/16` (Core) | `fabric-tgw-edge-rt` | `fabric-insp-tgw-attachment` | **ENABLED (AZ-a/b)** |
+| `core-service` (`10.50.0.0/16`) | `10.40.0.0/16` (Edge) | `fabric-tgw-core-rt` | `fabric-insp-tgw-attachment` | **ENABLED (AZ-a/b)** |
+| `fabric-inspection-vpc` | `10.40.0.0/16` (Edge) | `fabric-tgw-inspection-rt` | `fabric-edge-tgw-attachment` | Symmetric AZ Return |
+| `fabric-inspection-vpc` | `10.50.0.0/16` (Core) | `fabric-tgw-inspection-rt` | `fabric-core-tgw-attachment` | Symmetric AZ Forward |
+| `edge-frontend` / `core-service` | `0.0.0.0/0` (Internet) | `edge-rt` / `core-rt` | `fabric-egress-tgw-attachment` | **ENABLED (AZ-a/b)** |
+| `fabric-egress-vpc` | `10.40.0.0/16` / `10.50.0.0/16` | `fabric-tgw-egress-rt` | `edge-attachment` / `core-attachment` | Return Path to Spoke |
+
+### 4.2 Bảng Bước Nhảy Luồng Đông - Tây (East-West Hop Table)
+1. **Hop 1:** `edge-frontend` Pod (`10.40.10.x`) → gọi `https://core.fabric.internal:443`.
+2. **Hop 2:** Edge Node Subnet RT (`10.50.0.0/16 -> fabric-tgw`).
+3. **Hop 3:** TGW `fabric-tgw-edge-rt` (`10.50.0.0/16 -> fabric-insp-tgw-attachment`).
+4. **Hop 4:** Inspection TGW Subnet RT (`10.50.0.0/16 -> GWLB Endpoint` cùng AZ).
+5. **Hop 5:** GWLB forward qua GENEVE UDP 6081 tới Suricata EC2 Instance cùng AZ (Verdict: ALLOW).
+6. **Hop 6:** GWLB Endpoint Subnet RT (`10.50.0.0/16 -> fabric-tgw`).
+7. **Hop 7:** TGW `fabric-tgw-inspection-rt` (`10.50.0.0/16 -> fabric-core-tgw-attachment`).
+8. **Hop 8:** Core Private Subnet → `fabric-core-internal-nlb` → `core-service` Pod (`10.50.20.y`).
 
 ---
 
-## 6. Kế Hoạch Khôi Phục / Rollback Plan
-
-Bảng ma trận định tuyến là tài liệu kiểm soát. Khi phát sinh sự cố bất đối xứng (asymmetric drop) trong Module 10 (GameDay), kiến trúc sư đối soát từng hop trong bảng này để khôi phục cấu hình.
-
----
-
-## 7. Đường Dẫn Bằng Chứng (Expected Evidence Path)
-
-Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) được lưu trữ tại:
-`evidence/01-threat-model/03-hop-tables-spec.json`
+## 5. Phụ Thuộc (Dependencies)
+- Hoàn thành quy hoạch IP tại [Lab 01.02](02-cidr-ip-allocation-plan.md).
 
 ---
 
-## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
+## 6. Kiểm Tra Đạt (Verification)
+- [x] 4 TGW Route Tables độc lập triệt tiêu hoàn toàn khả năng Route Leak trực tiếp giữa Edge và Core.
+- [x] Thiết kế cờ `ApplianceModeSupport = ENABLED` trên Inspection và Egress Attachments bảo đảm tính đối xứng hai chiều.
+- [x] Bằng chứng runtime đã thu thập: [`evidence/01-threat-model/03-hop-tables-spec.json`](../../evidence/01-threat-model/03-hop-tables-spec.json).
 
-- [x] Bảng hop table xác định chi tiết đường đi của từng hop cho cả chiều đi (Forward) và chiều về (Return).
-- [x] Xác nhận rõ quy tắc Return Path tại Egress VPC bắt buộc đi qua Network Firewall Endpoint.
-- [x] Bật cờ `ApplianceModeSupport = enable` trên Inspection và Egress TGW Attachments.
-- [x] Phân vùng Blackhole được thiết kế chuẩn mực để cô lập môi trường Dev.
+---
 
-### Kết Quả Thực Thi Runtime Xác Thực (Runtime Execution Summary)
-- **Thời gian thực thi:** `2026-11-05T15:46:55Z`
-- **Công cụ thực thi:** MCP `aws-api-mcp/call_aws`
-- **Quy chuẩn định tuyến:** Xác lập 5 TGW Route Domains, thiết kế đối xứng luồng gói tin qua Appliance Mode
-- **Bảo vệ đường về (Return Path Trap):** Ràng buộc tuyến đường từ Public NAT Subnet trở về Egress Firewall Endpoint
-- **File bằng chứng:** `evidence/01-threat-model/03-hop-tables-spec.json` (Status: `RUNTIME_PASS`)
+## 7. Cảnh Báo An Toàn & Rollback Plan
+- **Cảnh báo bất đối xứng (Asymmetric drop):** Nếu tắt Appliance Mode trên Inspection Attachment, gói tin TCP midstream sẽ bị Suricata drop ngay lập tức do lệch AZ (đã chứng minh tại GameDay 10.02).
+- **Kế hoạch khôi phục (Rollback):** Đảm bảo cờ Appliance Mode luôn ở trạng thái `enable` trên mọi attachment kết nối tới cụm kiểm tra trạng thái.

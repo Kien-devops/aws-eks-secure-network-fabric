@@ -1,59 +1,49 @@
-# Module 11: Tổng Hợp Bằng Chứng Kỹ Thuật & Báo Cáo Sự Cố (Evidence & Report)
+# Module 11 — Tổng Hợp Bằng Chứng Kỹ Thuật & Báo Cáo Sự Cố (Evidence & Reports)
 
-## 1. Mục Tiêu Kỹ Thuật
-- **Mục tiêu:**
-  - Tổng hợp toàn bộ dữ liệu bằng chứng kỹ thuật (Runtime Evidence) được tạo ra từ các bài lab và kịch bản GameDay.
-  - Áp dụng quy tắc khử trùng bảo mật (Sanitization & Redaction) tuyệt đối:
-    - Thay thế 100% AWS Account ID bằng `123456789012` hoặc `***`.
-    - Che giấu hoàn toàn Private Keys, Database Passwords, JWT Secrets.
-  - Lập báo cáo phân tích sau sự cố (Incident Post-Mortem Report) chuẩn SRE.
-  - Lập bảng tổng kết chi phí đám mây thực tế tiêu hao trong suốt quá trình triển khai dự án.
+## 1. Tổng Quan Module
+
+Module 11 đặc tả quy chuẩn thu thập bằng chứng runtime, kiểm toán an toàn khử trùng dữ liệu nhạy cảm (Zero Secret Leak), quy trình phân tích sự cố SRE (Blameless Post-Mortem) và báo cáo quản trị tài chính đám mây FinOps. Đảm bảo toàn bộ bằng chứng có dấu thời gian ISO 8601 UTC và tuân thủ nguyên tắc Zero Fake Data.
 
 ---
 
-## 2. Cấu Trúc Thư Mục Bằng Chứng (Evidence Folder Structure)
+## 2. Thứ Tự Phụ Thuộc (Dependency Tree)
 
 ```text
-evidence/
-├── 01-network-topology/
-│   ├── vpc-subnets.json
-│   ├── tgw-attachments-routes.json
-│   └── reachability-analyzer-result.json
-├── 02-gwlb-inspection/
-│   ├── tcpdump-symmetric-az-a.pcap
-│   ├── suricata-eve-alerts.json
-│   └── gwlb-target-health.json
-├── 03-egress-firewall/
-│   ├── nfw-domain-allowlist-test.log
-│   └── nfw-block-unauthorized.log
-├── 04-gameday/
-│   ├── gameday-asymmetric-routing-drop.log
-│   ├── gameday-appliance-failover-timeline.csv
-│   └── gameday-route-leak-detection.log
-└── 05-reports/
-    ├── INCIDENT-POST-MORTEM.md
-    └── FINOPS-COST-SUMMARY.md
+[Module 00 -> 10 Hoàn Tất & Thu Thập Log]
+                  │
+                  ▼
+[11.01 Thu Thập Bằng Chứng Kỹ Thuật Runtime (Timestamp)]
+                  │
+                  ▼
+[11.02 Kiểm Toán Vệ Sinh Dữ Liệu & Khử Trùng (Sanitization)]
+                  │
+                  ▼
+[11.03 Mẫu Báo Cáo Phân Tích Sự Cố Chuẩn SRE (Post-Mortem)]
+                  │
+                  ▼
+[11.04 Đo Lường Chi Phí Thực Tế & Tối Ưu Hóa FinOps]
 ```
 
 ---
 
-## 3. Nội Dung Báo Cáo Incident Post-Mortem Mẫu
+## 3. Danh Mục Bài Lab & Trạng Thái
 
-Mỗi sự cố diễn tập được tổng kết theo mẫu chuẩn:
-1. **Tiêu đề sự cố:** Mô tả ngắn gọn bản chất lỗi.
-2. **Thời gian xảy ra & Thời gian khắc phục:** Timestamp chuẩn ISO 8601.
-3. **Mức độ ảnh hưởng (Severity):** P1 / P2 / P3.
-4. **Phân tích nguyên nhân gốc rễ (Root Cause Analysis - 5 Whys):**
-   - Tại sao gói tin bị drop? -> Do lệch AZ trên luồng phản hồi.
-   - Tại sao lệch AZ? -> Do TGW không bật Appliance Mode.
-5. **Biện pháp khắc phục vĩnh viễn (Permanent Fixes):**
-   - Kích hoạt Appliance Mode trên Inspection Attachment.
-   - Đưa cấu hình vào Terraform để chống trôi dạt (Drift).
+| Mã Bài | Tên Bài Lab | Nội Dung Kỹ Thuật Chính | Trạng Thái | File Đặc Tả |
+| :--- | :--- | :--- | :--- | :--- |
+| **11.01** | Runtime Evidence Collection | Thu thập tự động telemetry, routing, firewall và healthcheck qua AWS CLI kèm ISO 8601 timestamp | `RUNTIME_PASS` | [01-runtime-evidence-collection.md](01-runtime-evidence-collection.md) |
+| **11.02** | Evidence Sanitization Audit | Kiểm toán 5 lớp an ninh, khử trùng 100% AWS Account ID sang `123456789012`, loại bỏ khóa bí mật | `RUNTIME_PASS` | [02-evidence-sanitization-audit.md](02-evidence-sanitization-audit.md) |
+| **11.03** | Incident Post-Mortem Template | Soạn thảo báo cáo phân tích sự cố SRE Blameless cho GameDay 10.02, tính MTTD/MTTR và 5 Whys | `RUNTIME_PASS` | [03-incident-post-mortem-template.md](03-incident-post-mortem-template.md) |
+| **11.04** | FinOps Cost Report | Tổng hợp cước phí AWS thực tế qua Cost Explorer (~$17.64 USD) và đối soát hạn mức ngân sách $50 USD | `RUNTIME_PASS` | [04-finops-cost-report.md](04-finops-cost-report.md) |
 
 ---
 
-## 4. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
-- [x] Toàn bộ các file log/json trong thư mục evidence đã được kiểm duyệt không còn lộ thông tin nhạy cảm (100% AWS Account ID đã được khử trùng sang `123456789012`).
-- [x] Mọi log output đều có timestamp thực tế (ISO 8601 UTC), không chứa dữ liệu giả mạo.
-- [x] Báo cáo Post-Mortem và FinOps Cost Report được hoàn thiện đầy đủ tại `evidence/05-reports/`.
+## 4. Danh Mục Tập Tin Bằng Chứng & Báo Cáo (Artifacts Inventory)
 
+| Đường Dẫn Tập Tin | Loại Dữ Liệu | Nguồn Trích Xuất | Mô Tả Kỹ Thuật |
+| :--- | :--- | :--- | :--- |
+| `evidence/01-network-topology/` | JSON Data | EC2 / VPC / TGW APIs | Sơ đồ topology 4 VPCs, 16 subnets và bảng định tuyến TGW |
+| `evidence/02-gwlb-inspection/` | JSON & PCAP | ELBv2 & EC2 Suricata | Trạng thái GWLB target health và packet captures đối xứng AZ |
+| `evidence/03-egress-firewall/` | JSON & Log | AWS Network Firewall | Trạng thái Ready của NFW và log domain filtering allowlist |
+| `evidence/05-reports/SANITIZATION-AUDIT-REPORT.md` | Báo cáo Markdown | Script kiểm toán 5 lớp | Chứng chỉ vệ sinh dữ liệu, xác nhận 0 rò rỉ secret / account ID |
+| `evidence/05-reports/INCIDENT-POST-MORTEM-ASLR.md` | Báo cáo Markdown | GameDay 10.02 Telemetry | Báo cáo SRE Post-Mortem sự cố định tuyến bất đối xứng |
+| `evidence/05-reports/FINOPS-COST-REPORT.md` | Báo cáo Markdown | AWS Cost Explorer | Báo cáo chi phí thực tế $17.64 USD kèm 4 chiến lược tối ưu FinOps |

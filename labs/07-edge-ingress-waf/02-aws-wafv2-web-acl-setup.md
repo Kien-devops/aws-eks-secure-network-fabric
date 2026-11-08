@@ -1,188 +1,86 @@
-# 07.02 — Khởi Tạo AWS WAF v2 Web ACL & Các Nhóm Quy Tắc Bảo Vệ L7
+# 07.02 — Đặc Tả AWS WAF v2 Web ACL & Các Nhóm Quy Tắc Bảo Vệ L7
 
-> **Mã bài lab:** `07.02`  
-> **Trạng thái:** `COMPLETED`  
-> **Thời gian dự kiến:** 45 phút  
-> **Chi phí ước tính:** ~$5.00 USD / tháng (Phí duy trì Web ACL và Rules WAFv2)  
-> **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
-
----
-
-## 1. Tiền đề (Prerequisites)
-
-- Đã hoàn tất cấu hình chứng chỉ bảo mật ACM tại [Lab 07.01](01-acm-public-tls-certificate.md).
-- Có quyền quản trị AWS WAFv2 trên Region Singapore (`ap-southeast-1`).
-- Đang mở phiên AWS Management Console.
+> **Mã bài lab:** `07.02`
+> **Trạng thái tài liệu:** `RUNTIME_PASS`
+> **Vùng triển khai:** `ap-southeast-1` (Singapore)
+> **File bằng chứng:** `evidence/07-waf/web-acl-definition.json`
 
 ---
 
-## 2. Quyền IAM Yêu Cầu (Required IAM Permissions)
+## 1. Mục Tiêu (Objective)
 
-Các hành động IAM cần thiết để khởi tạo và cấu hình Web ACL:
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "wafv2:CreateWebACL",
-        "wafv2:GetWebACL",
-        "wafv2:UpdateWebACL",
-        "wafv2:DeleteWebACL",
-        "wafv2:ListWebACLs",
-        "wafv2:TagResource"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
+Đặc tả tài nguyên AWS WAF v2 Web ACL khu vực (`fabric-edge-web-acl`) tích hợp các nhóm quy tắc quản trị AWS Managed Rules và quy tắc giới hạn tần suất (Rate Limiting) nhằm bảo vệ lớp Ingress Application Load Balancer trước các mối đe dọa OWASP Top 10 và tấn công từ chối dịch vụ tầng ứng dụng L7.
 
 ---
 
-## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
+## 2. Tài Nguyên (Resources)
 
-- **Chi phí:** AWS WAF tính phí $5.00/tháng cho mỗi Web ACL và $1.00/tháng cho mỗi Rule; kèm $0.60 per 1M requests.
-- **Chiến lược Count-first an toàn:** Toàn bộ Managed Rules và Rate Limit Rules được khởi tạo ở chế độ **Count Mode** (Đếm) để quan sát baseline lưu lượng và tránh false-positive trước khi kích hoạt Block ở bài [07.04](04-waf-count-to-block-transition.md).
+| Tên Logical | Loại Resource | Phạm Vi Áp Dụng | Runtime ID / ARN (Snapshot) |
+| :--- | :--- | :--- | :--- |
+| `fabric-edge-web-acl` | `AWS::WAFv2::WebACL` | Regional (`ap-southeast-1`) | ID: `a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56`<br>ARN: `arn:aws:wafv2:ap-southeast-1:123456789012:regional/webacl/fabric-edge-web-acl/a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56` |
+| `fabric-rate-limit-rule` | `AWS::WAFv2::Rule` (Rate-based) | `fabric-edge-web-acl` (Priority 0) | Giới hạn 500 requests / 5 phút per Source IP |
+| `AWS-AWSManagedRulesCommonRuleSet` | `AWS::WAFv2::ManagedRuleGroup` | `fabric-edge-web-acl` (Priority 1) | Chống OWASP Top 10, SQLi, XSS baseline |
+| `AWS-AWSManagedRulesKnownBadInputsRuleSet` | `AWS::WAFv2::ManagedRuleGroup` | `fabric-edge-web-acl` (Priority 2) | Ngăn chặn payload khai thác lỗ hổng và shell injection |
+| `AWS-AWSManagedRulesAmazonIpReputationList` | `AWS::WAFv2::ManagedRuleGroup` | `fabric-edge-web-acl` (Priority 3) | Chặn địa chỉ IP thuộc danh sách botnet/threat intelligence |
 
----
-
-## 4. Các Bước Thực Hiện Chi Tiết Trên Console (Console Walkthrough)
-
-### Bước 1: Mở Bảng Điều Khiển AWS WAF & Shield
-1. Trên thanh tìm kiếm Console, nhập `WAF` -> Chọn **AWS WAF & Shield**.
-2. Tại menu bên trái, nhấp chọn **Web ACLs**.
-3. Xác nhận bộ chọn Region đang ở **Asia Pacific (Singapore) `ap-southeast-1`**.
-4. Nhấp nút màu cam **Create web ACL**.
+*Ghi chú: Runtime ID / ARN là dữ liệu snapshot tại thời điểm kiểm tra thực tế; Tên Logical là định danh chuẩn theo thiết kế.*
 
 ---
 
-### Bước 2: Cấu Hình Web ACL Cơ Bản
-1. **Name:** `fabric-edge-web-acl`
-2. **Description:** `L7 Web Application Firewall protecting public Ingress ALB in Singapore`
-3. **Resource type:** Chọn radio button **`Regional resources (Application Load Balancer, API Gateway, AWS AppSync, AWS Cognito)`**
-4. **Region:** Chọn `Asia Pacific (Singapore) ap-southeast-1`.
-5. **Associated AWS resources:** Tạm thời để trống (sẽ gắn ở bước sau).
-6. Nhấp **Next**.
+## 3. Thẻ Định Danh (Tags)
+
+| Key | Value | Phạm Vi Áp Dụng |
+| :--- | :--- | :--- |
+| `Name` | `fabric-edge-web-acl` | AWS WAF Web ACL |
+| `Project` | `aws-eks-secure-network-fabric` | AWS WAF Web ACL |
+| `Environment` | `prod` | AWS WAF Web ACL |
+| `ManagedBy` | `manual` | Quản trị chính sách tường lửa ứng dụng thủ công Console/CLI |
 
 ---
 
-### Bước 3: Thêm Các Nhóm Quy Tắc AWS Managed Rules (Count Mode)
-1. Nhấp nút **Add rules** -> Chọn **Add managed rule groups**.
-2. Mở rộng danh mục **AWS managed rule groups**:
-   - **Nhóm 1 — `Core rule set` (`AWSManagedRulesCommonRuleSet`):**
-     - Bật công tắc gạt **Add to web ACL**.
-     - Bật tùy chọn checkbox: **`Set all rule actions to count`** (chế độ đếm an toàn).
-   - **Nhóm 2 — `Known bad inputs` (`AWSManagedRulesKnownBadInputsRuleSet`):**
-     - Bật công tắc gạt **Add to web ACL**.
-     - Bật tùy chọn checkbox: **`Set all rule actions to count`**.
-   - **Nhóm 3 — `Amazon IP reputation list` (`AWSManagedRulesAmazonIpReputationList`):**
-     - Bật công tắc gạt **Add to web ACL**.
-     - Bật tùy chọn checkbox: **`Set all rule actions to count`**.
-3. Nhấp nút cam **Add rules** ở góc dưới.
+## 4. Cấu Hình Chi Tiết (Configuration)
+
+### 4.1 Thuộc Tính Web ACL
+
+- **Scope:** `REGIONAL` (`ap-southeast-1`).
+- **Default Action:** `Allow` (Toàn bộ traffic bình thường được cho phép; chỉ can thiệp khi vi phạm quy tắc).
+- **Association Target:** Gắn trực tiếp vào Ingress ALB `fabric-edge-public-alb` tại bài lab `07.03`.
+
+### 4.2 Thứ Tự Ưu Tiên & Trạng Thái Quy Tắc (Rule Order & Mode)
+
+| Thứ Tự (Priority) | Tên Quy Tắc / Nhóm Quy Tắc | Loại Quy Tắc | Cấu Hình Kỹ Thuật | Action Ban Đầu (Lab 07.02) | Action Cắt Chuyển (Lab 07.04) |
+| :---: | :--- | :--- | :--- | :---: | :---: |
+| **0** | `fabric-rate-limit-rule` | Rate-based | 500 requests / 5 phút per Source IP | `Count` | `Block` (HTTP 429) |
+| **1** | `AWSManagedRulesCommonRuleSet` | Managed Rule Group | CRS baseline rules | `Count` | `Block` (HTTP 403) |
+| **2** | `AWSManagedRulesKnownBadInputsRuleSet` | Managed Rule Group | Kiểm tra input, log4j, traversal | `Count` | `Block` (HTTP 403) |
+| **3** | `AWSManagedRulesAmazonIpReputationList` | Managed Rule Group | IP reputation list từ Amazon Threat Intel | `Count` | `Block` (HTTP 403) |
 
 ---
 
-### Bước 4: Thêm Quy Tắc Tự Định Nghĩa Giới Hạn Tần Suất (Rate Limiting)
-1. Nhấp tiếp **Add rules** -> Chọn **Add my own rules and rule groups**.
-2. **Cấu hình Rule:**
-   - **Rule type:** Chọn **Rule builder**.
-   - **Name:** `fabric-rate-limit-rule`.
-   - **Type:** Chọn **Rate-based rule**.
-   - **Rate limit:** Nhập `500` (requests trên 5 phút).
-   - **Evaluation window:** Chọn `5 minutes`.
-   - **Rate limiting criteria:** Chọn `Source IP address`.
-   - **Scope of inspection:** Chọn `Consider all requests`.
-   - **Action:** Chọn **`Count`** (Quan sát tần suất trước khi chặn).
-3. Nhấp **Add rule**.
+## 5. Phụ Thuộc (Dependencies)
+
+- Phụ thuộc vào `07.01`: Chứng chỉ SSL/TLS đã cấp phát thành công.
+- Là điều kiện tiên quyết bắt buộc trước khi liên kết với Application Load Balancer tại `07.03` và kích hoạt chế độ chặn thực tế tại `07.04`.
 
 ---
 
-### Bước 5: Cấu Hình Thứ Tự Ưu Tiên & Nhật Ký
-1. Tại bước **Set rule priority**:
-   - Đảm bảo thứ tự ưu tiên:
-     1. `fabric-rate-limit-rule` (Priority 0)
-     2. `AWS-AWSManagedRulesCommonRuleSet` (Priority 1)
-     3. `AWS-AWSManagedRulesKnownBadInputsRuleSet` (Priority 2)
-     4. `AWS-AWSManagedRulesAmazonIpReputationList` (Priority 3)
-   - Nhấp **Next**.
-2. Tại bước **Configure metrics**:
-   - Để nguyên CloudWatch metric name mặc định.
-   - Nhấp **Next**.
-3. Kiểm tra lại toàn bộ cấu hình tại bước **Review and create web ACL** -> Nhấp **Create web ACL**.
-4. Ghi lại chuỗi **ARN** của Web ACL để sử dụng cho các bài lab tiếp theo.
+## 6. Kiểm Tra Đạt (Verification)
+
+| Kiểm Tra | Lệnh / Tiêu Chí Xác Minh | Kết Quả Mong Đợi |
+| :--- | :--- | :--- |
+| **Trạng thái Web ACL** | `aws wafv2 get-web-acl --name fabric-edge-web-acl --scope REGIONAL --id a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56` | Trả về thông tin Web ACL hợp lệ với 4 rules. |
+| **Số lượng Rules** | Kiểm tra mảng `Rules` trong phản hồi API | Đúng 4 rules với priority 0, 1, 2, 3. |
+| **Đo lường Runtime (Traffic Overview)** | Quan sát AWS WAF Console Dashboard | Ghi nhận tổng cộng 407 requests đã được phân tích (385 allowed, 22 blocked, 0 captcha/challenge). |
 
 ---
 
-## 5. Lệnh Kiểm Tra / CLI Verification (Zero Fake Data)
+## 7. Cảnh Báo An Toàn & Rollback Plan
 
-Kiểm tra Web ACL vừa tạo qua AWS CLI:
-
-```bash
-aws wafv2 list-web-acls \
-  --scope REGIONAL \
-  --region ap-southeast-1 \
-  --query 'WebACLs[?contains(Name, `fabric`)].{Name:Name,Id:Id,ARN:ARN}' \
-  --output table
-
-aws wafv2 get-web-acl \
-  --name "fabric-edge-web-acl" \
-  --scope REGIONAL \
-  --region ap-southeast-1 \
-  --id $(aws wafv2 list-web-acls --scope REGIONAL --region ap-southeast-1 --query 'WebACLs[?Name==`fabric-edge-web-acl`].Id' --output text) \
-  --query 'WebACL.{Name:Name,RulesCount:length(Rules),DefaultAction:DefaultAction}' \
-  --output table
-```
-
-**Runtime Output Thực Tế:**
-```text
-----------------------------------------------------------------------------------------------------------------------------------------------------------
-|                                                                      ListWebACLs                                                                       |
-+-----------------------------------------------------------------------------------+---------------------------------------+----------------------------+
-|                                        ARN                                        |                  Id                   |           Name             |
-+-----------------------------------------------------------------------------------+---------------------------------------+----------------------------+
-|  arn:aws:wafv2:ap-southeast-1:123456789012:regional/webacl/fabric-edge-web-acl/...|  a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56 |  fabric-edge-web-acl       |
-+-----------------------------------------------------------------------------------+---------------------------------------+----------------------------+
-
---------------------------------------------------------------
-|                         GetWebACL                          |
-+------------------+-----------------------+-----------------+
-|  DefaultAction   |         Name          |   RulesCount    |
-+------------------+-----------------------+-----------------+
-|  Allow           |  fabric-edge-web-acl  |  4              |
-+------------------+-----------------------+-----------------+
-```
-
----
-
-## 6. Kế Hoạch Khôi Phục / Rollback Plan
-
-Khi cần xóa Web ACL:
-```bash
-WAF_ID=$(aws wafv2 list-web-acls --scope REGIONAL --region ap-southeast-1 --query 'WebACLs[?Name==`fabric-edge-web-acl`].Id' --output text)
-LOCK_TOKEN=$(aws wafv2 get-web-acl --name "fabric-edge-web-acl" --scope REGIONAL --region ap-southeast-1 --id "$WAF_ID" --query 'LockToken' --output text)
-
-[ -n "$WAF_ID" ] && aws wafv2 delete-web-acl \
-  --name "fabric-edge-web-acl" \
-  --scope REGIONAL \
-  --region ap-southeast-1 \
-  --id "$WAF_ID" \
-  --lock-token "$LOCK_TOKEN"
-```
-
----
-
-## 7. Đường Dẫn Bằng Chứng (Expected Evidence Path)
-
-- `evidence/07-waf/web-acl-definition.json`: Cấu hình Web ACL chi tiết.
-- `evidence/07-waf/web-acl-rules-count-mode.json`: Danh sách rules và trạng thái Count mode.
-
----
-
-## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
-
-- [x] Web ACL `fabric-edge-web-acl` được tạo thành công tại Region Singapore (`ap-southeast-1`).
-- [x] 3 AWS Managed Rule Groups (`CommonRuleSet`, `KnownBadInputs`, `IpReputationList`) được thêm đầy đủ.
-- [x] Quy tắc Rate Limiting `fabric-rate-limit-rule` giới hạn 500 req/5m được kích hoạt.
-- [x] Toàn bộ 4 quy tắc đang ở trạng thái `Count` an toàn.
+- **Chiến lược Count-first:** Tuyệt đối không bật chế độ `Block` ngay khi khởi tạo Web ACL mà phải để ở chế độ `Count` nhằm quan sát lưu lượng, thu thập telemetry và loại bỏ false-positives trước khi cắt chuyển ở lab 07.04.
+- **Quy trình Rollback:**
+  ```bash
+  # Lấy LockToken và xóa Web ACL
+  WAF_ID="a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56"
+  LOCK_TOKEN=$(aws wafv2 get-web-acl --name "fabric-edge-web-acl" --scope REGIONAL --region ap-southeast-1 --id "$WAF_ID" --query 'LockToken' --output text)
+  aws wafv2 delete-web-acl --name "fabric-edge-web-acl" --scope REGIONAL --region ap-southeast-1 --id "$WAF_ID" --lock-token "$LOCK_TOKEN"
+  ```

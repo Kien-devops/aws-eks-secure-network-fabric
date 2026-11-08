@@ -1,200 +1,92 @@
-# 05.02 — Khởi Tạo Gateway Load Balancer (GWLB) & Target Group GENEVE
+# 05.02 — Đặc Tả Gateway Load Balancer (GWLB) & Target Group GENEVE
 
-> **Mã bài lab:** `05.02`  
-> **Trạng thái:** `COMPLETED`  
-> **Thời gian dự kiến:** 30 phút  
-> **Chi phí ước tính:** ~$0.0125 USD / giờ cho GWLB tại Singapore  
-> **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
-
----
-
-## 1. Tiền đề (Prerequisites)
-
-- Đã hoàn thành bài lab [05.01](01-suricata-ec2-instances.md). Cả 2 instances Suricata (`fabric-suricata-1a` và `fabric-suricata-1b`) đang ở trạng thái `running` với Source/Dest Check = False và cổng 80/6081 đang hoạt động.
-- Đang mở phiên AWS Management Console tại Singapore `ap-southeast-1`.
+> **Mã bài lab:** `05.02`
+> **Trạng thái tài liệu:** `RUNTIME_PASS`
+> **Vùng triển khai:** `ap-southeast-1` (Singapore)
+> **File bằng chứng:** `evidence/05-gwlb/02-gwlb-healthy.json`
 
 ---
 
-## 2. Quyền IAM Yêu Cầu (Required IAM Permissions)
+## 1. Mục Tiêu (Objective)
 
-Các hành động IAM cần thiết để thực thi bài lab này:
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "elasticloadbalancing:CreateLoadBalancer",
-        "elasticloadbalancing:CreateTargetGroup",
-        "elasticloadbalancing:RegisterTargets",
-        "elasticloadbalancing:DeregisterTargets",
-        "elasticloadbalancing:DescribeLoadBalancers",
-        "elasticloadbalancing:DescribeTargetGroups",
-        "elasticloadbalancing:DescribeTargetHealth",
-        "elasticloadbalancing:DeleteLoadBalancer",
-        "elasticloadbalancing:DeleteTargetGroup",
-        "ec2:DescribeSubnets",
-        "ec2:DescribeVpcs"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
+Đặc tả tài nguyên AWS Gateway Load Balancer (GWLB) và Target Group giao thức GENEVE (UDP 6081) đa AZ nhằm phân phối lưu lượng gói tin mạng trong suốt (bump-in-the-wire) tới cụm máy chủ Suricata với cơ chế kiểm tra sức khỏe độc lập qua cổng HTTP 80.
 
 ---
 
-## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
+## 2. Tài Nguyên (Resources)
 
-- **Chi phí:** GWLB tính phí ~$0.0125 USD/giờ cộng với phí GLCU lưu lượng kiểm tra.
-- **Cảnh báo Giao Thức Health Check:** Target Group bắt buộc phải dùng giao thức **GENEVE port 6081** cho Data path, nhưng cơ chế Health Check phải sử dụng **TCP hoặc HTTP port 80** thay vì kiểm tra qua GENEVE. Điều này giúp tách biệt giữa việc giám sát tình trạng sống còn của hệ điều hành và việc băm gói tin tunnel, đồng thời cho phép GWLB phát hiện sự cố và ngắt traffic trong vòng 10 giây.
+| Tên Logical | Loại Resource | Vị Trí / Subnet / AZ | Runtime ID / ARN (Snapshot) |
+| :--- | :--- | :--- | :--- |
+| `fabric-suricata-tg` | `AWS::ElasticLoadBalancingV2::TargetGroup` | `fabric-inspection-vpc` | Protocol: `GENEVE:6081`<br>Targets: `i-089127472b112deff`, `i-091e84ae2b923eea2` |
+| `fabric-gwlb` | `AWS::ElasticLoadBalancingV2::LoadBalancer` | `fabric-insp-fw-1a`, `1b` | Type: `gateway`, State: `active`<br>VPC: `vpc-0c94a30a1a915fc0f` |
 
----
-
-## 4. Các Bước Thực Hiện Chi Tiết Trên Console (Console Walkthrough)
-
-### Bước 1: Khởi Tạo Target Group Với Giao Thức GENEVE Port 6081
-Mở **EC2 Console** tại Region Singapore `ap-southeast-1`:
-1. Tại menu điều hướng bên trái, cuộn xuống nhóm **Load Balancing** -> Chọn **Target Groups**.
-2. Nhấp vào nút cam **Create target group** ở góc trên bên phải.
-3. **Step 1 — Specify group details:**
-   - **Choose a target type:** Chọn **Instances**.
-   - **Target group name:** Nhập `fabric-suricata-tg`.
-   - **Protocol:** Chọn **GENEVE**.
-   - **Port:** Nhập **`6081`** (Cổng tiêu chuẩn của GENEVE encapsulation).
-   - **IP address type:** Chọn **IPv4**.
-   - **VPC:** Chọn `fabric-inspection-vpc` (`10.70.0.0/16`).
-   - **Health checks:**
-     - **Health check protocol:** Chọn **HTTP** (hoặc TCP).
-     - **Health check path:** Nhập `/`.
-   - **Advanced health check settings:**
-     - **Port:** Chọn **Override** -> Nhập `80`.
-     - **Healthy threshold:** Nhập `2`.
-     - **Unhealthy threshold:** Nhập `2`.
-     - **Timeout:** Nhập `5` seconds.
-     - **Interval:** Nhập `10` seconds (Cấu hình failover nhanh cho GameDay).
-     - **Success codes:** Nhập `200`.
-   - **Tags:** Key: `Project` | Value: `aws-eks-secure-network-fabric`.
-   - Nhấp **Next**.
-4. **Step 2 — Register targets:**
-   - Trong bảng **Available instances**, tìm và tích chọn cả 2 instances:
-     - [x] `fabric-suricata-1a`
-     - [x] `fabric-suricata-1b`
-   - **Ports for the selected instances:** Mặc định là `6081`.
-   - Nhấp nút **Include as pending below**.
-   - Xác nhận 2 instances xuất hiện trong bảng Review targets với port 6081.
-5. Nhấp nút cam **Create target group** ở cuối trang.
+*Ghi chú: Runtime ID / ARN là dữ liệu snapshot tại thời điểm kiểm tra thực tế; Tên Logical là định danh chuẩn theo thiết kế.*
 
 ---
 
-### Bước 2: Khởi Tạo Gateway Load Balancer (`fabric-gwlb`)
-Tại menu bên trái EC2 Console -> Chọn **Load Balancers**:
-1. Nhấp nút cam **Create load balancer**.
-2. Tìm khối **Gateway Load Balancer** -> Nhấp nút **Create**.
-3. **Basic configuration:**
-   - **Load balancer name:** Nhập `fabric-gwlb`.
-   - **IP address type:** Chọn **IPv4**.
-4. **Network mapping:**
-   - **VPC:** Chọn `fabric-inspection-vpc`.
-   - **Mappings (Availability Zones):**
-     - Tại **`ap-southeast-1a`**: Chọn Subnet `fabric-insp-fw-1a` (`10.70.10.0/24`).
-     - Tại **`ap-southeast-1b`**: Chọn Subnet `fabric-insp-fw-1b` (`10.70.11.0/24`).
-     - *(Lưu ý: Không chọn các subnet tgw hoặc gwlbe)*.
-5. **Listeners and routing:**
-   - Default action: Chọn **Forward to** -> Chọn Target group: `fabric-suricata-tg`.
-6. **Tags:**
-   - Key: `Project` | Value: `aws-eks-secure-network-fabric`
-   - Key: `Environment` | Value: `prod`
-7. Nhấp nút cam **Create load balancer** ở cuối trang.
-8. Trạng thái của GWLB sẽ chuyển từ `Provisioning` sang **`Active`** (Mất khoảng 2-3 phút).
+## 3. Thẻ Định Danh (Tags)
+
+| Key | Value | Phạm Vi Áp Dụng |
+| :--- | :--- | :--- |
+| `Name` | `fabric-gwlb` / `fabric-suricata-tg` | GWLB và Target Group |
+| `Project` | `aws-eks-secure-network-fabric` | GWLB và Target Group |
+| `Environment` | `prod` | GWLB và Target Group |
+| `ManagedBy` | `manual` | Quản trị hạ tầng GWLB thủ công Console/CLI |
 
 ---
 
-### Bước 3: Xác Nhận Trạng Thái Health Check Của Cụm Tường Lửa
-Trước nghiệm thu HA: EC2 → Load Balancers → `fabric-gwlb` → Attributes → Edit → **Cross-zone load balancing: Enabled** → Save. Target Groups → `fabric-suricata-tg` → Attributes → Edit: giữ `target_failover.on_unhealthy=no_rebalance`, `target_failover.on_deregistration=no_rebalance` cho MVP, ghi vào evidence. Kết nối mới có thể dùng appliance AZ còn lại; phiên TCP cũ không được bảo đảm giữ nguyên. Cross-zone có thể tăng phí truyền dữ liệu; đo traffic trước đánh giá chi phí.
+## 4. Cấu Hình Chi Tiết (Configuration)
 
-Health settings chuẩn cho 05.02 và 10.03: HTTP port 80, interval 10s, healthy/unhealthy threshold 2, timeout 5s. Không suy ra MTTR cố định từ interval × threshold; còn thời gian propagation và retry.
-1. Tại menu bên trái EC2 Console, chọn lại **Target Groups**.
-2. Nhấp vào tên `fabric-suricata-tg`.
-3. Chọn tab **Targets** ở nửa dưới màn hình:
-   - Quan sát bảng **Registered targets**:
-     - `fabric-suricata-1a` | Port: 6081 | Health status: **`healthy`** (Dấu tích xanh).
-     - `fabric-suricata-1b` | Port: 6081 | Health status: **`healthy`** (Dấu tích xanh).
-   - Nếu `unhealthy`, kiểm tra `fabric-suricata`, `gwlb-handler`, journal và SG port 80. Không bật Python HTTP server để ép healthy khi inspection chưa hoạt động.
+### 4.1 Cấu Hình Target Group GENEVE (`fabric-suricata-tg`)
 
----
+- **Target Type:** `instance`
+- **Protocol & Port:** `GENEVE` (UDP 6081).
+- **VPC:** `fabric-inspection-vpc` (`10.70.0.0/16`).
+- **Health Check Specification:**
+  - Protocol: `HTTP` (Path: `/`, Port: Override `80`).
+  - Healthy / Unhealthy Threshold: `2` / `2`.
+  - Timeout: `5s`, Interval: `10s` (Hỗ trợ phát hiện lỗi và failover nhanh trong GameDay).
+  - Success Codes: `200`.
 
-## 5. Lệnh Kiểm Tra / CLI Verification (Zero Fake Data)
+### 4.2 Cấu Hình Gateway Load Balancer (`fabric-gwlb`)
 
-Kiểm tra trạng thái của GWLB và sức khỏe của các targets:
-```bash
-# 1. Kiểm tra trạng thái GWLB
-aws elbv2 describe-load-balancers --region ap-southeast-1 --names fabric-gwlb \
-  --query 'LoadBalancers[0].{Name:LoadBalancerName,State:State.Code,VpcId:VpcId,Type:Type,Arn:LoadBalancerArn}' \
-  --output table
-```
-
-**Bằng chứng runtime thực tế:**
-```text
----------------------------------------------------------------------------------------------------------------------------------------------
-|                                                           DescribeLoadBalancers                                                           |
-+---------------------------------------------------------------------------------------------+--------------+--------+-------+-------------+
-|                                             Arn                                             |    Name      | State  | Type  |    VpcId    |
-+---------------------------------------------------------------------------------------------+--------------+--------+-------+-------------+
-|  arn:aws:elasticloadbalancing:ap-southeast-1:123456789012:loadbalancer/gwy/fabric-gwlb/... |  fabric-gwlb | active |gateway|vpc-0c94a30a1|
-+---------------------------------------------------------------------------------------------+--------------+--------+-------+-------------+
-```
-
-```bash
-# 2. Kiểm tra Target Health của 2 Suricata appliances
-TG_ARN=$(aws elbv2 describe-target-groups --region ap-southeast-1 --names fabric-suricata-tg --query 'TargetGroups[0].TargetGroupArn' --output text)
-aws elbv2 describe-target-health --region ap-southeast-1 --target-group-arn $TG_ARN \
-  --query 'TargetHealthDescriptions[*].{InstanceId:Target.Id,Port:Target.Port,HealthStatus:TargetHealth.State,Reason:TargetHealth.Reason}' \
-  --output table
-```
-
-**Bằng chứng runtime thực tế:**
-```text
------------------------------------------------------------------------
-|                        DescribeTargetHealth                         |
-+---------------+-----------------------+-------+---------------------+
-| HealthStatus  |      InstanceId       | Port  |       Reason        |
-+---------------+-----------------------+-------+---------------------+
-|  healthy      |  i-091e84ae2b923eea2  |  6081 |  None               |
-|  healthy      |  i-089127472b112deff  |  6081 |  None               |
-+---------------+-----------------------+-------+---------------------+
-```
+- **Load Balancer Type:** `gateway`
+- **IP Address Type:** `ipv4`
+- **Subnet Mappings:**
+  - `ap-southeast-1a`: `fabric-insp-fw-1a` (`subnet-0b743a1b6492b62ce`)
+  - `ap-southeast-1b`: `fabric-insp-fw-1b` (`subnet-00621165b37f9a04e`)
+- **Attributes:**
+  - `load_balancing.cross_zone.enabled: true` (Đảm bảo cân bằng tải chéo AZ khi một appliance gặp sự cố).
+- **Default Action:** Chuyển tiếp (Forward) 100% lưu lượng tới `fabric-suricata-tg`.
 
 ---
 
-## 6. Kế Hoạch Khôi Phục / Rollback Plan
+## 5. Phụ Thuộc (Dependencies)
 
-Xóa GWLB và Target Group khi cần hoàn tác:
-```bash
-gwlb_arn=$(aws elbv2 describe-load-balancers --region ap-southeast-1 --names fabric-gwlb --query 'LoadBalancers[0].LoadBalancerArn' --output text 2>/dev/null)
-if [ -n "$gwlb_arn" ] && [ "$gwlb_arn" != "None" ]; then
-  aws elbv2 delete-load-balancer --region ap-southeast-1 --load-balancer-arn $gwlb_arn
-fi
-
-tg_arn=$(aws elbv2 describe-target-groups --region ap-southeast-1 --names fabric-suricata-tg --query 'TargetGroups[0].TargetGroupArn' --output text 2>/dev/null)
-if [ -n "$tg_arn" ] && [ "$tg_arn" != "None" ]; then
-  aws elbv2 delete-target-group --region ap-southeast-1 --target-group-arn $tg_arn
-fi
-```
+- Phụ thuộc vào `05.01`: Cả hai máy ảo Suricata EC2 phải đang chạy và trả về HTTP 200 trên cổng 80.
+- Phụ thuộc vào `02.01`: Subnets `fabric-insp-fw-1a/b` sẵn sàng.
+- Là điều kiện tiên quyết bắt buộc để khởi tạo GWLB VPC Endpoint Service và Endpoints tại `05.03`.
 
 ---
 
-## 7. Đường Dẫn Bằng Chứng (Expected Evidence Path)
+## 6. Kiểm Tra Đạt (Verification)
 
-Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) được lưu trữ tại:
-`evidence/05-gwlb/02-gwlb-healthy.json`
+| Kiểm Tra | Lệnh / Tiêu Chí Xác Minh | Kết Quả Mong Đợi |
+| :--- | :--- | :--- |
+| **Trạng thái GWLB** | `aws elbv2 describe-load-balancers --names fabric-gwlb` | `State.Code: active`, `Type: gateway`. |
+| **Sức khỏe Targets** | `aws elbv2 describe-target-health --target-group-arn <TGArn>` | Cả 2 instances `i-089127472b112deff` và `i-091e84ae2b923eea2` đều có `TargetHealth.State: healthy`. |
+| **Cross-Zone Attribute** | Kiểm tra load balancer attributes | `load_balancing.cross_zone.enabled: true`. |
 
 ---
 
-## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
+## 7. Cảnh Báo An Toàn & Rollback Plan
 
-- [x] Target Group `fabric-suricata-tg` sử dụng protocol `GENEVE` trên port `6081`.
-- [x] Cả 2 máy chủ Suricata (`fabric-suricata-1a` và `fabric-suricata-1b`) đều đạt trạng thái **`healthy`** trên cổng kiểm tra TCP/HTTP port 80.
-- [x] Gateway Load Balancer `fabric-gwlb` đạt trạng thái **`active`** trên 2 Subnets `fabric-insp-fw-1a` (`subnet-0b743a1b6492b62ce`) và `fabric-insp-fw-1b` (`subnet-00621165b37f9a04e`).
-- [x] Listener tự động forward toàn bộ lưu lượng sang `fabric-suricata-tg`.
+- **Cảnh báo tính tương thích Health Check:** Tuyệt đối không dùng giao thức GENEVE để kiểm tra sức khỏe của Target Group vì GWLB không hỗ trợ probe GENEVE tự sinh, bắt buộc dùng TCP hoặc HTTP.
+- **Quy trình Rollback:**
+  ```bash
+  # Xóa GWLB
+  aws elbv2 delete-load-balancer --region ap-southeast-1 --load-balancer-arn <GWLBArn>
+
+  # Xóa Target Group sau khi GWLB đã hủy
+  aws elbv2 delete-target-group --region ap-southeast-1 --target-group-arn <TargetGroupArn>
+  ```

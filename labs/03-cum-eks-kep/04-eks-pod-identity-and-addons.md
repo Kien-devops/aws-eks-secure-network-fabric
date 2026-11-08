@@ -1,239 +1,100 @@
-# 03.04 — Cấu Hình EKS Pod Identity & Cài Đặt Managed Add-ons
+# 03.04 — Đặc Tả EKS Pod Identity & Cài Đặt Managed Add-ons
 
-> **Mã bài lab:** `03.04`  
-> **Trạng thái:** `RUNTIME_PASS`  
-> **Thời gian dự kiến:** 30 phút  
-> **Chi phí ước tính:** $0.00 USD (EKS Pod Identity agent và các Core Managed Add-ons hoàn toàn miễn phí)  
-> **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
-
----
-
-## 1. Tiền đề (Prerequisites)
-
-- Đã hoàn thành bài lab [03.02](02-dual-eks-clusters.md) và [03.03](03-managed-node-groups.md).
-- Toàn bộ worker nodes trên cả 2 cụm `fabric-edge-eks` và `fabric-core-eks` đang ở trạng thái `Ready`.
-- Đang mở phiên AWS Management Console tại Singapore `ap-southeast-1`.
+> **Mã bài lab:** `03.04`
+> **Trạng thái tài liệu:** `RUNTIME_PASS`
+> **Vùng triển khai:** `ap-southeast-1` (Singapore)
+> **File bằng chứng:** `evidence/03-eks/04-addons-status.json`
 
 ---
 
-## 2. Quyền IAM Yêu Cầu (Required IAM Permissions)
+## 1. Mục Tiêu (Objective)
 
-Các hành động IAM cần thiết để thực thi bài lab này:
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "eks:CreateAddon",
-        "eks:DescribeAddon",
-        "eks:ListAddons",
-        "eks:UpdateAddon",
-        "eks:DeleteAddon",
-        "eks:CreatePodIdentityAssociation",
-        "eks:DescribePodIdentityAssociation",
-        "eks:ListPodIdentityAssociations",
-        "eks:DeletePodIdentityAssociation",
-        "iam:CreateRole",
-        "iam:AttachRolePolicy",
-        "iam:PutRolePolicy",
-        "iam:PassRole"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
+Đặc tả cấu hình phân quyền AWS IAM cho Pods thông qua chuẩn EKS Pod Identity (loại bỏ OIDC/IRSA phức tạp) và triển khai các EKS Managed Add-ons cốt lõi kèm cờ Native NetworkPolicy trên cả hai cụm EKS.
 
 ---
 
-## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
+## 2. Tài Nguyên (Resources)
 
-- **Chi phí:** $0.00 USD. EKS Pod Identity và các Managed Add-ons không tính phí riêng.
-- **Cải tiến kiến trúc EKS Pod Identity:** Dự án sử dụng **EKS Pod Identity** thay thế hoàn toàn cho chuẩn IRSA cũ (IAM Roles for Service Accounts). Pod Identity không đòi hỏi tạo OpenID Connect (OIDC) Identity Provider trên IAM, giảm thiểu việc gán quyền phức tạp và tăng tốc độ cấp phát temporary credentials cho Pods.
-- **Kích hoạt AWS VPC CNI NetworkPolicy:** Kể từ phiên bản VPC CNI v1.14+, AWS hỗ trợ native NetworkPolicy. Cần bật cờ `ENABLE_NETWORK_POLICY=true` trong cấu hình Add-on để chuẩn bị cho bài lab [03.05](05-k8s-network-policy-baseline.md).
+| Tên Logical | Loại Resource | Vị Trí / Cụm Áp Dụng | Runtime ID / ARN (Snapshot) |
+| :--- | :--- | :--- | :--- |
+| `fabric-aws-lb-controller-role` | `AWS::IAM::Role` | Global (IAM) | `arn:aws:iam::123456789012:role/fabric-aws-lb-controller-role` |
+| `fabric-ebs-csi-driver-role` | `AWS::IAM::Role` | Global (IAM) | `arn:aws:iam::123456789012:role/fabric-ebs-csi-driver-role` |
+| `vpc-cni` | `AWS::EKS::Addon` | `fabric-edge-eks`, `fabric-core-eks` | Phiên bản `v1.22.4-eksbuild.10` |
+| `eks-pod-identity-agent` | `AWS::EKS::Addon` | `fabric-edge-eks`, `fabric-core-eks` | Phiên bản `v1.4.1-eksbuild.3` |
+| `coredns` | `AWS::EKS::Addon` | `fabric-edge-eks`, `fabric-core-eks` | Phiên bản `v1.14.7-eksbuild.22` |
+| `kube-proxy` | `AWS::EKS::Addon` | `fabric-edge-eks`, `fabric-core-eks` | Phiên bản `v1.37.0-eksbuild.32` |
+| `aws-ebs-csi-driver` | `AWS::EKS::Addon` | `fabric-edge-eks`, `fabric-core-eks` | Phiên bản `v1.67.2-eksbuild.1` |
+| Pod Identity Assoc (Edge LB) | `AWS::EKS::PodIdentityAssociation` | `fabric-edge-eks` (`kube-system/aws-load-balancer-controller`) | `a-pzqcm9dikmbnkjczp` |
+| Pod Identity Assoc (Edge CSI) | `AWS::EKS::PodIdentityAssociation` | `fabric-edge-eks` (`kube-system/ebs-csi-controller-sa`) | `a-jemn2vtszgyyw9nlc` |
+| Pod Identity Assoc (Core CSI) | `AWS::EKS::PodIdentityAssociation` | `fabric-core-eks` (`kube-system/ebs-csi-controller-sa`) | `a-rqgv9gfbniu2xc4td` |
 
----
-
-## 4. Các Bước Thực Hiện Chi Tiết Trên Console (Console Walkthrough)
-
-### Bước 1: Tạo IAM Roles Với Trust Policy Cho EKS Pod Identity
-EKS Pod Identity yêu cầu Trust Relationship cấp phép cho `pods.eks.amazonaws.com` với 2 hành động: `sts:AssumeRole` và `sts:TagSession`:
-
-1. Mở **IAM Console** -> **Roles** -> Nhấp **Create role**.
-2. **Select trusted entity:** Chọn **Custom trust policy** và dán:
-   ```json
-   {
-     "Version": "2012-10-17",
-     "Statement": [
-       {
-         "Effect": "Allow",
-         "Principal": {
-           "Service": "pods.eks.amazonaws.com"
-         },
-         "Action": [
-           "sts:AssumeRole",
-           "sts:TagSession"
-         ]
-       }
-     ]
-   }
-   ```
-3. Nhấp **Next**.
-4. **Tạo Role 1 — AWS Load Balancer Controller (`fabric-aws-lb-controller-role`):**
-   - Tạo customer-managed policy từ `iam_policy.json` của đúng release AWS Load Balancer Controller đã ghim; tài liệu upstream: https://kubernetes-sigs.github.io/aws-load-balancer-controller/latest/deploy/installation/. Trong IAM → Policies → Create policy → JSON, dán policy upstream đã review → Next → đặt tên `AWSLoadBalancerControllerIAMPolicy` → Create policy; quay lại role và attach. Đây không phải AWS-managed policy.
-   - Đặt tên role: `fabric-aws-lb-controller-role`.
-   - Nhấp **Create role**.
-
-5. **Tạo Role 2 — EBS CSI Driver (`fabric-ebs-csi-driver-role`):**
-   - Nhấp **Create role** với cùng Trust Policy `pods.eks.amazonaws.com`.
-   - Đính kèm AWS Managed Policy: `AmazonEBSCSIDriverPolicy`.
-   - Đặt tên role: `fabric-ebs-csi-driver-role`.
-   - Nhấp **Create role**.
+*Ghi chú: Runtime ID / ARN là dữ liệu snapshot tại thời điểm kiểm tra thực tế; Tên Logical là định danh chuẩn theo thiết kế.*
 
 ---
 
-### Bước 2: Cài Đặt EKS Pod Identity Agent Add-on Trên Cả Hai Cụm
-1. Mở **Amazon EKS Console** tại Singapore `ap-southeast-1`.
-2. Chọn cụm `fabric-edge-eks` -> Chọn tab **Add-ons**.
-3. Nhấp nút **Get more add-ons**:
-   - Trong danh sách add-ons, tìm kiếm: **EKS Pod Identity Agent**.
-   - Đánh dấu tích vào checkbox.
-   - Nhấp **Next**.
-   - Cấu hình phiên bản: Giữ nguyên phiên bản mới nhất (Latest default).
-   - Nhấp **Next** -> Nhấp nút cam **Create**.
-4. Lặp lại thao tác trên cho cụm `fabric-core-eks`.
-5. Đợi 1-2 phút cho đến khi status của `eks-pod-identity-agent` chuyển sang màu xanh: **`Active`**.
+## 3. Thẻ Định Danh (Tags)
+
+| Key | Value | Phạm Vi Áp Dụng |
+| :--- | :--- | :--- |
+| `Name` | `fabric-*-role` | Toàn bộ IAM Roles và Add-ons hỗ trợ tag |
+| `Project` | `aws-eks-secure-network-fabric` | Toàn bộ IAM Roles và Add-ons |
+| `Environment` | `prod` | Toàn bộ IAM Roles và Add-ons |
+| `ManagedBy` | `manual` | Quản trị định danh và tiện ích mở rộng thủ công Console/CLI |
 
 ---
 
-### Bước 3: Cài Đặt & Cấu Hình Managed Add-ons Cốt Lõi
-Tại tab **Add-ons** của từng cụm (`fabric-edge-eks` và `fabric-core-eks`), lần lượt nhấp **Get more add-ons** và cài đặt:
+## 4. Cấu Hình Chi Tiết (Configuration)
 
-1. **Amazon VPC CNI (Bật Native NetworkPolicy):**
-   - Chọn **Amazon VPC CNI** -> Nhấp **Next**.
-   - Tại mục **Configuration values**, dán cấu hình JSON để kích hoạt tính năng NetworkPolicy tích hợp:
-     ```json
-     {
-       "enableNetworkPolicy": "true"
-     }
-     ```
-   - Nhấp **Next** -> Nhấp **Create**.
+### 4.1 IAM Trust Policy Cho EKS Pod Identity
 
-2. **CoreDNS:**
-   - Chọn **CoreDNS** -> Phiên bản mặc định -> Nhấp **Create**.
+- **Trusted Service Principal:** `pods.eks.amazonaws.com`
+- **Actions:** `sts:AssumeRole`, `sts:TagSession`
+- **Gán quyền chi tiết:**
+  - `fabric-aws-lb-controller-role`: Gán policy khách hàng quản trị `AWSLoadBalancerControllerIAMPolicy`.
+  - `fabric-ebs-csi-driver-role`: Gán AWS Managed Policy `AmazonEBSCSIDriverPolicy`.
 
-3. **kube-proxy:**
-   - Chọn **kube-proxy** -> Phiên bản mặc định -> Nhấp **Create**.
+### 4.2 Cấu Hình Kỹ Thuật Managed Add-ons
 
-4. **Amazon EBS CSI Driver:**
-   - Chọn **Amazon EBS CSI Driver** -> Nhấp **Next**.
-   - Nhấp **Create**.
+| Tên Add-on | Configuration Values (JSON) | Mục Đích Thiết Kế |
+| :--- | :--- | :--- |
+| **`vpc-cni`** | `{"enableNetworkPolicy": "true"}` | Bật tính năng Native NetworkPolicy của Amazon VPC CNI mà không cần cài Calico/Cilium ngoài. |
+| **`eks-pod-identity-agent`** | `{}` (Mặc định) | Chạy DaemonSet cung cấp local token service cho Pods giao tiếp STS. |
+| **`coredns`** | `{}` (Mặc định) | Phân giải DNS nội bộ cụm và chuyển tiếp DNS VPC. |
+| **`kube-proxy`** | `{}` (Mặc định) | Quản lý iptables định tuyến Service ClusterIP. |
+| **`aws-ebs-csi-driver`** | `{}` (Mặc định) | Hỗ trợ cấp phát Persistent Volumes cho các workloads stateful. |
 
 ---
 
-### Bước 4: Tạo Pod Identity Associations Trên EKS Console
-1. Tại trang chi tiết cụm `fabric-edge-eks`:
-   - Chọn tab **Access**.
-   - Cuộn xuống mục **Pod Identity associations**.
-   - Nhấp nút **Create Pod Identity association**:
-     - **IAM role:** Chọn `fabric-aws-lb-controller-role`.
-     - **Kubernetes namespace:** Nhập `kube-system`.
-     - **Kubernetes service account:** Nhập `aws-load-balancer-controller`.
-   - Nhấp **Create**.
+## 5. Phụ Thuộc (Dependencies)
 
-2. Tại trang chi tiết cụm `fabric-core-eks`:
-   - Chọn tab **Access** -> **Pod Identity associations** -> **Create Pod Identity association**:
-     - **IAM role:** Chọn `fabric-ebs-csi-driver-role`.
-     - **Kubernetes namespace:** Nhập `kube-system`.
-     - **Kubernetes service account:** Nhập `ebs-csi-controller-sa`.
-   - Nhấp **Create**.
+- Phụ thuộc vào `03.02` (EKS Cluster `ACTIVE`) và `03.03` (Worker Nodes `Ready`).
+- Phụ thuộc vào `02.06` (`eks-auth` Interface VPC Endpoint phải hoạt động trên cả hai VPC để Pod Identity Agent kết nối API EKS).
+- Là điều kiện tiên quyết bắt buộc trước `03.05` (K8s NetworkPolicy Baseline).
 
 ---
 
-### Bước 5: Hoàn thiện associations trên cả hai cluster
+## 6. Kiểm Tra Đạt (Verification)
 
-1. EKS → `fabric-core-eks` → Access → Pod Identity associations → Create: role `fabric-aws-lb-controller-role`, namespace `kube-system`, service account `aws-load-balancer-controller` → Create.
-2. EKS → `fabric-edge-eks` → Access → Create association: role `fabric-ebs-csi-driver-role`, namespace `kube-system`, service account `ebs-csi-controller-sa` → Create, nếu chưa có.
-3. Kiểm tra mỗi cluster có hai associations. Association không tự tạo ServiceAccount/Deployment; controller được cài ở 04.03/07.03. Không ghi association mới vào báo cáo lịch sử bên dưới.
-4. Add-ons → VPC CNI → Edit → Advanced configuration → giữ `{"enableNetworkPolicy":"true"}`; kiểm tra schema phiên bản hỗ trợ trước Save. Không sửa DaemonSet thủ công vì managed add-on có thể ghi đè.
-
-
-## 5. Lệnh Kiểm Tra / CLI Verification (Zero Fake Data)
-
-Chạy các lệnh xác minh trạng thái Add-ons và Pod Identity Associations:
-```bash
-# 1. Liệt kê các add-ons trên Edge EKS
-aws eks list-addons --region ap-southeast-1 --cluster-name fabric-edge-eks --output table
-
-# 2. Kiểm tra chi tiết trạng thái VPC CNI và tính năng NetworkPolicy
-aws eks describe-addon --region ap-southeast-1 \
-  --cluster-name fabric-edge-eks --addon-name vpc-cni \
-  --query 'addon.{Name:addonName,Version:addonVersion,Status:status,Config:configurationValues}' \
-  --output table
-
-# 3. Liệt kê Pod Identity Associations trên cụm Edge EKS
-aws eks list-pod-identity-associations --region ap-southeast-1 \
-  --cluster-name fabric-edge-eks \
-  --query 'associations[*].{AssociationId:associationId,Namespace:namespace,ServiceAccount:serviceAccount}' \
-  --output table
-
-# 4. Kiểm tra DaemonSet của Pod Identity Agent trong cụm
-kubectl get daemonset -n kube-system eks-pod-identity-agent
-```
+| Kiểm Tra | Lệnh / Tiêu Chí Xác Minh | Kết Quả Mong Đợi |
+| :--- | :--- | :--- |
+| **Trạng thái 5 Add-ons** | `aws eks list-addons --cluster-name <Cluster>` | Tất cả add-on hiển thị trạng thái `ACTIVE`. |
+| **NetworkPolicy Flag** | `aws eks describe-addon --cluster-name <Cluster> --addon-name vpc-cni` | Thuộc tính `configurationValues` chứa `"enableNetworkPolicy": "true"`. |
+| **Pod Identity Associations** | `aws eks list-pod-identity-associations --cluster-name <Cluster>` | Hiển thị đủ các liên kết ServiceAccount và IAM Role tương ứng. |
+| **DaemonSet Pods** | `kubectl get pods -n kube-system -l app.kubernetes.io/name=eks-pod-identity-agent` | Tất cả pods chạy ở trạng thái `Running` (1 pod per node). |
 
 ---
 
-## 6. Kế Hoạch Khôi Phục / Rollback Plan
+## 7. Cảnh Báo An Toàn & Rollback Plan
 
-Để gỡ bỏ Pod Identity association hoặc Add-on:
-```bash
-# Xóa Pod Identity Association
-aws eks delete-pod-identity-association --region ap-southeast-1 \
-  --cluster-name fabric-edge-eks --association-id <id>
+- **Cảnh báo tính tương thích:** Khi nâng cấp `vpc-cni`, luôn giữ nguyên cấu hình `enableNetworkPolicy: true`. Nếu mất cờ này, toàn bộ NetworkPolicy của cụm tại `03.05` sẽ bị vô hiệu hóa ngầm mà không có cảnh báo lỗi.
+- **Quy trình Rollback:**
+  ```bash
+  # Xóa Pod Identity Associations
+  aws eks delete-pod-identity-association --region ap-southeast-1 --cluster-name fabric-edge-eks --association-id a-pzqcm9dikmbnkjczp
+  aws eks delete-pod-identity-association --region ap-southeast-1 --cluster-name fabric-edge-eks --association-id a-jemn2vtszgyyw9nlc
+  aws eks delete-pod-identity-association --region ap-southeast-1 --cluster-name fabric-core-eks --association-id a-rqgv9gfbniu2xc4td
 
-# Xóa Addon nếu cần cấu hình lại
-aws eks delete-addon --region ap-southeast-1 \
-  --cluster-name fabric-edge-eks --addon-name aws-ebs-csi-driver
-```
-
----
-
-## 7. Đường Dẫn Bằng Chứng (Expected Evidence Path)
-
-Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) được lưu trữ tại:
-`evidence/03-eks/04-addons-status.json`
-
----
-
-## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
-
-- [x] Add-on `eks-pod-identity-agent` đạt trạng thái `ACTIVE` trên cả 2 cụm (`fabric-edge-eks` và `fabric-core-eks`).
-- [x] Add-on `vpc-cni` được cấu hình thành công cờ `enableNetworkPolicy: "true"`.
-- [x] Các Core Add-ons (`coredns`, `kube-proxy`, `aws-ebs-csi-driver`) đều ở trạng thái `ACTIVE`.
-- [x] Pod Identity Associations hiển thị chính xác ServiceAccount và IAM Role tương ứng.
-
----
-
-### Báo Cáo Thực Thi Runtime (Execution Summary)
-
-- **Thời gian thực thi:** `2026-11-05T18:58:30Z`
-- **Công cụ thực thi:** MCP `aws-api-mcp/call_aws`
-- **IAM Roles:**
-  - `fabric-aws-lb-controller-role`: `arn:aws:iam::123456789012:role/fabric-aws-lb-controller-role`
-  - `fabric-ebs-csi-driver-role`: `arn:aws:iam::123456789012:role/fabric-ebs-csi-driver-role`
-- **Pod Identity Associations:**
-  - Edge Cluster:
-    - SA: `aws-load-balancer-controller` -> Role: `fabric-aws-lb-controller-role` (`a-pzqcm9dikmbnkjczp`)
-    - SA: `ebs-csi-controller-sa` -> Role: `fabric-ebs-csi-driver-role` (`a-jemn2vtszgyyw9nlc`)
-  - Core Cluster:
-    - SA: `ebs-csi-controller-sa` -> Role: `fabric-ebs-csi-driver-role` (`a-rqgv9gfbniu2xc4td`)
-- **Addons Trạng Thái `ACTIVE` (Cả 2 cụm):**
-  - `vpc-cni`: `v1.22.4-eksbuild.10` (NetworkPolicy Enabled: `true`)
-  - `eks-pod-identity-agent`: `v1.4.1-eksbuild.3`
-  - `coredns`: `v1.14.7-eksbuild.22`
-  - `kube-proxy`: `v1.37.0-eksbuild.32`
-  - `aws-ebs-csi-driver`: `v1.67.2-eksbuild.1`
-- **Kubernetes Pods:** 100% Core add-ons pods (`aws-node`, `coredns`, `kube-proxy`, `eks-pod-identity-agent`, `ebs-csi-controller`) đạt trạng thái `Running` (6/6 containers).
-- **Tập tin bằng chứng:** [`evidence/03-eks/04-addons-status.json`](../../evidence/03-eks/04-addons-status.json)
+  # Xóa IAM Roles
+  aws iam delete-role --role-name fabric-aws-lb-controller-role
+  aws iam delete-role --role-name fabric-ebs-csi-driver-role
+  ```

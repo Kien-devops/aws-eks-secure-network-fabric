@@ -1,101 +1,72 @@
 # Module 07: Cổng Vào Biên & Tường Lửa Ứng Dụng (Edge Ingress & AWS WAF)
 
-## 1. Mục Tiêu Kỹ Thuật
-- **Mục tiêu:**
-  - Thiết lập cổng vào công khai an toàn (Edge Ingress) thông qua **Internet-facing Application Load Balancer (ALB)** đặt tại Public Subnets của `fabric-edge-vpc`.
-  - Cấu hình chứng chỉ bảo mật số TLS công khai thông qua **AWS Certificate Manager (ACM)**.
-  - Tích hợp **AWS WAF v2** Web ACL gắn trực tiếp vào ALB Ingress:
-    - Kích hoạt nhóm quy tắc quản lý của AWS: `AWSManagedRulesCommonRuleSet` (OWASP Top 10), `AWSManagedRulesKnownBadInputsRuleSet`, `AWSManagedRulesAmazonIpReputationList`.
-    - Thiết lập quy tắc giới hạn tần suất (Rate Limiting: 500 requests / 5 phút trên mỗi client IP).
-  - Triển khai chiến lược chuyển đổi an toàn: **Count-to-Block** (Ban đầu chỉ đếm và log cảnh báo, sau khi xác minh không có false-positive sẽ chuyển sang chặn thực tế).
-  - Thu thập toàn bộ WAF Access Logs và đẩy về CloudWatch / S3.
+Module này cung cấp các đặc tả tài nguyên triển khai cổng vào công khai an toàn (Edge Ingress) thông qua Application Load Balancer đặt tại Public Subnets của Edge VPC, kết hợp mã hóa TLS bằng chứng chỉ ACM, quản lý Ingress tự động bằng AWS Load Balancer Controller và bảo vệ tầng L7 bằng AWS WAFv2 Web ACL theo quy trình chuyển đổi an toàn Count-to-Block.
 
 ---
 
-## 2. Kiến Trúc Luồng Ingress L7
+## 1. Sơ Đồ Kiến Trúc Luồng Ingress L7
 
 ```text
 [Người Dùng Internet]
-        | (HTTPS / Cổng 443)
-        v
-[Route 53 Public DNS / ACM TLS]
-        |
-        v
-[AWS WAF v2 Web ACL]
-  - Kiểm tra SQL Injection, XSS, Path Traversal
-  - Kiểm tra danh tiếng IP độc hại (AWS IP Reputation)
-  - Kiểm tra giới hạn tần suất (Rate Limit)
-        | (Gói tin hợp lệ)
-        v
-[Public Application Load Balancer (ALB)]
-        | (Chuyển tiếp qua Private Subnets)
-        v
-[Edge EKS: frontend Pods (Cổng 3000 / 8080)]
+        │ (HTTPS / Cổng 443)
+        ▼
+[Route 53 Public DNS: app3.devopsss.site]
+        │
+        ▼
+[AWS Certificate Manager: ACM TLS RSA-2048]
+        │
+        ▼
+[AWS WAF v2 Regional Web ACL: fabric-edge-web-acl]
+  ├── Priority 0: Rate Limit Rule (500 req/5m -> Block 429)
+  ├── Priority 1: AWSManagedRulesCommonRuleSet (OWASP Top 10 -> Block 403)
+  ├── Priority 2: AWSManagedRulesKnownBadInputsRuleSet (Log4j, Traversal -> Block 403)
+  └── Priority 3: AWSManagedRulesAmazonIpReputationList (Threat Intel -> Block 403)
+        │ (Traffic Hợp Lệ)
+        ▼
+[Public ALB: fabric-edge-public-alb] (Public Subnets A/B)
+  ├── Listener HTTP:80 -> Redirect HTTP 301 sang HTTPS:443
+  └── Listener HTTPS:443 -> Forward sang Target Group (target-type: ip)
+        │
+        ▼
+[Edge EKS: edge-frontend Pods (TCP 8080)] (Private Node Subnets A/B)
 ```
 
 ---
 
-## 3. Các Bước Thực Hiện Chi Tiết
+## 2. Thứ Tự Phụ Thuộc (Dependency Tree)
 
-### Bước 1: Yêu Cầu Chứng Chỉ ACM TLS
-Yêu cầu chứng chỉ cho tên miền public (hoặc dùng self-signed/internal cho bài lab testing):
-```bash
-aws acm request-certificate \
-  --domain-name fabric.example.com \
-  --validation-method DNS \
-  --region ap-southeast-1
+```text
+07.01 (Yêu cầu & cấp phát chứng chỉ ACM TLS: app3.devopsss.site)
+  │
+  ├──> 07.02 (Khởi tạo AWS WAFv2 Web ACL: fabric-edge-web-acl ở chế độ Count)
+  │      │
+  │      └──> 07.03 (Triển khai Internet-facing ALB Ingress tích hợp ACM & WAF)
+  │             │
+  └─────────────┴──> 07.04 (Quy trình chuyển đổi Count-to-Block & Kiểm thử tấn công L7)
 ```
-
-### Bước 2: Tạo AWS WAF v2 Web ACL (Chế độ Count)
-1. Tạo Web ACL với phạm vi `REGIONAL` tại `ap-southeast-1`.
-2. Gắn các Rule Sets mặc định với hành vi ban đầu là `Count`.
-3. Tạo Rule Rate Limiting: Chặn nếu quá 500 requests / 5 phút.
-
-### Bước 3: Triển khai AWS Load Balancer Controller trên Edge EKS
-1. Gán quyền IAM Role via EKS Pod Identity cho AWS Load Balancer Controller.
-2. Triển khai Ingress resource:
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: edge-ingress
-  namespace: default
-  annotations:
-    alb.ingress.kubernetes.io/scheme: internet-facing
-    alb.ingress.kubernetes.io/target-type: ip
-    alb.ingress.kubernetes.io/listen-ports: '[{"HTTPS":443}]'
-    alb.ingress.kubernetes.io/wafv2-acl-arn: <WAF-ACL-ARN>
-spec:
-  ingressClassName: alb
-  rules:
-  - http:
-      paths:
-      - path: /
-        pathType: Prefix
-        backend:
-          service:
-            name: frontend
-            port:
-              number: 80
-```
-
-### Bước 4: Chuyển Đổi Sang Chế Độ Block (Count-to-Block)
-Sau khi test lưu lượng bình thường không bị false-positive, cập nhật hành động của các Rule trong Web ACL từ `Count` sang `Block`.
 
 ---
 
-## 4. Xác Minh (Verification)
-1. Thử nghiệm payload độc hại mô phỏng SQL Injection:
-   ```bash
-   curl -Iv "https://<alb-dns-name>/?id=1'%20OR%20'1'='1"
-   ```
-   > Kết quả mong đợi: `HTTP 403 Forbidden` (Chặn bởi AWS WAF).
-2. Kiểm tra log trên CloudWatch Logs để xác thực `action: BLOCK`.
+## 3. Danh Mục Tài Nguyên (Resource Catalog)
+
+| Tài Nguyên | Loại Resource | Số Lượng | Ghi Chú Kỹ Thuật |
+| :--- | :--- | :---: | :--- |
+| **ACM Certificate** | `AWS::CertificateManager::Certificate` | 1 | `app3.devopsss.site` (RSA 2048, DNS validated, Status: ISSUED) |
+| **Route 53 Public Zone** | `AWS::Route53::HostedZone` | 1 | `devopsss.site` (`Z0611184P1C0HRBDC7VQ`) |
+| **WAF Web ACL** | `AWS::WAFv2::WebACL` | 1 | `fabric-edge-web-acl` (ID: `a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56`) |
+| **WAF Rules** | `AWS::WAFv2::Rule` / `ManagedRuleGroup` | 4 | Rate limit (429) + 3 AWS Managed Rule Sets (403) |
+| **Public ALB** | `AWS::ElasticLoadBalancingV2::LoadBalancer` | 1 | `fabric-edge-public-alb` (Scheme: internet-facing, Dual-AZ) |
+| **ALB Listeners** | `AWS::ElasticLoadBalancingV2::Listener` | 2 | Port 80 (HTTP 301 redirect) và Port 443 (HTTPS forward) |
+| **Target Group** | `AWS::ElasticLoadBalancingV2::TargetGroup` | 1 | Target type IP, Port 8080 (Pods `edge-frontend`) |
+| **CloudWatch Log Group** | `AWS::Logs::LogGroup` | 1 | `aws-waf-logs-fabric-edge-waf` (L7 WAF inspection logs) |
 
 ---
 
-## 5. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
-- [ ] ALB tiếp nhận traffic HTTPS cổng 443 và phân phối tới các Pod `frontend`.
-- [ ] AWS WAF v2 chặn thành công payload tấn công mẫu (HTTP 403).
-- [ ] Toàn bộ request độc hại có bản ghi chi tiết trong CloudWatch WAF Access Logs.
+## 4. Danh Sách 4 Bài Lab Đặc Tả Chi Tiết
 
+| Mã Lab | Tên Đặc Tả & Nội Dung Trọng Tâm | Trạng Thái | File Đặc Tả |
+|---|---|:---:|---|
+| **07.01** | **Yêu Cầu & Cấp Phát Chứng Chỉ ACM:** Chứng chỉ số công khai cho `app3.devopsss.site`. | `RUNTIME_PASS` | [01-acm-public-tls-certificate.md](01-acm-public-tls-certificate.md) |
+| **07.02** | **AWS WAF v2 Web ACL Setup:** Khởi tạo Web ACL với 4 nhóm rules ở chế độ Count an toàn. | `RUNTIME_PASS` | [02-aws-wafv2-web-acl-setup.md](02-aws-wafv2-web-acl-setup.md) |
+| **07.03** | **Internet-facing ALB Ingress:** AWS LB Controller cấp phát ALB tích hợp ACM TLS và WAF. | `RUNTIME_PASS` | [03-internet-facing-alb-ingress.md](03-internet-facing-alb-ingress.md) |
+| **07.04** | **Count-to-Block Transition & Attack Tests:** Cắt chuyển sang Block và xác minh chặn L7 (403/429). | `RUNTIME_PASS` | [04-waf-count-to-block-transition.md](04-waf-count-to-block-transition.md) |

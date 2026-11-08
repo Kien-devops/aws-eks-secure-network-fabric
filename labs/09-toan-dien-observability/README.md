@@ -1,81 +1,40 @@
 # Module 09: Hệ Thống Giám Sát & Quan Sát Mạng Toàn Diện (Network Observability)
 
-## 1. Mục Tiêu Kỹ Thuật
-- **Mục tiêu:**
-  - Hợp nhất và tập trung hóa toàn bộ dữ liệu giám sát mạng từ 5 nguồn telemetry khác nhau:
-    1. **VPC Flow Logs:** Ghi nhận toàn bộ lưu lượng `ACCEPT` và `REJECT` trên cả 4 VPCs.
-    2. **Transit Gateway Flow Logs:** Ghi nhận lưu lượng phân đoạn giữa các Route Tables.
-    3. **AWS Network Firewall Alert/Flow Logs:** Ghi nhận chi tiết gói tin bị chặn (Drop/Alert).
-    4. **Suricata EVE Logs (`eve.json`):** Nhật ký kiểm tra sâu gói tin IDS/IPS, TLS SNI, DNS query.
-    5. **ALB Access Logs & AWS WAF Logs:** Nhật ký truy cập từ người dùng ngoài Internet.
-  - Sử dụng **AWS VPC Reachability Analyzer** để phân tích đường truyền logic và xác thực các đường định tuyến phức tạp mà không cần gửi gói tin thực nghiệm.
+Module này cung cấp các đặc tả tài nguyên hợp nhất và tập trung hóa dữ liệu giám sát mạng từ VPC Flow Logs, Transit Gateway, Suricata IDS/IPS, AWS Network Firewall và AWS WAFv2 về CloudWatch Logs, kèm theo thư viện truy vấn Insights và kiểm chứng đường truyền logic bằng AWS VPC Reachability Analyzer.
 
 ---
 
-## 2. Kiến Trúc Thu Thập Telemetry Mạng
+## 1. Thứ Tự Phụ Thuộc (Dependency Tree)
 
 ```text
-+-----------------------+      +---------------------------+      +--------------------------+
-| VPC Flow Logs (4 VPCs)|      | AWS Network Firewall Logs |      | Suricata eve.json (EC2)  |
-+-----------------------+      +---------------------------+      +--------------------------+
-           |                                 |                                 |
-           +---------------------------------+---------------------------------+
-                                             |
-                                             v
-                           [ CloudWatch Logs / Amazon S3 ]
-                                             |
-                                             v
-                       [ Amazon Athena / CloudWatch Insights ]
-                                             |
-                                             v
-                     [ VPC Reachability Analyzer Đường Dẫn Mạng ]
+09.01 (Khởi tạo 8 CloudWatch Log Groups tập trung với Retention 7 ngày)
+  │
+  ├──> 09.02 (Cấu hình CloudWatch Unified Agent đẩy Suricata eve.json)
+  │      │
+  │      └──> 09.03 (Xây dựng thư viện Saved Queries trên CloudWatch Insights)
+  │
+  └──> 09.04 (Kiểm chứng đường truyền logic 13 chặng qua VPC Reachability Analyzer)
 ```
 
 ---
 
-## 3. Các Bước Thực Hiện Chi Tiết
+## 2. Danh Mục Tài Nguyên (Resource Catalog)
 
-### Bước 1: Tập Trung Hóa Log Vào CloudWatch Log Groups
-Khởi tạo các Log Groups chuyên biệt:
-- `/aws/vpc/fabric-edge-flow`
-- `/aws/vpc/fabric-core-flow`
-- `/aws/vpc/fabric-inspection-flow`
-- `/aws/vpc/fabric-egress-flow`
-- `/aws/network-firewall/fabric-egress-alerts`
-- `/aws/suricata/fabric-inspection-eve`
-
-### Bước 2: Thiết Lập Truy Vấn CloudWatch Logs Insights
-Cấu hình mẫu truy vấn để phân tích nhanh các gói tin bị REJECT:
-```sql
-fields @timestamp, srcAddr, dstAddr, srcPort, dstPort, protocol, action
-| filter action = "REJECT"
-| sort @timestamp desc
-| limit 50
-```
-
-### Bước 3: Sử Dụng AWS VPC Reachability Analyzer
-Tạo đường dẫn phân tích (Path Analysis) để kiểm chứng tính thông suốt:
-- **Source:** Network Interface của Frontend Pod (Edge VPC).
-- **Destination:** Network Interface của Core Internal NLB (Core VPC).
-- Chạy phân tích (Run Analysis) và đối soát từng bước nhảy (Hops).
+| Tài Nguyên | Loại Resource | Số Lượng | Ghi Chú Kỹ Thuật |
+| :--- | :--- | :---: | :--- |
+| **CloudWatch Log Groups** | `AWS::Logs::LogGroup` | 8 | Retention: 7 days, Standard log class |
+| **CloudWatch Agent** | `Linux::Daemon` | 2 | Chạy trên 2 Suricata EC2 instances (`fabric-suricata-1a/b`) |
+| **Saved Queries** | `AWS::Logs::QueryDefinition` | 4 | VPC Rejects, Suricata Alerts, NFW Drops, WAF Blocked IPs |
+| **Network Insights Path** | `AWS::EC2::NetworkInsightsPath` | 1 | `fabric-edge-to-core-path` (TCP 443) |
+| **Network Analysis** | `AWS::EC2::NetworkInsightsAnalysis` | 1 | Xác minh 13 chặng logic (`NetworkPathFound: true`) |
 
 ---
 
-## 4. Xác Minh (Verification)
-Chạy câu lệnh kiểm tra kết quả Reachability Analyzer qua AWS MCP:
-```bash
-aws ec2 describe-network-insights-analyses \
-  --network-insights-analysis-ids <analysis-id> \
-  --region ap-southeast-1 \
-  --query 'NetworkInsightsAnalyses[0].{Status:Status,PathFound:NetworkPathFound}' \
-  --output table
-```
-> Chờ `Status: succeeded`, ghi `NetworkPathFound` thật và explanations; lỗi/unsupported là chưa kết luận. Reachability Analyzer không gửi packet, không chứng minh TLS, NetworkPolicy hay Suricata IPS runtime.
+## 3. Danh Sách 4 Bài Lab Đặc Tả Chi Tiết
 
----
-
-## 5. Tiêu Chí Nghiệm Thu (Acceptance Criteria)
-- [x] Toàn bộ 5 luồng log được thu thập liên tục và có thể truy vấn bằng CloudWatch Insights.
-- [x] Nhật ký `eve.json` của Suricata ghi nhận chi tiết các phiên kiểm tra GENEVE.
-- [x] AWS VPC Reachability Analyzer xác nhận đường truyền logic giữa Edge và Core thông suốt qua GWLB (`NetworkPathFound: True`).
-
+| Mã Lab | Tên Đặc Tả & Nội Dung Trọng Tâm | Trạng Thái | File Đặc Tả |
+|---|---|:---:|---|
+| **09.01** | **CloudWatch Log Groups Tập Trung:** Danh mục 8 log groups với thời hạn lưu trữ 7 ngày. | `RUNTIME_PASS` | [01-centralized-cloudwatch-log-groups.md](01-centralized-cloudwatch-log-groups.md) |
+| **09.02** | **Suricata EVE Log Aggregation:** Thu thập nhật ký L7 IDS/IPS qua CloudWatch Unified Agent. | `RUNTIME_PASS` | [02-suricata-eve-log-aggregation.md](02-suricata-eve-log-aggregation.md) |
+| **09.03** | **CloudWatch Insights Queries:** Thư viện 4 câu truy vấn chuẩn hóa phục vụ phân tích sự cố mạng. | `RUNTIME_PASS` | [03-cloudwatch-insights-queries.md](03-cloudwatch-insights-queries.md) |
+| **09.04** | **VPC Reachability Analyzer:** Chứng minh bằng toán học đường truyền logic 13 chặng xuyên qua GWLB. | `RUNTIME_PASS` | [04-vpc-reachability-analyzer.md](04-vpc-reachability-analyzer.md) |

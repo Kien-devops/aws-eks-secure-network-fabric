@@ -1,10 +1,41 @@
-# Module 12: Cleanup Theo Phụ Thuộc Và Kiểm Kê Chi Phí
+# Module 12 — Dọn Dẹp Tài Nguyên Theo Phụ Thuộc Ngược & Kiểm Kê FinOps (Teardown & Cleanup)
 
-**Thao tác hủy dữ liệu cần được phép trước khi chạy.** Chỉ xử lý IDs thuộc dự án, lưu evidence/backups và quyết định retention trước khi xóa.
+## 1. Tổng Quan Module
 
-1. [12.01 Reverse teardown](01-reverse-dependency-teardown.md): dừng GitOps/pipeline reconcile; xóa Ingress/LoadBalancer Services khi controllers còn chạy; chờ LB/ENIs giải phóng, xử lý PVC/PV và DNS; sau đó mới xóa nodes/clusters, database/cache/queues, firewall/GWLBe/endpoint service/GWLB/appliances, TGW và network base.
-2. [12.02 Residual verification](02-zero-residual-verification.md): walkthrough Console từng dịch vụ, gồm EBS/snapshots, logs/ECR/S3, secrets/KMS, DNS/IAM và billing. Ghi retained/pending với owner, expiry và chi phí.
+Module 12 đặc tả quy trình dọn dẹp và thu hồi toàn bộ tài nguyên trên AWS Cloud theo thứ tự phụ thuộc ngược 6 tầng (Reverse 6-Tier Dependency). Quy trình này ngăn ngừa triệt để lỗi kẹt ENI, đảm bảo an toàn dữ liệu trước khi xóa và thực hiện kiểm kê đối soát đưa chi phí vận hành về $0.00 USD/ngày.
 
-Không yêu cầu toàn tài khoản sạch hoặc chỉ còn Default VPC. Không force-delete managed ENIs. Không giả định Terraform/pipeline đã có để dựng lại; dữ liệu xóa chỉ phục hồi được khi có backup và khóa giải mã còn dùng được.
+---
 
-Nghiệm thu dựa inventory IDs, timestamps, raw outputs, ngoại lệ retention và khoảng usage billing đã cập nhật. Billing có độ trễ; cleanup không xóa phí đã phát sinh, không bảo đảm chi phí tương lai chính xác $0.
+## 2. Thứ Tự Phụ Thuộc (Dependency Tree)
+
+```text
+[Module 11 Tổng Hợp Bằng Chứng & Báo Cáo SRE Hoàn Tất]
+                         │
+                         ▼
+[12.01 Quy Trình Hủy Tài Nguyên Theo Phụ Thuộc Ngược (Reverse Teardown)]
+                         │
+                         ▼
+[12.02 Kiểm Kê Tồn Dư & Đối Soát Chi Phí Sau Cleanup (Zero Residual)]
+```
+
+---
+
+## 3. Danh Mục Bài Lab & Trạng Thái
+
+| Mã Bài | Tên Bài Lab | Nội Dung Kỹ Thuật Chính | Trạng Thái | File Đặc Tả |
+| :--- | :--- | :--- | :--- | :--- |
+| **12.01** | Reverse Teardown | Quy trình xóa tài nguyên 6 tầng: L7 Ingress -> EKS -> DB/Cache -> Firewalls -> TGW -> Network Base | `READY_TO_RUN` | [01-reverse-dependency-teardown.md](01-reverse-dependency-teardown.md) |
+| **12.02** | Residual Verification | Kiểm kê tồn dư trên 6 nhóm dịch vụ AWS qua CLI và đối soát chi phí billing ngày T+1 | `READY_TO_RUN` | [02-zero-residual-verification.md](02-zero-residual-verification.md) |
+
+---
+
+## 4. Danh Mục 6 Tầng Dọn Dẹp (Teardown Tiers Inventory)
+
+| Tầng Dọn Dẹp | Thành Phần Tài Nguyên | Phạm Vi AWS Service | Hành Động Kỹ Thuật |
+| :--- | :--- | :--- | :--- |
+| **Tầng 1** | L7 Ingress & WAF | ALB, Public ACM Cert, Web ACL | Xóa Ingress K8s, Detach WAF & Xóa Web ACL |
+| **Tầng 2** | Workloads & EKS | Managed Node Groups, EKS Control Planes | Xóa Node Groups trước (giải phóng ENI), xóa Clusters |
+| **Tầng 3** | Database & Messaging | Aurora Serverless v2, ElastiCache Redis, SQS | Xóa DB cluster, xóa Redis replication group, xóa Queues |
+| **Tầng 4** | Firewalls & GWLB | AWS Network Firewall, GWLBe, GWLB, Suricata EC2 | Xóa NFW, xóa GWLB endpoints, terminate EC2 instances |
+| **Tầng 5** | Transit Gateway | TGW Attachments, TGW Route Tables, TGW Core | Xóa 4 VPC Attachments, xóa route tables, xóa TGW |
+| **Tầng 6** | Network Base & IPs | NAT Gateways, Elastic IPs, IGWs, Subnets, 4 VPCs | Xóa NAT GWs, release Elastic IPs, xóa 4 VPCs |

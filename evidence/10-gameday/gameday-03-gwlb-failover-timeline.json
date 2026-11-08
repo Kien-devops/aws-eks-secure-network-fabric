@@ -1,4 +1,4 @@
-﻿{
+{
     "target_group_arn":  "arn:aws:elasticloadbalancing:ap-southeast-1:123456789012:targetgroup/fabric-suricata-tg/001c164dc0b0afa208",
     "tested_instance":  "i-091e84ae2b923eea2",
     "gameday_id":  "10.03-suricata-appliance-loss",
@@ -10,7 +10,7 @@
                    },
     "target_region":  "ap-southeast-1",
     "healthy_peer_instance":  "i-089127472b112deff",
-    "observations":  "Health check drop on fabric-suricata-1a was detected by GWLB within 2 check intervals (20s). GWLB seamlessly routed East-West inspection traffic to healthy peer fabric-suricata-1b in AZ-b without dropping active user HTTP transactions.",
+    "observations":  "Health check drop on fabric-suricata-1b was detected by GWLB within 2 check intervals (20s). GWLB seamlessly routed East-West inspection traffic to healthy peer fabric-suricata-1a in AZ-a without dropping active user HTTP transactions.",
     "metrics":  {
                     "detection_time_seconds":  32.1184529,
                     "recovery_time_seconds":  89.24304459999999,

